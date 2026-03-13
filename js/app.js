@@ -232,13 +232,29 @@ btnWppStock.addEventListener("click", async () => {
 // =============================
 
 selectSector.addEventListener("change", async () => {
+
   if (!validarSeleccion()) return;
+
+  if (cambiosPendientes) {
+    const confirmar = confirm(
+      "Hay cambios sin guardar. Si cambiás de sector se perderán. ¿Continuar?"
+    );
+
+    if (!confirmar) {
+      selectSector.value = selectSector.dataset.anterior;
+      return;
+    }
+  }
+
+  selectSector.dataset.anterior = selectSector.value;
 
   ordenarCategoriasPorSector();
 
   renderProductos(listaProductos, categorias, productos, manejarCambioInput);
 
-  if (cambiosPendientes) {
+  await cargarStockSector();
+
+});
     const confirmar = confirm(
       "Hay cambios sin guardar. Si cambiás de sector se perderán. ¿Continuar?",
     );
