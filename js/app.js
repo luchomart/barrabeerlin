@@ -44,6 +44,7 @@ const btnWppStock = document.getElementById("btn-wpp-stock");
 let productos = [];
 let categorias = [];
 let sectores = [];
+let sectorAnterior = "";
 
 let cambiosPendientes = false;
 
@@ -137,7 +138,6 @@ async function init() {
     await cargarStockSector();
   }
 
-  selectSector.dataset.anterior = selectSector.value;
   validarSeleccion();
 }
 
@@ -233,20 +233,18 @@ btnWppStock.addEventListener("click", async () => {
 
 selectSector.addEventListener("change", async () => {
 
-  if (!validarSeleccion()) return;
-
   if (cambiosPendientes) {
     const confirmar = confirm(
       "Hay cambios sin guardar. Si cambiás de sector se perderán. ¿Continuar?"
     );
 
     if (!confirmar) {
-      selectSector.value = selectSector.dataset.anterior;
+      selectSector.value = sectorAnterior;
       return;
     }
   }
 
-  selectSector.dataset.anterior = selectSector.value;
+  if (!validarSeleccion()) return;
 
   ordenarCategoriasPorSector();
 
