@@ -1,0 +1,438 @@
+/* =====================================================
+   BASE / LAYOUT
+===================================================== */
+
+body {
+  font-family:
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background: linear-gradient(180deg, #f6f8fb, #eef1f5);
+  margin: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.container {
+  width: 100%;
+  max-width: 450px;
+  background: white;
+  min-height: 100vh;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+header {
+  padding-bottom: 14px;
+  border-bottom: 1px solid #eceff3;
+  margin-bottom: 20px;
+}
+
+header h1 {
+  font-size: 1.7rem;
+  margin: 0;
+  color: #1c1c1c;
+}
+
+header p {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: #7b7f86;
+}
+
+/* =====================================================
+   CONFIGURACIÓN (SECTOR / EMPLEADO)
+===================================================== */
+
+.config {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.campo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.campo:first-child {
+  flex: 1;
+}
+
+.campo:last-child {
+  flex: 2;
+}
+
+.campo label {
+  font-size: 13px;
+  color: #555;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.config select {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 2px solid #3ecf8e;
+  font-size: 0.95rem;
+  outline: none;
+  transition: 0.2s;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config select:focus {
+  border-color: #2fb877;
+  box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.15);
+}
+
+/* =====================================================
+   BUSCADOR
+===================================================== */
+
+.busqueda {
+  margin-bottom: 25px;
+}
+
+.buscador-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.buscador-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  color: #777;
+  pointer-events: none;
+}
+
+#buscar-producto {
+  width: 100%;
+  padding: 12px 12px 12px 40px;
+  border-radius: 10px;
+  border: 2px solid #e5e8ec;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+  transition: 0.2s;
+}
+
+#buscar-producto:focus {
+  outline: none;
+  border-color: #3ecf8e;
+  box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.15);
+}
+
+/* =====================================================
+   CATEGORÍAS
+===================================================== */
+
+.categoria-bloque {
+  margin-top: 16px;
+  border-radius: 14px;
+  border: 1px solid #e6eaef;
+  background: white;
+  overflow: hidden;
+
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.categoria-titulo {
+  padding: 14px 16px;
+
+  font-weight: 600;
+  font-size: 0.95rem;
+
+  background: #f7f9fb;
+
+  border-bottom: 1px solid #eef2f6;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  cursor: pointer;
+}
+
+.categoria-titulo:hover {
+  background: #eef2f6;
+}
+
+.categoria-abierta {
+  background: #eefaf4;
+  border-color: #3ecf8e;
+}
+
+.categoria-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.categoria-arrow {
+  font-size: 0.85rem;
+  color: #666;
+  transition: transform 0.2s ease;
+}
+
+.categoria-abierta .categoria-arrow {
+  transform: rotate(90deg);
+}
+
+.categoria-count {
+  color: #777;
+  font-size: 0.85rem;
+}
+
+.categoria-productos {
+  transition: all 0.2s ease;
+}
+
+.categoria-cerrada {
+  display: none;
+}
+
+/* =====================================================
+   PRODUCTOS
+===================================================== */
+
+.producto-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 12px 16px;
+
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.producto-fila:last-child {
+  border-bottom: none;
+}
+
+.producto-nombre {
+  font-weight: 500;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+/* INPUT CANTIDAD */
+
+.producto-fila input {
+  width: 70px;
+  padding: 12px;
+
+  border-radius: 10px;
+  border: 1px solid #dfe3e8;
+
+  font-size: 1.1rem;
+  font-weight: 600;
+
+  text-align: center;
+
+  background: white;
+
+  transition: all 0.15s ease;
+}
+
+.producto-fila input:focus {
+  border-color: #3ecf8e;
+  box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.15);
+  outline: none;
+}
+
+/* remover flechas input number */
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  appearance: textfield;
+}
+
+/* INPUT MODIFICADO */
+
+.input-modificado {
+  background: #fff8dc;
+  border-color: #ffc107 !important;
+}
+
+/* =====================================================
+   FOOTER
+===================================================== */
+
+footer {
+  position: sticky;
+  bottom: 0;
+  margin-top: 30px;
+  padding-top: 12px;
+  background: white;
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.04);
+}
+
+/* BOTÓN GUARDAR */
+
+#btn-guardar {
+  width: 100%;
+  padding: 18px;
+
+  background: linear-gradient(135deg, #3ecf8e, #2fb877);
+
+  border: none;
+  border-radius: 16px;
+
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: white;
+
+  cursor: pointer;
+
+  box-shadow: 0 8px 20px rgba(62, 207, 142, 0.35);
+}
+
+#btn-guardar:hover {
+  background: #28b765;
+}
+
+#btn-guardar:active {
+  transform: scale(0.98);
+}
+
+/* =====================================================
+   COMPARTIR STOCK
+===================================================== */
+
+.acciones-stock {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.acciones-titulo {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.acciones-botones {
+  display: flex;
+  gap: 10px;
+}
+
+.acciones-botones button {
+  flex: 1;
+
+  padding: 12px;
+
+  border-radius: 12px;
+  border: 1px solid #e6eaef;
+
+  background: #f5f7fa;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.acciones-botones button:hover {
+  background: #e8edf1;
+}
+
+/* =====================================================
+   SUPERVISOR
+===================================================== */
+
+.btn-supervisor {
+  margin-top: 8px;
+
+  background: #444;
+  color: white;
+
+  font-size: 12px;
+
+  padding: 6px 10px;
+
+  opacity: 0.6;
+}
+
+.btn-supervisor:hover {
+  opacity: 1;
+}
+
+/* =====================================================
+   STOCK VIEW
+===================================================== */
+
+#stock-actual {
+  margin-top: 30px;
+}
+
+.stock-sector {
+  background: #fafafa;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #f0f0f0;
+}
+
+.stock-sector h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #333;
+  font-size: 1rem;
+}
+
+.stock-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.95rem;
+}
+
+.stock-item:last-child {
+  border-bottom: none;
+}
+
+.stock-item strong {
+  color: #2fb877;
+}
+
+/* =====================================================
+   LOADER
+===================================================== */
+
+.loader {
+  text-align: center;
+  color: #777;
+  padding: 20px;
+}
+
+.busqueda {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  background: white;
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
+.producto-fila:active {
+  background: #f5f8fb;
+}

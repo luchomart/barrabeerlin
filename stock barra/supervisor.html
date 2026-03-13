@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Supervisor Stock</title>
+
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <header>
+        <h1>📊 Supervisor</h1>
+        <p>Estado del inventario</p>
+      </header>
+
+      <section class="acciones-supervisor">
+        <button id="btn-volver">⬅ Volver a empleados</button>
+
+        <button id="btn-recargar">🔄 Actualizar</button>
+        <button id="btn-whatsapp">📤 Enviar stock</button>
+      </section>
+
+      <section>
+        <h2>Estado de sectores</h2>
+
+        <div id="estado-sectores">
+          <div class="loader">Cargando estado...</div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Últimos conteos</h2>
+
+        <main id="lista-conteos">
+          <div class="loader">Cargando conteos...</div>
+        </main>
+      </section>
+    </div>
+
+    <script type="module" src="/js/supervisor.js"></script>
+  </body>
+</html>
