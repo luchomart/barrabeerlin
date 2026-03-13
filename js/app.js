@@ -255,20 +255,6 @@ selectSector.addEventListener("change", async () => {
   await cargarStockSector();
 
 });
-    const confirmar = confirm(
-      "Hay cambios sin guardar. Si cambiás de sector se perderán. ¿Continuar?",
-    );
-
-    if (!confirmar) {
-      selectSector.value = selectSector.dataset.anterior;
-      return;
-    }
-  }
-
-  selectSector.dataset.anterior = selectSector.value;
-
-  await cargarStockSector();
-});
 
 // =============================
 // VALIDAR SELECCIÓN
