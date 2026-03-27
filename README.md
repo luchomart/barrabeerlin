@@ -1,31 +1,23 @@
-# 📦 Stock Barra
+# Stock Barra
 
-Sistema simple para conteo de inventario en barras y depósitos.
+App web de control de stock para barra, pensada para uso mobile-first y operacion rapida en contexto real.
 
-Diseñado para conteos rápidos desde celular.
+## Funcionalidades
 
----
+- Carga de stock por sector.
+- Seleccion de empleado y sector.
+- Buscador de productos.
+- Categorias colapsables.
+- Guardado de inventario en Supabase.
+- Copiar stock total o enviarlo por WhatsApp.
+- Supervisor con estado de sectores, ultimos conteos y cambios de stock.
+- Snapshots de stock total para comparaciones futuras.
 
-## 🚀 Funcionalidades
-
-- Conteo de stock por sector
-- Selección de empleado
-- Buscador de productos
-- Categorías colapsables
-- Guardado en Supabase
-- Compartir inventario
-- Envío directo por WhatsApp
-- Panel supervisor
-
----
-
-## 🌐 Producción
+## Produccion
 
 https://tudominio.com
 
----
-
-## 🛠 Tecnologías
+## Tecnologias
 
 - HTML
 - CSS
@@ -33,20 +25,37 @@ https://tudominio.com
 - Supabase
 - GitHub Pages
 
----
+## Arquitectura
 
-## 📈 Roadmap
+- `js/services/`: acceso a datos y consultas a Supabase.
+- `js/modules/stock/`: flujo principal de carga de stock.
+- `js/modules/supervisor/`: logica del panel supervisor.
+- `js/ui/renderer.js`: render de interfaz.
+- `js/core/appState.js`: estado global.
 
-Próximas mejoras:
+## Versionado
 
-- packs y unidades
-- historial de inventarios
-- alertas de stock bajo
-- dashboard supervisor
-- app instalable (PWA)
+La version de la app se define en una sola fuente de verdad:
 
----
+- `js/config.js` -> `APP_VERSION`
 
-## 📜 Licencia
+Reglas de versionado:
+
+- `PATCH` (`0.0.x`): fixes, hardening y pequenos ajustes sin features nuevas.
+- `MINOR` (`0.x.0`): funcionalidades importantes nuevas o hitos visibles del producto.
+- `MAJOR` (`1.0.0`): sistema estable y considerado completo.
+
+Flujo recomendado al sacar una version:
+
+1. Actualizar `APP_VERSION` en `js/config.js`.
+2. Agregar o completar la entrada correspondiente en `CHANGELOG.md`.
+3. Reflejar el estado futuro en `docs/ROADMAP.md` si cambia el plan.
+4. Verificar en la UI que la version visible coincida con `APP_VERSION`.
+
+## Roadmap
+
+Ver [docs/ROADMAP.md](/Users/Usuario/Desktop/lucio/stock%20barra%20lucio/barrabeerlin/docs/ROADMAP.md).
+
+## Licencia
 
 Uso interno.

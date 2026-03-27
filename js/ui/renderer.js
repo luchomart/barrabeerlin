@@ -285,3 +285,30 @@ export function renderSupervisorCambios(listaCambios, textoCambios) {
     listaCambios.appendChild(div);
   });
 }
+
+export function renderAppVersionBadge(version) {
+  const versionNormalizada = String(version || "").trim();
+
+  if (!versionNormalizada) return;
+
+  const versionLabel = versionNormalizada.startsWith("v")
+    ? versionNormalizada
+    : `v${versionNormalizada}`;
+
+  let badge = document.querySelector("[data-app-version]");
+
+  if (!badge) {
+    badge = document.createElement("div");
+    badge.className = "app-version-badge";
+    badge.dataset.appVersion = "true";
+  }
+
+  badge.textContent = versionLabel;
+
+  const target =
+    document.querySelector("footer") ||
+    document.querySelector(".container") ||
+    document.body;
+
+  target.appendChild(badge);
+}

@@ -4,6 +4,8 @@
 
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
+export const APP_VERSION = "0.2.0";
+
 // =============================
 // CONFIGURACIÓN SUPABASE
 // =============================
