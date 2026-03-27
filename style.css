@@ -436,3 +436,292 @@ footer {
 .producto-fila:active {
   background: #f5f8fb;
 }
+
+/* =====================================================
+   SUPERVISOR UI
+===================================================== */
+
+.acciones-supervisor {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.acciones-supervisor button {
+  padding: 12px 10px;
+  border: 1px solid #dbe3ea;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff, #f3f6f9);
+  color: #22303c;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.acciones-supervisor button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.08);
+}
+
+.acciones-supervisor button:active {
+  transform: translateY(0);
+}
+
+#btn-recargar {
+  border-color: #bfd8ff;
+}
+
+#btn-whatsapp {
+  border-color: #bce7c9;
+}
+
+.supervisor-section {
+  margin-bottom: 22px;
+}
+
+.supervisor-section h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  color: #23313d;
+}
+
+.supervisor-card {
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  border: 1px solid #e4ebf2;
+  border-radius: 18px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+}
+
+.supervisor-card h3 {
+  margin: 8px 0 10px;
+  font-size: 1.05rem;
+  color: #16212b;
+}
+
+.supervisor-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.supervisor-tag,
+.supervisor-time,
+.supervisor-chip,
+.supervisor-status-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.supervisor-tag {
+  padding: 7px 10px;
+  background: #eef5ff;
+  color: #2556a8;
+}
+
+.supervisor-time {
+  color: #5e6a76;
+}
+
+.supervisor-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.supervisor-chip {
+  padding: 8px 10px;
+  background: #eff6f2;
+  color: #295b45;
+}
+
+.supervisor-chip-muted {
+  background: #f2f4f7;
+  color: #64707c;
+}
+
+.supervisor-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.supervisor-summary-card {
+  border-radius: 16px;
+  padding: 14px;
+  color: white;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+}
+
+.supervisor-summary-ok {
+  background: linear-gradient(135deg, #2fb877, #1f8f5a);
+}
+
+.supervisor-summary-pending {
+  background: linear-gradient(135deg, #d55252, #ad3737);
+}
+
+.supervisor-summary-value {
+  display: block;
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.supervisor-summary-label {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.82rem;
+  opacity: 0.92;
+}
+
+.supervisor-status-list {
+  display: grid;
+  gap: 10px;
+}
+
+.supervisor-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid #e5ebf2;
+  background: #fbfcfd;
+}
+
+.supervisor-status-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #1d2a34;
+}
+
+.supervisor-status-icon {
+  font-size: 1.05rem;
+}
+
+.supervisor-status-ok {
+  background: #f1fbf5;
+  border-color: #ccebd8;
+}
+
+.supervisor-status-ok .supervisor-status-label {
+  color: #1f8f5a;
+}
+
+.supervisor-status-pending {
+  background: #fff5f5;
+  border-color: #f0caca;
+}
+
+.supervisor-status-pending .supervisor-status-label {
+  color: #b13c3c;
+}
+
+.supervisor-change-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid #e5ebf2;
+  background: #fbfcfd;
+  margin-bottom: 10px;
+}
+
+.supervisor-change-up {
+  background: #f1fbf5;
+  border-color: #ccebd8;
+}
+
+.supervisor-change-down {
+  background: #fff5f5;
+  border-color: #f0caca;
+}
+
+.supervisor-change-icon {
+  font-size: 1.1rem;
+}
+
+.supervisor-change-text {
+  font-weight: 700;
+  color: #21303b;
+}
+
+.supervisor-empty {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px dashed #d9e2ea;
+  background: #f9fbfc;
+  color: #5d6975;
+}
+
+.supervisor-empty strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #1f2d38;
+}
+
+.supervisor-empty p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.supervisor-empty-error {
+  border-style: solid;
+  border-color: #f0caca;
+  background: #fff5f5;
+  color: #9e3b3b;
+}
+
+.supervisor-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 76px;
+  border-radius: 16px;
+  border: 1px dashed #d7e0e8;
+  background: #f9fbfc;
+  font-weight: 700;
+}
+
+.supervisor-loader-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #d7e3ee;
+  border-top-color: #2fb877;
+  animation: supervisor-spin 0.9s linear infinite;
+}
+
+@keyframes supervisor-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 420px) {
+  .acciones-supervisor {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #btn-whatsapp {
+    grid-column: 1 / -1;
+  }
+}
