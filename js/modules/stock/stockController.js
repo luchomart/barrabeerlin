@@ -1,8 +1,10 @@
 import { appState } from "../../core/appState.js";
 
 import {
+  CATEGORIA_VIRTUAL_BARRILES,
   EMPLEADOS,
   ORDEN_CATEGORIAS_SECTOR,
+  PRODUCTOS_BARRILES_CAMARA,
   SUPERVISOR_PASSWORD_HASH,
 } from "../../config.js";
 
@@ -51,6 +53,18 @@ export function initStockApp() {
 
   function obtenerNombreSectorSeleccionado() {
     return selectSector.options[selectSector.selectedIndex]?.text || "";
+  }
+
+  function normalizarTexto(texto = "") {
+    return String(texto)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+  }
+
+  function esSectorCamara() {
+    return normalizarTexto(obtenerNombreSectorSeleccionado()) === "camara";
   }
 
   function reflejarSectorActual() {
@@ -107,7 +121,7 @@ export function initStockApp() {
 
   function obtenerCategoriasOrdenadas() {
     const orden = ORDEN_CATEGORIAS_SECTOR[
-      obtenerNombreSectorSeleccionado().toLowerCase()
+      normalizarTexto(obtenerNombreSectorSeleccionado())
     ];
 
     if (!orden) {
@@ -115,14 +129,81 @@ export function initStockApp() {
     }
 
     return [...appState.categorias].sort((categoriaA, categoriaB) => {
-      const posA = orden.indexOf(categoriaA.nombre);
-      const posB = orden.indexOf(categoriaB.nombre);
+      const posA = orden.findIndex(
+        (nombre) => normalizarTexto(nombre) === normalizarTexto(categoriaA.nombre),
+      );
+      const posB = orden.findIndex(
+        (nombre) => normalizarTexto(nombre) === normalizarTexto(categoriaB.nombre),
+      );
 
       if (posA === -1) return 1;
       if (posB === -1) return -1;
 
       return posA - posB;
     });
+  }
+
+  function obtenerProductosBarriles(productos) {
+    const productosPorNombre = new Map(
+      productos.map((producto) => [normalizarTexto(producto.nombre), producto]),
+    );
+    const faltantes = [];
+
+    const barriles = PRODUCTOS_BARRILES_CAMARA.reduce((acumulado, nombre) => {
+      const producto = productosPorNombre.get(normalizarTexto(nombre));
+
+      if (!producto) {
+        faltantes.push(nombre);
+        return acumulado;
+      }
+
+      acumulado.push(producto);
+      return acumulado;
+    }, []);
+
+    if (faltantes.length) {
+      console.warn(
+        "No se encontraron productos configurados para barriles:",
+        faltantes.join(", "),
+      );
+    }
+
+    return barriles;
+  }
+
+  function obtenerCatalogoRenderizable() {
+    const categorias = obtenerCategoriasOrdenadas();
+    const productos = [...appState.productos];
+
+    if (!esSectorCamara()) {
+      return {
+        categorias,
+        productos,
+      };
+    }
+
+    const productosBarriles = obtenerProductosBarriles(productos);
+
+    if (!productosBarriles.length) {
+      return {
+        categorias,
+        productos,
+      };
+    }
+
+    const idsBarriles = new Set(productosBarriles.map((producto) => Number(producto.id)));
+    const productosSinBarriles = productos.filter(
+      (producto) => !idsBarriles.has(Number(producto.id)),
+    );
+    const productosBarrilesAgrupados = productosBarriles.map((producto) => ({
+      ...producto,
+      categoria_id: CATEGORIA_VIRTUAL_BARRILES.id,
+    }));
+
+    return {
+      categorias: [...categorias, CATEGORIA_VIRTUAL_BARRILES],
+      productos: [...productosSinBarriles, ...productosBarrilesAgrupados],
+    };
   }
 
   function manejarCambioInput(input) {
@@ -212,10 +293,12 @@ export function initStockApp() {
   async function renderizarYCargar() {
     if (!validarSeleccion()) return;
 
+    const { categorias, productos } = obtenerCatalogoRenderizable();
+
     renderProductos(
       listaProductos,
-      obtenerCategoriasOrdenadas(),
-      appState.productos,
+      categorias,
+      productos,
       manejarCambioInput,
     );
 
@@ -310,8 +393,9 @@ export function initStockApp() {
   }
 
   async function compartirStock(abrirWhatsapp) {
-    const data = await buildStockData(appState.productos, appState.categorias);
-    const texto = formatWhatsappText(data, appState.productos);
+    const { categorias, productos } = obtenerCatalogoRenderizable();
+    const data = await buildStockData(productos, categorias);
+    const texto = formatWhatsappText(data, productos);
 
     if (abrirWhatsapp) {
       const url =
@@ -428,7 +512,8 @@ export function initStockApp() {
     }
 
     try {
-      const data = await buildStockData(appState.productos, appState.categorias);
+      const { categorias, productos } = obtenerCatalogoRenderizable();
+      const data = await buildStockData(productos, categorias);
 
       if (!snapshotGuardado && puedeGuardarSnapshot(data)) {
         try {
@@ -439,7 +524,7 @@ export function initStockApp() {
         }
       }
 
-      const texto = formatWhatsappText(data, appState.productos);
+      const texto = formatWhatsappText(data, productos);
       const url =
         "https://api.whatsapp.com/send?text=" + encodeURIComponent(texto);
 

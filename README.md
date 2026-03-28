@@ -9,6 +9,7 @@ App web de control de stock para barra, pensada para uso mobile-first y operacio
 - Buscador de productos.
 - Categorias colapsables.
 - Guardado de inventario en Supabase.
+- Conteo de barriles disponibles en Camara dentro del mismo flujo de stock.
 - Copiar stock total o enviarlo por WhatsApp.
 - Supervisor con estado de sectores, ultimos conteos y cambios de stock.
 - Snapshots de stock total para comparaciones futuras.

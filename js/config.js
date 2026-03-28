@@ -7,6 +7,21 @@ export const SUPABASE_KEY =
 
 export const EMPLEADOS = ["", "Karen", "Eve", "Nicolas", "Luciano", "Fiorella"];
 
+export const CATEGORIA_VIRTUAL_BARRILES = {
+  id: "barriles_sin_pinchar",
+  nombre: "\u{1F37A} Barriles (sin pinchar)",
+};
+
+export const PRODUCTOS_BARRILES_CAMARA = [
+  "IPA",
+  "Session IPA",
+  "Mexican Lager",
+  "Amber",
+  "Stout",
+  "Honey",
+  "Barley Wine",
+];
+
 // Hash SHA-256 del password actual. Esto evita dejar la clave en texto plano,
 // aunque el control real de acceso sigue siendo una mejora futura de backend.
 export const SUPERVISOR_PASSWORD_HASH =

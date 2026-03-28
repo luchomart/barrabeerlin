@@ -5,6 +5,7 @@ Historial de cambios de Stock Barra.
 ## v0.2.1 - 2026-03-27
 
 ### Added
+- Categoria virtual de barriles sin pinchar para Camara usando productos ya existentes del catalogo.
 - Deduplicacion defensiva de snapshots recientes con el mismo contenido.
 - Comparacion estructurada de cambios de stock lista para render sin parsear texto.
 - Verificacion hash del acceso supervisor para no dejar la clave en texto plano.
