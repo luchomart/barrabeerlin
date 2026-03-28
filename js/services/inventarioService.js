@@ -2,9 +2,133 @@ import { supabase } from "./supabaseClient.js";
 
 const db = supabase;
 
-// =============================
-// INVENTARIO SECTOR
-// =============================
+const SNAPSHOT_DEDUP_WINDOW_MS = 10000;
+const SNAPSHOT_PAGE_SIZE = 250;
+
+function normalizarCantidadSnapshot(valor) {
+  const cantidad = Number(valor);
+
+  if (!Number.isFinite(cantidad)) {
+    return 0;
+  }
+
+  if (cantidad < 0) {
+    return 0;
+  }
+
+  return Math.trunc(cantidad);
+}
+
+function normalizarRegistrosSnapshot(stockPorProducto = {}) {
+  return Object.entries(stockPorProducto).reduce((acumulado, [productoId, cantidad]) => {
+    const productoIdNormalizado = Number(productoId);
+
+    if (!Number.isFinite(productoIdNormalizado)) {
+      return acumulado;
+    }
+
+    acumulado.push({
+      producto_id: productoIdNormalizado,
+      cantidad: normalizarCantidadSnapshot(cantidad),
+    });
+
+    return acumulado;
+  }, []);
+}
+
+function normalizarRowsSnapshot(rows = []) {
+  return rows
+    .map((row) => ({
+      producto_id: Number(row?.producto_id),
+      cantidad: normalizarCantidadSnapshot(row?.cantidad),
+    }))
+    .filter((row) => Number.isFinite(row.producto_id))
+    .sort((a, b) => a.producto_id - b.producto_id);
+}
+
+function snapshotsSonIguales(snapshotA = [], snapshotB = []) {
+  const a = normalizarRowsSnapshot(snapshotA);
+  const b = normalizarRowsSnapshot(snapshotB);
+
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  return a.every((item, index) => {
+    const comparado = b[index];
+
+    return (
+      item.producto_id === comparado.producto_id &&
+      item.cantidad === comparado.cantidad
+    );
+  });
+}
+
+function esSnapshotReciente(fechaIso) {
+  const fecha = new Date(fechaIso);
+  const timestamp = fecha.getTime();
+
+  if (!Number.isFinite(timestamp)) {
+    return false;
+  }
+
+  return Date.now() - timestamp <= SNAPSHOT_DEDUP_WINDOW_MS;
+}
+
+async function getUltimasFechasSnapshot(cantidad = 2) {
+  const fechas = [];
+  const vistas = new Set();
+  let desde = 0;
+
+  while (fechas.length < cantidad) {
+    const hasta = desde + SNAPSHOT_PAGE_SIZE - 1;
+    const { data, error } = await db
+      .from("stock_snapshots")
+      .select("fecha")
+      .order("fecha", { ascending: false })
+      .range(desde, hasta);
+
+    if (error) throw error;
+
+    if (!Array.isArray(data) || !data.length) {
+      break;
+    }
+
+    data.forEach((item) => {
+      const fecha = item?.fecha;
+
+      if (!fecha || vistas.has(fecha) || fechas.length >= cantidad) {
+        return;
+      }
+
+      vistas.add(fecha);
+      fechas.push(fecha);
+    });
+
+    if (data.length < SNAPSHOT_PAGE_SIZE) {
+      break;
+    }
+
+    desde += SNAPSHOT_PAGE_SIZE;
+  }
+
+  return fechas;
+}
+
+async function getSnapshotByFecha(fecha) {
+  if (!fecha) {
+    return [];
+  }
+
+  const { data, error } = await db
+    .from("stock_snapshots")
+    .select("producto_id, cantidad, fecha")
+    .eq("fecha", fecha);
+
+  if (error) throw error;
+
+  return Array.isArray(data) ? data : [];
+}
 
 export async function getInventarioSector(sectorId) {
   const { data, error } = await db
@@ -17,10 +141,6 @@ export async function getInventarioSector(sectorId) {
   return data;
 }
 
-// =============================
-// GUARDAR INVENTARIO
-// =============================
-
 export async function guardarInventario(registros) {
   const { error } = await db.from("inventario").upsert(registros, {
     onConflict: "producto_id,sector_id",
@@ -28,10 +148,6 @@ export async function guardarInventario(registros) {
 
   if (error) throw error;
 }
-
-// =============================
-// INVENTARIO TOTAL
-// =============================
 
 export async function getInventarioTotal() {
   const { data, error } = await db
@@ -42,10 +158,6 @@ export async function getInventarioTotal() {
 
   return data;
 }
-
-// =============================
-// CONTEOS DESDE FECHA
-// =============================
 
 export async function getConteosDesde(fechaIso) {
   const { data, error } = await db
@@ -66,10 +178,6 @@ export async function getConteosDesde(fechaIso) {
   return data;
 }
 
-// =============================
-// INVENTARIO PARA SUPERVISOR
-// =============================
-
 export async function getInventarioConSectores() {
   const { data, error } = await db.from("inventario").select(`
       cantidad,
@@ -82,30 +190,34 @@ export async function getInventarioConSectores() {
   return data;
 }
 
-// =============================
-// SNAPSHOT DE STOCK TOTAL
-// =============================
-
 export async function saveStockSnapshot(stockData) {
-  const { stockPorProducto = {} } = stockData || {};
-  const ahora = new Date();
-  ahora.setMilliseconds(0);
-  const fecha = ahora.toISOString();
-  const snapshotPorProducto = new Map();
+  const stockPorProducto = stockData?.stockPorProducto;
 
-  Object.entries(stockPorProducto).forEach(([productoId, cantidad]) => {
-    snapshotPorProducto.set(Number(productoId), {
-      producto_id: Number(productoId),
-      cantidad: Number(cantidad) || 0,
-      fecha,
-    });
-  });
-
-  const registros = Array.from(snapshotPorProducto.values());
-
-  if (!registros.length) {
+  if (!stockPorProducto || typeof stockPorProducto !== "object") {
     return [];
   }
+
+  const registrosBase = normalizarRegistrosSnapshot(stockPorProducto);
+
+  if (!registrosBase.length) {
+    return [];
+  }
+
+  const [ultimaFecha] = await getUltimasFechasSnapshot(1);
+
+  if (ultimaFecha) {
+    const ultimoSnapshot = await getSnapshotByFecha(ultimaFecha);
+
+    if (
+      esSnapshotReciente(ultimaFecha) &&
+      snapshotsSonIguales(registrosBase, ultimoSnapshot)
+    ) {
+      return [];
+    }
+  }
+
+  const fecha = new Date().toISOString();
+  const registros = registrosBase.map((registro) => ({ ...registro, fecha }));
 
   const { data, error } = await db
     .from("stock_snapshots")
@@ -114,52 +226,43 @@ export async function saveStockSnapshot(stockData) {
 
   if (error) throw error;
 
-  return data;
+  return Array.isArray(data) ? data : [];
 }
 
-// =============================
-// DIFERENCIAS ENTRE SNAPSHOTS
-// =============================
-
 export async function getDiferenciasStock() {
-  const { data: fechasData, error: fechasError } = await db
-    .from("stock_snapshots")
-    .select("fecha")
-    .order("fecha", { ascending: false });
-
-  if (fechasError) throw fechasError;
-
-  if (!Array.isArray(fechasData) || !fechasData.length) {
-    return [];
-  }
-
-  const ultimasFechas = [...new Set(fechasData.map((f) => f.fecha))].slice(0, 2);
+  const ultimasFechas = await getUltimasFechasSnapshot(2);
 
   if (ultimasFechas.length < 2) {
     return [];
   }
 
   const [fechaActual, fechaAnterior] = ultimasFechas;
-
-  const { data, error } = await db
-    .from("stock_snapshots")
-    .select("producto_id, cantidad, fecha")
-    .in("fecha", [fechaActual, fechaAnterior]);
-
-  if (error) throw error;
+  const [snapshotActual, snapshotAnterior] = await Promise.all([
+    getSnapshotByFecha(fechaActual),
+    getSnapshotByFecha(fechaAnterior),
+  ]);
 
   const actual = {};
   const anterior = {};
 
-  data.forEach((item) => {
-    if (item.fecha === fechaActual) {
-      actual[item.producto_id] = item.cantidad;
+  snapshotActual.forEach((item) => {
+    const productoId = Number(item?.producto_id);
+
+    if (!Number.isFinite(productoId)) {
       return;
     }
 
-    if (item.fecha === fechaAnterior) {
-      anterior[item.producto_id] = item.cantidad;
+    actual[productoId] = normalizarCantidadSnapshot(item?.cantidad);
+  });
+
+  snapshotAnterior.forEach((item) => {
+    const productoId = Number(item?.producto_id);
+
+    if (!Number.isFinite(productoId)) {
+      return;
     }
+
+    anterior[productoId] = normalizarCantidadSnapshot(item?.cantidad);
   });
 
   const productoIds = new Set([

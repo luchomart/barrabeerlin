@@ -2,6 +2,27 @@
 
 Historial de cambios de Stock Barra.
 
+## v0.2.1 - 2026-03-27
+
+### Added
+- Deduplicacion defensiva de snapshots recientes con el mismo contenido.
+- Comparacion estructurada de cambios de stock lista para render sin parsear texto.
+- Verificacion hash del acceso supervisor para no dejar la clave en texto plano.
+
+### Changed
+- Unificacion del cliente de Supabase en una sola fuente de configuracion.
+- Normalizacion de textos visibles y etiquetas con codificacion consistente.
+- `buildStockData()` queda apoyada en una version pura reutilizable basada en inventario.
+
+### Fixed
+- Colisiones de snapshots provocadas por timestamps demasiado normalizados.
+- Orden de categorias afectado por strings con codificacion rota en configuracion.
+- Ruta del entrypoint de supervisor y script global sobrante en HTML.
+
+### Removed
+- Script global innecesario de Supabase en la vista principal.
+- Archivos vacios y legacy que no aportaban a la arquitectura actual.
+
 ## v0.2.0 - 2026-03-27
 
 ### Added

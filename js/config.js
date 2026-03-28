@@ -1,38 +1,16 @@
-// =============================
-// IMPORTAR SUPABASE
-// =============================
-
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
-
-export const APP_VERSION = "0.2.0";
-
-// =============================
-// CONFIGURACIÓN SUPABASE
-// =============================
+export const APP_VERSION = "0.2.1";
 
 export const SUPABASE_URL = "https://bcfnqbhrfjaqjdcwynqw.supabase.co";
 
 export const SUPABASE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjZm5xYmhyZmphcWpkY3d5bnF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwOTQ5OTksImV4cCI6MjA4ODY3MDk5OX0.wR7mM5FMCgOvQqqmBu4FAbSKU6luu_sQ4NTbRhaD58U";
 
-// crear cliente supabase
-export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-// =============================
-// LISTA DE EMPLEADOS
-// =============================
-
 export const EMPLEADOS = ["", "Karen", "Eve", "Nicolas", "Luciano", "Fiorella"];
 
-// =============================
-// PASSWORD SUPERVISOR
-// =============================
-
-export const PASSWORD_SUPERVISOR = "1234";
-
-// =============================
-// ORDEN DE CATEGORÍAS POR SECTOR
-// =============================
+// Hash SHA-256 del password actual. Esto evita dejar la clave en texto plano,
+// aunque el control real de acceso sigue siendo una mejora futura de backend.
+export const SUPERVISOR_PASSWORD_HASH =
+  "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4";
 
 export const ORDEN_CATEGORIAS_SECTOR = {
   camara: [
@@ -40,7 +18,7 @@ export const ORDEN_CATEGORIAS_SECTOR = {
     "Aguas",
     "Cervezas",
     "Aguas saborizadas",
-    "Energéticas",
+    "Energ\u00E9ticas",
     "Espumantes",
     "Vinos",
     "Destilados, licores y aperitivos",
@@ -58,7 +36,7 @@ export const ORDEN_CATEGORIAS_SECTOR = {
     "Destilados, licores y aperitivos",
     "Aguas",
     "Aguas saborizadas",
-    "Energéticas",
+    "Energ\u00E9ticas",
   ],
 
   exhibidoras: [
@@ -66,7 +44,7 @@ export const ORDEN_CATEGORIAS_SECTOR = {
     "Aguas",
     "Aguas saborizadas",
     "Cervezas",
-    "Energéticas",
+    "Energ\u00E9ticas",
     "Vinos",
   ],
 };

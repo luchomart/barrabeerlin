@@ -1,9 +1,5 @@
 import { getInventarioTotal } from "../../services/inventarioService.js";
 
-// =============================
-// ORDEN DE CATEGORIAS
-// =============================
-
 const ORDEN_CATEGORIAS = [
   "gaseosa",
   "agua",
@@ -14,81 +10,153 @@ const ORDEN_CATEGORIAS = [
   "destil",
 ];
 
-// =============================
-// EMOJIS
-// =============================
+const ICONOS = {
+  agua: "\u{1F4A7}",
+  aguaSaborizada: "\u{1F34B}",
+  baja: "\u{1F4C9}",
+  brillos: "\u{1F37E}",
+  cerveza: "\u{1F37A}",
+  destilados: "\u{1F378}",
+  energia: "\u26A1",
+  grafico: "\u{1F4CA}",
+  suba: "\u{1F4C8}",
+  vino: "\u{1F377}",
+  gaseosa: "\u{1F964}",
+  default: "\u2022",
+};
 
-function obtenerEmojiCategoria(nombreCategoria) {
-  const nombre = nombreCategoria.toLowerCase();
+function obtenerEmojiCategoria(nombreCategoria = "") {
+  const nombre = String(nombreCategoria).toLowerCase();
 
-  if (nombre.includes("gaseosa")) return "🥤";
-  if (nombre.includes("agua") && nombre.includes("sabor")) return "🍋";
-  if (nombre.includes("agua")) return "💧";
-  if (nombre.includes("energ")) return "⚡";
-  if (nombre.includes("vino")) return "🍷";
-  if (nombre.includes("espum")) return "🍾";
-  if (nombre.includes("destil") || nombre.includes("licor")) return "🍸";
-  if (nombre.includes("cerveza")) return "🍺";
+  if (nombre.includes("gaseosa")) return ICONOS.gaseosa;
+  if (nombre.includes("agua") && nombre.includes("sabor")) {
+    return ICONOS.aguaSaborizada;
+  }
+  if (nombre.includes("agua")) return ICONOS.agua;
+  if (nombre.includes("energ")) return ICONOS.energia;
+  if (nombre.includes("vino")) return ICONOS.vino;
+  if (nombre.includes("espum")) return ICONOS.brillos;
+  if (nombre.includes("destil") || nombre.includes("licor")) {
+    return ICONOS.destilados;
+  }
+  if (nombre.includes("cerveza")) return ICONOS.cerveza;
 
-  return "•";
+  return ICONOS.default;
 }
 
-// =============================
-// BUILD DATA (LOGICA PURA)
-// =============================
+function ordenarCategorias(categorias = []) {
+  return [...categorias].sort((a, b) => {
+    const nombreA = String(a?.nombre || "").toLowerCase();
+    const nombreB = String(b?.nombre || "").toLowerCase();
 
-export async function buildStockData(productos, categorias) {
-  const inventario = await getInventarioTotal();
-
-  const categoriasOrdenadas = [...categorias].sort((a, b) => {
-    const nombreA = a.nombre.toLowerCase();
-    const nombreB = b.nombre.toLowerCase();
-
-    const posA = ORDEN_CATEGORIAS.findIndex((orden) =>
-      nombreA.includes(orden),
-    );
-    const posB = ORDEN_CATEGORIAS.findIndex((orden) =>
-      nombreB.includes(orden),
-    );
+    const posA = ORDEN_CATEGORIAS.findIndex((orden) => nombreA.includes(orden));
+    const posB = ORDEN_CATEGORIAS.findIndex((orden) => nombreB.includes(orden));
 
     if (posA === -1) return 1;
     if (posB === -1) return -1;
 
     return posA - posB;
   });
+}
 
-  const stockPorProducto = {};
+function construirStockPorProducto(inventario = []) {
+  return inventario.reduce((acumulado, item) => {
+    const productoId = Number(item?.producto_id);
+    const cantidad = Number(item?.cantidad);
 
-  inventario.forEach((item) => {
-    if (!stockPorProducto[item.producto_id]) {
-      stockPorProducto[item.producto_id] = 0;
+    if (!Number.isFinite(productoId)) {
+      return acumulado;
     }
 
-    stockPorProducto[item.producto_id] += item.cantidad;
-  });
+    if (!Number.isFinite(cantidad)) {
+      return acumulado;
+    }
 
+    if (!acumulado[productoId]) {
+      acumulado[productoId] = 0;
+    }
+
+    acumulado[productoId] += cantidad;
+
+    return acumulado;
+  }, {});
+}
+
+function construirMapaProductos(productos = []) {
+  return productos.reduce((acumulado, producto) => {
+    const productoId = Number(producto?.id);
+
+    if (!Number.isFinite(productoId)) {
+      return acumulado;
+    }
+
+    acumulado[productoId] = producto.nombre || `Producto ${productoId}`;
+
+    return acumulado;
+  }, {});
+}
+
+export function buildStockDataFromInventario(
+  inventario = [],
+  productos = [],
+  categorias = [],
+) {
   return {
-    categoriasOrdenadas,
-    stockPorProducto,
+    categoriasOrdenadas: ordenarCategorias(categorias),
+    stockPorProducto: construirStockPorProducto(inventario),
+    productos,
   };
 }
 
-// =============================
-// FORMATO WHATSAPP
-// =============================
+// Wrapper async para obtener inventario real sin cambiar la API actual.
+export async function buildStockData(productos, categorias) {
+  const inventario = await getInventarioTotal();
+
+  return buildStockDataFromInventario(inventario, productos, categorias);
+}
+
+export function buildStockChanges(diferencias, productos, limit = 10) {
+  if (!Array.isArray(diferencias) || !Array.isArray(productos)) {
+    return [];
+  }
+
+  const nombresPorProducto = construirMapaProductos(productos);
+
+  return diferencias
+    .map((item) => {
+      const productoId = Number(item?.producto_id);
+      const actual = Number(item?.actual) || 0;
+      const anterior = Number(item?.anterior) || 0;
+      const diferencia = Number(item?.diferencia) || 0;
+
+      return {
+        producto_id: productoId,
+        actual,
+        anterior,
+        diferencia,
+        esSuba: diferencia > 0,
+        icono: diferencia > 0 ? ICONOS.suba : ICONOS.baja,
+        nombre:
+          nombresPorProducto[productoId] ||
+          `Producto ${Number.isFinite(productoId) ? productoId : "sin id"}`,
+      };
+    })
+    .filter((item) => Number.isFinite(item.producto_id) && item.diferencia !== 0)
+    .sort((a, b) => Math.abs(b.diferencia) - Math.abs(a.diferencia))
+    .slice(0, limit);
+}
 
 export function formatWhatsappText(data, productos) {
-  const { categoriasOrdenadas, stockPorProducto } = data;
+  const { categoriasOrdenadas = [], stockPorProducto = {} } = data || {};
 
   const ahora = new Date();
-
   const fecha = ahora.toLocaleDateString("es-AR");
   const hora = ahora.toLocaleTimeString("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
   });
 
-  let texto = `📊 *STOCK TOTAL BARRA*\n📅 ${fecha} - ${hora}\n\n`;
+  let texto = `${ICONOS.grafico} *STOCK TOTAL BARRA*\n${ICONOS.default} ${fecha} - ${hora}\n\n`;
 
   categoriasOrdenadas.forEach((categoria) => {
     const productosCategoria = productos.filter(
@@ -98,30 +166,26 @@ export function formatWhatsappText(data, productos) {
     let bloque = "";
 
     productosCategoria.forEach((producto) => {
-      const cantidad = stockPorProducto[producto.id] || 0;
+      const cantidad = Number(stockPorProducto[producto.id]) || 0;
 
       if (cantidad > 0) {
-        bloque += `• ${producto.nombre} — ${cantidad}\n`;
+        bloque += `- ${producto.nombre}: ${cantidad}\n`;
       }
     });
 
     if (bloque) {
       const emoji = obtenerEmojiCategoria(categoria.nombre);
 
-      texto += `${emoji} ${categoria.nombre.toUpperCase()}\n`;
-      texto += bloque + "\n";
+      texto += `${emoji} ${String(categoria.nombre || "").toUpperCase()}\n`;
+      texto += `${bloque}\n`;
     }
   });
 
-  return texto;
+  return texto.trim();
 }
 
-// =============================
-// FORMATO SIMPLE (SUPERVISOR)
-// =============================
-
 export function formatPlainText(data, productos) {
-  const { categoriasOrdenadas, stockPorProducto } = data;
+  const { categoriasOrdenadas = [], stockPorProducto = {} } = data || {};
 
   let texto = "";
 
@@ -133,7 +197,7 @@ export function formatPlainText(data, productos) {
     let bloque = "";
 
     productosCategoria.forEach((producto) => {
-      const cantidad = stockPorProducto[producto.id] || 0;
+      const cantidad = Number(stockPorProducto[producto.id]) || 0;
 
       if (cantidad > 0) {
         bloque += `${producto.nombre}: ${cantidad}\n`;
@@ -141,47 +205,27 @@ export function formatPlainText(data, productos) {
     });
 
     if (bloque) {
-      texto += `${categoria.nombre.toUpperCase()}\n`;
-      texto += bloque + "\n";
+      texto += `${String(categoria.nombre || "").toUpperCase()}\n`;
+      texto += `${bloque}\n`;
     }
   });
 
-  return texto;
+  return texto.trim();
 }
 
-// =============================
-// FORMATO DE CAMBIOS
-// =============================
-
 export function formatStockChanges(diferencias, productos) {
-  if (!Array.isArray(diferencias) || !Array.isArray(productos)) {
-    return "📉 CAMBIOS DE STOCK\n\nSin cambios";
-  }
-
-  const nombresPorProducto = {};
-
-  productos.forEach((producto) => {
-    nombresPorProducto[producto.id] = producto.nombre;
-  });
-
-  const cambios = diferencias
-    .filter((item) => item && item.diferencia !== 0)
-    .sort((a, b) => Math.abs(b.diferencia) - Math.abs(a.diferencia))
-    .slice(0, 10);
+  const cambios = buildStockChanges(diferencias, productos);
 
   if (!cambios.length) {
-    return "📉 CAMBIOS DE STOCK\n\nSin cambios";
+    return `${ICONOS.baja} CAMBIOS DE STOCK\n\nSin cambios`;
   }
 
-  let texto = "📉 CAMBIOS DE STOCK\n\n";
+  let texto = `${ICONOS.baja} CAMBIOS DE STOCK\n\n`;
 
   cambios.forEach((item) => {
-    const nombre =
-      nombresPorProducto[item.producto_id] || `Producto ${item.producto_id}`;
-    const icono = item.diferencia > 0 ? "📈" : "📉";
     const signo = item.diferencia > 0 ? "+" : "";
 
-    texto += `${icono} ${nombre}: ${signo}${item.diferencia}\n`;
+    texto += `${item.icono} ${item.nombre}: ${signo}${item.diferencia}\n`;
   });
 
   return texto.trim();

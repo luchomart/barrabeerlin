@@ -15,7 +15,7 @@ App web de control de stock para barra, pensada para uso mobile-first y operacio
 
 ## Produccion
 
-https://tudominio.com
+https://beerlin.online
 
 ## Tecnologias
 
@@ -54,7 +54,7 @@ Flujo recomendado al sacar una version:
 
 ## Roadmap
 
-Ver [docs/ROADMAP.md](/Users/Usuario/Desktop/lucio/stock%20barra%20lucio/barrabeerlin/docs/ROADMAP.md).
+Ver `docs/ROADMAP.md`.
 
 ## Licencia
 

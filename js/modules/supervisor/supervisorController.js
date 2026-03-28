@@ -11,9 +11,9 @@ import {
 } from "../../services/inventarioService.js";
 
 import {
+  buildStockChanges,
   buildStockData,
   formatPlainText,
-  formatStockChanges,
 } from "../stock/stockFormatter.js";
 
 import {
@@ -30,7 +30,7 @@ function obtenerInicioDeHoy() {
   return hoy.toISOString();
 }
 
-function obtenerUltimoConteoPorSector(conteos) {
+function obtenerUltimoConteoPorSector(conteos = []) {
   const conteosPorSector = {};
 
   conteos.forEach((conteo) => {
@@ -42,7 +42,7 @@ function obtenerUltimoConteoPorSector(conteos) {
   return Object.values(conteosPorSector);
 }
 
-function obtenerSectoresContados(conteos) {
+function obtenerSectoresContados(conteos = []) {
   return new Set(conteos.map((conteo) => conteo.sector_id));
 }
 
@@ -66,12 +66,12 @@ export function initSupervisorApp() {
 
       renderSupervisorConteos(
         listaConteos,
-        obtenerUltimoConteoPorSector(conteos),
+        obtenerUltimoConteoPorSector(Array.isArray(conteos) ? conteos : []),
       );
       renderSupervisorEstadoSectores(
         estadoSectores,
-        sectores,
-        obtenerSectoresContados(conteos),
+        Array.isArray(sectores) ? sectores : [],
+        obtenerSectoresContados(Array.isArray(conteos) ? conteos : []),
       );
     } catch (error) {
       console.error(error);
@@ -89,9 +89,9 @@ export function initSupervisorApp() {
         getProductos(),
       ]);
 
-      const textoCambios = formatStockChanges(diferencias, productos);
+      const cambios = buildStockChanges(diferencias, productos);
 
-      renderSupervisorCambios(listaCambiosStock, textoCambios);
+      renderSupervisorCambios(listaCambiosStock, cambios);
     } catch (error) {
       console.error(error);
       renderSupervisorError(listaCambiosStock, "Error cargando cambios");
@@ -107,7 +107,7 @@ export function initSupervisorApp() {
       const data = await getInventarioConSectores();
       const productos = {};
 
-      data.forEach((item) => {
+      (Array.isArray(data) ? data : []).forEach((item) => {
         if (!productos[item.producto_id]) {
           productos[item.producto_id] = [];
         }
@@ -150,7 +150,7 @@ export function initSupervisorApp() {
       const texto = formatPlainText(data, productos);
       const url = "https://wa.me/?text=" + encodeURIComponent(texto);
 
-      window.open(url);
+      window.open(url, "_blank");
     } catch (error) {
       console.error(error);
       alert("Error generando el stock");

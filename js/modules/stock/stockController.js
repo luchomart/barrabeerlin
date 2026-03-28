@@ -3,7 +3,7 @@ import { appState } from "../../core/appState.js";
 import {
   EMPLEADOS,
   ORDEN_CATEGORIAS_SECTOR,
-  PASSWORD_SUPERVISOR,
+  SUPERVISOR_PASSWORD_HASH,
 } from "../../config.js";
 
 import {
@@ -178,6 +178,29 @@ export function initStockApp() {
     return cantidad;
   }
 
+  async function sha256(texto) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(texto);
+    const digest = await window.crypto.subtle.digest("SHA-256", data);
+
+    return Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+  async function validarPasswordSupervisor(password) {
+    if (!password) {
+      return false;
+    }
+
+    if (!window.crypto?.subtle) {
+      alert("Tu navegador no soporta la verificacion segura del acceso supervisor.");
+      return false;
+    }
+
+    return (await sha256(password)) === SUPERVISOR_PASSWORD_HASH;
+  }
+
   async function cargarStockSector() {
     const data = await getInventarioSector(appState.sector);
 
@@ -186,7 +209,7 @@ export function initStockApp() {
     resetSnapshotGuardado();
   }
 
-  async function renderizarYcargar() {
+  async function renderizarYCargar() {
     if (!validarSeleccion()) return;
 
     renderProductos(
@@ -221,9 +244,7 @@ export function initStockApp() {
 
       await guardarInventario(registros);
 
-      alert(`✅ Conteo guardado
-Empleado: ${appState.empleado}
-Sector: ${obtenerNombreSectorSeleccionado()}`);
+      alert(`Conteo guardado\nEmpleado: ${appState.empleado}\nSector: ${obtenerNombreSectorSeleccionado()}`);
 
       resetSnapshotGuardado();
       appState.resetSector();
@@ -247,7 +268,7 @@ Sector: ${obtenerNombreSectorSeleccionado()}`);
         return;
       }
 
-      await renderizarYcargar();
+      await renderizarYCargar();
     } catch (error) {
       console.error(error);
       alert("Error cargando el stock del sector");
@@ -261,7 +282,7 @@ Sector: ${obtenerNombreSectorSeleccionado()}`);
 
     if (appState.cambiosPendientes) {
       const confirmar = confirm(
-        "Hay cambios sin guardar. Si cambiás de sector se perderán. ¿Continuar?",
+        "Hay cambios sin guardar. Si cambias de sector se perderan. Continuar?",
       );
 
       if (!confirmar) {
@@ -274,7 +295,7 @@ Sector: ${obtenerNombreSectorSeleccionado()}`);
     if (!validarSeleccion()) return;
 
     try {
-      await renderizarYcargar();
+      await renderizarYCargar();
     } catch (error) {
       console.error(error);
       alert("Error cargando el stock del sector");
@@ -283,7 +304,7 @@ Sector: ${obtenerNombreSectorSeleccionado()}`);
       reflejarSectorActual();
 
       if (validarSeleccion()) {
-        await renderizarYcargar();
+        await renderizarYCargar();
       }
     }
   }
@@ -301,7 +322,7 @@ Sector: ${obtenerNombreSectorSeleccionado()}`);
     }
 
     await navigator.clipboard.writeText(texto);
-    alert("📋 Copiado al portapapeles");
+    alert("Copiado al portapapeles");
   }
 
   function configurarBuscador() {
@@ -347,23 +368,23 @@ Sector: ${obtenerNombreSectorSeleccionado()}`);
   }
 
   function configurarAccesoSupervisor() {
-    tituloApp.addEventListener("click", () => {
+    tituloApp.addEventListener("click", async () => {
       contadorToques += 1;
 
       if (contadorToques < 5) return;
 
       contadorToques = 0;
 
-      const pass = prompt("🔒 Contraseña de supervisor");
+      const password = prompt("Contrasena de supervisor");
 
-      if (!pass) return;
+      if (!password) return;
 
-      if (pass === PASSWORD_SUPERVISOR) {
+      if (await validarPasswordSupervisor(password)) {
         window.location.href = "supervisor.html";
         return;
       }
 
-      alert("Contraseña incorrecta");
+      alert("Contrasena incorrecta");
     });
   }
 
@@ -386,7 +407,7 @@ Sector: ${obtenerNombreSectorSeleccionado()}`);
       validarSeleccion();
     } catch (error) {
       console.error(error);
-      listaProductos.innerHTML = "❌ Error cargando la aplicación";
+      listaProductos.innerHTML = "Error cargando la aplicacion";
     }
   }
 

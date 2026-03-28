@@ -2,27 +2,19 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>Stock Barra</title>
 
     <link rel="stylesheet" href="style.css" />
-
-    <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   </head>
 
   <body>
     <div class="container">
       <header>
-        <h1 id="titulo-app">🍺 Stock Barra</h1>
-        <p>Seleccioná el sector y cargá las unidades</p>
+        <h1 id="titulo-app">&#x1F37A; Stock Barra</h1>
+        <p>Selecciona el sector y carga las unidades</p>
       </header>
-
-      <!-- =============================
-     CONFIGURACIÓN
-============================= -->
 
       <section class="config">
         <label for="select-empleado">Empleado:</label>
@@ -34,7 +26,7 @@
 
       <section class="busqueda">
         <div class="buscador-wrapper">
-          <span class="buscador-icon">🔎</span>
+          <span class="buscador-icon">&#x1F50E;</span>
           <input
             type="text"
             id="buscar-producto"
@@ -49,21 +41,19 @@
       </main>
 
       <footer>
-        <button id="btn-guardar">💾 Guardar conteo</button>
+        <button id="btn-guardar">&#x1F4BE; Guardar conteo</button>
 
         <div class="acciones-stock">
-          <p class="acciones-titulo">📦 Compartir stock</p>
+          <p class="acciones-titulo">&#x1F4E6; Compartir stock</p>
 
           <div class="acciones-botones">
-            <button id="btn-copiar-stock">📋 Copiar</button>
-
-            <button id="btn-wpp-stock">📱 WhatsApp</button>
+            <button id="btn-copiar-stock">&#x1F4CB; Copiar</button>
+            <button id="btn-wpp-stock">&#x1F4F1; WhatsApp</button>
           </div>
         </div>
       </footer>
     </div>
 
-    <!-- APP -->
     <script type="module" src="js/app.js"></script>
   </body>
 </html>

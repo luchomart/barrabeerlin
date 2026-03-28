@@ -1,3 +1,12 @@
+const ICONOS = {
+  advertencia: "\u26A0",
+  cambioBaja: "\u{1F4C9}",
+  cambioSuba: "\u{1F4C8}",
+  empleado: "\u{1F464}",
+  hora: "\u{1F552}",
+  sector: "\u{1F4E6}",
+};
+
 export function renderSectores(selectSector, sectores) {
   selectSector.innerHTML = "";
 
@@ -9,7 +18,7 @@ export function renderSectores(selectSector, sectores) {
 
   selectSector.appendChild(optionInicial);
 
-  sectores.forEach((sector) => {
+  (Array.isArray(sectores) ? sectores : []).forEach((sector) => {
     const option = document.createElement("option");
 
     option.value = sector.id;
@@ -27,8 +36,8 @@ export function renderProductos(
 ) {
   listaProductos.innerHTML = "";
 
-  categorias.forEach((categoria) => {
-    const productosCategoria = productos.filter(
+  (Array.isArray(categorias) ? categorias : []).forEach((categoria) => {
+    const productosCategoria = (Array.isArray(productos) ? productos : []).filter(
       (producto) => Number(producto.categoria_id) === Number(categoria.id),
     );
 
@@ -41,7 +50,7 @@ export function renderProductos(
     titulo.className = "categoria-titulo";
     titulo.innerHTML = `
       <div class="categoria-left">
-        <span class="categoria-arrow">▶</span>
+        <span class="categoria-arrow">&#9656;</span>
         <span>${categoria.nombre}</span>
         <span class="categoria-count">(${productosCategoria.length})</span>
       </div>
@@ -70,7 +79,7 @@ export function renderProductos(
     productosCategoria.forEach((producto) => {
       const fila = document.createElement("div");
       fila.className = "producto-fila";
-      fila.dataset.nombre = producto.nombre.toLowerCase();
+      fila.dataset.nombre = String(producto.nombre || "").toLowerCase();
       fila.innerHTML = `
         <span class="producto-nombre">${producto.nombre}</span>
         <input type="number" min="0" value="0" data-id="${producto.id}">
@@ -137,7 +146,7 @@ export function renderProductos(
 export function actualizarInputsStock(data) {
   const mapa = {};
 
-  data.forEach((registro) => {
+  (Array.isArray(data) ? data : []).forEach((registro) => {
     mapa[registro.producto_id] = registro.cantidad;
   });
 
@@ -161,13 +170,13 @@ export function renderSupervisorLoader(container, texto) {
 export function renderSupervisorError(container, texto) {
   container.innerHTML = `
     <div class="supervisor-empty supervisor-empty-error">
-      <strong>⚠ ${texto}</strong>
+      <strong>${ICONOS.advertencia} ${texto}</strong>
     </div>
   `;
 }
 
 export function renderSupervisorConteos(listaConteos, conteos) {
-  if (!conteos.length) {
+  if (!Array.isArray(conteos) || !conteos.length) {
     listaConteos.innerHTML = `
       <div class="supervisor-empty">
         <strong>Sin conteos hoy</strong>
@@ -186,15 +195,15 @@ export function renderSupervisorConteos(listaConteos, conteos) {
     div.className = "supervisor-card supervisor-conteo-card";
     div.innerHTML = `
       <div class="supervisor-card-header">
-        <span class="supervisor-tag supervisor-tag-user">👤 Empleado</span>
-        <span class="supervisor-time">🕒 ${fecha.toLocaleTimeString("es-AR", {
+        <span class="supervisor-tag supervisor-tag-user">${ICONOS.empleado} Empleado</span>
+        <span class="supervisor-time">${ICONOS.hora} ${fecha.toLocaleTimeString("es-AR", {
           hour: "2-digit",
           minute: "2-digit",
         })}</span>
       </div>
-      <h3>${conteo.empleado}</h3>
+      <h3>${conteo.empleado || "Sin empleado"}</h3>
       <div class="supervisor-card-meta">
-        <span class="supervisor-chip">📦 ${conteo.sectores?.nombre || "Sector"}</span>
+        <span class="supervisor-chip">${ICONOS.sector} ${conteo.sectores?.nombre || "Sector"}</span>
         <span class="supervisor-chip supervisor-chip-muted">Ultimo conteo</span>
       </div>
     `;
@@ -208,8 +217,9 @@ export function renderSupervisorEstadoSectores(
   sectores,
   sectoresContados,
 ) {
-  const contados = sectores.filter((sector) => sectoresContados.has(sector.id));
-  const pendientes = sectores.length - contados.length;
+  const listaSectores = Array.isArray(sectores) ? sectores : [];
+  const contados = listaSectores.filter((sector) => sectoresContados.has(sector.id));
+  const pendientes = listaSectores.length - contados.length;
 
   estadoSectores.innerHTML = `
     <div class="supervisor-summary">
@@ -227,7 +237,7 @@ export function renderSupervisorEstadoSectores(
   const lista = document.createElement("div");
   lista.className = "supervisor-status-list";
 
-  sectores.forEach((sector) => {
+  listaSectores.forEach((sector) => {
     const contado = sectoresContados.has(sector.id);
     const div = document.createElement("div");
 
@@ -236,12 +246,10 @@ export function renderSupervisorEstadoSectores(
     }`;
     div.innerHTML = `
       <div class="supervisor-status-main">
-        <span class="supervisor-status-icon">${contado ? "✅" : "❌"}</span>
+        <span class="supervisor-status-icon">${contado ? "&#x2705;" : "&#x274C;"}</span>
         <strong>${sector.nombre}</strong>
       </div>
-      <span class="supervisor-status-label">${
-        contado ? "Contado" : "Pendiente"
-      }</span>
+      <span class="supervisor-status-label">${contado ? "Contado" : "Pendiente"}</span>
     `;
 
     lista.appendChild(div);
@@ -250,15 +258,8 @@ export function renderSupervisorEstadoSectores(
   estadoSectores.appendChild(lista);
 }
 
-export function renderSupervisorCambios(listaCambios, textoCambios) {
-  const lineas = String(textoCambios || "")
-    .split("\n")
-    .map((linea) => linea.trim())
-    .filter(Boolean);
-
-  const items = lineas.slice(1);
-
-  if (!items.length || items[0] === "Sin cambios") {
+export function renderSupervisorCambios(listaCambios, cambios) {
+  if (!Array.isArray(cambios) || !cambios.length) {
     listaCambios.innerHTML = `
       <div class="supervisor-empty">
         <strong>Sin cambios relevantes</strong>
@@ -270,16 +271,17 @@ export function renderSupervisorCambios(listaCambios, textoCambios) {
 
   listaCambios.innerHTML = "";
 
-  items.forEach((item) => {
-    const esSuba = item.startsWith("📈");
+  cambios.forEach((item) => {
     const div = document.createElement("div");
 
     div.className = `supervisor-change-row ${
-      esSuba ? "supervisor-change-up" : "supervisor-change-down"
+      item.esSuba ? "supervisor-change-up" : "supervisor-change-down"
     }`;
     div.innerHTML = `
-      <span class="supervisor-change-icon">${esSuba ? "📈" : "📉"}</span>
-      <span class="supervisor-change-text">${item.replace(/^[📈📉]\s*/, "")}</span>
+      <span class="supervisor-change-icon">${item.icono}</span>
+      <span class="supervisor-change-text">${item.nombre}: ${
+        item.diferencia > 0 ? "+" : ""
+      }${item.diferencia}</span>
     `;
 
     listaCambios.appendChild(div);
