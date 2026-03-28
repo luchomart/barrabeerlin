@@ -4,7 +4,6 @@ import {
   CATEGORIA_VIRTUAL_BARRILES,
   EMPLEADOS,
   ORDEN_CATEGORIAS_SECTOR,
-  PRODUCTOS_BARRILES_CAMARA,
   SUPERVISOR_PASSWORD_HASH,
 } from "../../config.js";
 
@@ -25,8 +24,19 @@ import {
   renderProductos,
   actualizarInputsStock,
 } from "../../ui/renderer.js";
+import { normalizarTexto } from "../../utils/format.js";
 
 import { buildStockData, formatWhatsappText } from "./stockFormatter.js";
+
+const BARRILES = [
+  "ipa",
+  "session ipa",
+  "mexican lager",
+  "amber",
+  "stout",
+  "honey",
+  "barley wine",
+];
 
 export function initStockApp() {
   const selectSector = document.getElementById("select-sector");
@@ -53,18 +63,6 @@ export function initStockApp() {
 
   function obtenerNombreSectorSeleccionado() {
     return selectSector.options[selectSector.selectedIndex]?.text || "";
-  }
-
-  function normalizarTexto(texto = "") {
-    return String(texto)
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim();
-  }
-
-  function esSectorCamara() {
-    return normalizarTexto(obtenerNombreSectorSeleccionado()) === "camara";
   }
 
   function reflejarSectorActual() {
@@ -144,29 +142,11 @@ export function initStockApp() {
   }
 
   function obtenerProductosBarriles(productos) {
-    const productosPorNombre = new Map(
-      productos.map((producto) => [normalizarTexto(producto.nombre), producto]),
+    const barriles = productos.filter((producto) =>
+      BARRILES.includes(normalizarTexto(producto.nombre)),
     );
-    const faltantes = [];
 
-    const barriles = PRODUCTOS_BARRILES_CAMARA.reduce((acumulado, nombre) => {
-      const producto = productosPorNombre.get(normalizarTexto(nombre));
-
-      if (!producto) {
-        faltantes.push(nombre);
-        return acumulado;
-      }
-
-      acumulado.push(producto);
-      return acumulado;
-    }, []);
-
-    if (faltantes.length) {
-      console.warn(
-        "No se encontraron productos configurados para barriles:",
-        faltantes.join(", "),
-      );
-    }
+    console.log("Barriles encontrados:", barriles);
 
     return barriles;
   }
@@ -174,8 +154,13 @@ export function initStockApp() {
   function obtenerCatalogoRenderizable() {
     const categorias = obtenerCategoriasOrdenadas();
     const productos = [...appState.productos];
+    const sectorNombre = normalizarTexto(
+      selectSector.options[selectSector.selectedIndex]?.text,
+    );
 
-    if (!esSectorCamara()) {
+    console.log("Sector:", sectorNombre);
+
+    if (sectorNombre !== "camara") {
       return {
         categorias,
         productos,
@@ -183,6 +168,10 @@ export function initStockApp() {
     }
 
     const productosBarriles = obtenerProductosBarriles(productos);
+
+    if (sectorNombre === "camara" && productosBarriles.length === 0) {
+      console.warn("No se encontraron barriles");
+    }
 
     if (!productosBarriles.length) {
       return {
@@ -201,7 +190,7 @@ export function initStockApp() {
     }));
 
     return {
-      categorias: [...categorias, CATEGORIA_VIRTUAL_BARRILES],
+      categorias: [CATEGORIA_VIRTUAL_BARRILES, ...categorias],
       productos: [...productosSinBarriles, ...productosBarrilesAgrupados],
     };
   }
