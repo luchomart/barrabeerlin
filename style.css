@@ -336,7 +336,7 @@ header::after {
 
 #lista-productos {
   flex: 1;
-  padding: var(--sp-4) var(--sp-4) 180px;
+  padding: var(--sp-4) var(--sp-4) 220px;
   overflow-y: auto;
 }
 
