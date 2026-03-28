@@ -203,6 +203,7 @@ export function initStockApp() {
     try {
       const inputs = document.querySelectorAll("#lista-productos input");
       const registros = [];
+      const ultimaActualizacion = new Date().toISOString();
 
       inputs.forEach((input) => {
         const cantidad = normalizarCantidad(input.value);
@@ -214,6 +215,7 @@ export function initStockApp() {
           sector_id: appState.sector,
           cantidad,
           empleado: appState.empleado,
+          ultima_actualizacion: ultimaActualizacion,
         });
       });
 
