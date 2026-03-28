@@ -9,7 +9,7 @@ export const EMPLEADOS = ["", "Karen", "Eve", "Nicolas", "Luciano", "Fiorella"];
 
 export const CATEGORIA_VIRTUAL_BARRILES = {
   id: "barriles",
-  nombre: "\u{1F37A} Barriles (sin pinchar)",
+  nombre: "Barriles (sin pinchar)",
 };
 
 // Hash SHA-256 del password actual. Esto evita dejar la clave en texto plano,
