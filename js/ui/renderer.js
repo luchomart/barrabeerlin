@@ -7,6 +7,10 @@ const ICONOS = {
   sector: "\u{1F4E6}",
 };
 
+function perteneceACategoria(producto, categoria) {
+  return String(producto?.categoria_id) === String(categoria?.id);
+}
+
 export function renderSectores(selectSector, sectores) {
   selectSector.innerHTML = "";
 
@@ -38,7 +42,7 @@ export function renderProductos(
 
   (Array.isArray(categorias) ? categorias : []).forEach((categoria) => {
     const productosCategoria = (Array.isArray(productos) ? productos : []).filter(
-      (producto) => Number(producto.categoria_id) === Number(categoria.id),
+      (producto) => perteneceACategoria(producto, categoria),
     );
 
     if (!productosCategoria.length) return;

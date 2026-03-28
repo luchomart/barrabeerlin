@@ -96,6 +96,10 @@ function construirMapaProductos(productos = []) {
   }, {});
 }
 
+function perteneceACategoria(producto, categoria) {
+  return String(producto?.categoria_id) === String(categoria?.id);
+}
+
 export function buildStockDataFromInventario(
   inventario = [],
   productos = [],
@@ -160,7 +164,7 @@ export function formatWhatsappText(data, productos) {
 
   categoriasOrdenadas.forEach((categoria) => {
     const productosCategoria = productos.filter(
-      (producto) => Number(producto.categoria_id) === Number(categoria.id),
+      (producto) => perteneceACategoria(producto, categoria),
     );
 
     let bloque = "";
@@ -191,7 +195,7 @@ export function formatPlainText(data, productos) {
 
   categoriasOrdenadas.forEach((categoria) => {
     const productosCategoria = productos.filter(
-      (producto) => Number(producto.categoria_id) === Number(categoria.id),
+      (producto) => perteneceACategoria(producto, categoria),
     );
 
     let bloque = "";
