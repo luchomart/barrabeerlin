@@ -9,7 +9,7 @@ export const EMPLEADOS = ["", "Karen", "Eve", "Nicolas", "Luciano", "Fiorella"];
 
 export const CATEGORIA_VIRTUAL_BARRILES = {
   id: "barriles",
-  nombre: "\u{1F37A} Barriles (sin pinchar)",
+  nombre: "Barriles (sin pinchar)",
 };
 
 export const PRODUCTOS_BARRILES_CAMARA = [
