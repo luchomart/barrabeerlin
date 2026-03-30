@@ -2,10 +2,60 @@ const ICONOS = {
   advertencia: "\u26A0",
   cambioBaja: "\u{1F4C9}",
   cambioSuba: "\u{1F4C8}",
+  cambioNeutral: "\u2696\uFE0F",
   empleado: "\u{1F464}",
   hora: "\u{1F552}",
   sector: "\u{1F4E6}",
 };
+
+function formatearDiferencia(valor) {
+  const numero = Number(valor) || 0;
+
+  return `${numero > 0 ? "+" : ""}${numero}`;
+}
+
+function crearFilaCambio(item) {
+  const div = document.createElement("div");
+  let texto = item.nombre;
+  let claseExtra = "supervisor-change-neutral";
+
+  if (item.tipo === "entrada") {
+    texto = `${item.nombre}: +${item.diferencia}`;
+    claseExtra = "supervisor-change-up";
+  } else if (item.tipo === "salida") {
+    texto = `${item.nombre}: ${item.diferencia}`;
+    claseExtra = "supervisor-change-down";
+  }
+
+  div.className = `supervisor-change-row ${claseExtra}`;
+  div.innerHTML = `
+    <span class="supervisor-change-icon">${item.icono}</span>
+    <span class="supervisor-change-text">${texto}</span>
+  `;
+
+  return div;
+}
+
+function crearGrupoCambios(titulo, claseTitulo, items = []) {
+  const bloque = document.createElement("div");
+  bloque.className = "supervisor-change-group";
+
+  const encabezado = document.createElement("div");
+  encabezado.className = `supervisor-change-group-title ${claseTitulo}`;
+  encabezado.textContent = titulo;
+
+  const lista = document.createElement("div");
+  lista.className = "supervisor-change-group-list";
+
+  items.forEach((item) => {
+    lista.appendChild(crearFilaCambio(item));
+  });
+
+  bloque.appendChild(encabezado);
+  bloque.appendChild(lista);
+
+  return bloque;
+}
 
 function perteneceACategoria(producto, categoria) {
   return String(producto?.categoria_id) === String(categoria?.id);
@@ -262,34 +312,94 @@ export function renderSupervisorEstadoSectores(
   estadoSectores.appendChild(lista);
 }
 
-export function renderSupervisorCambios(listaCambios, cambios) {
-  if (!Array.isArray(cambios) || !cambios.length) {
+export function renderSupervisorCambios(listaCambios, reporte) {
+  if (!reporte || typeof reporte !== "object") {
     listaCambios.innerHTML = `
       <div class="supervisor-empty">
-        <strong>Sin cambios relevantes</strong>
-        <p>Cuando haya movimientos entre snapshots los vas a ver aca.</p>
+        <strong>Sin datos de cambios</strong>
+        <p>No se pudo armar el analisis global del stock.</p>
       </div>
     `;
     return;
   }
 
-  listaCambios.innerHTML = "";
+  const {
+    entradas = [],
+    salidas = [],
+    sinCambios = [],
+    totalEntradas = 0,
+    totalSalidas = 0,
+    tieneComparacion = false,
+    hayCambios = false,
+  } = reporte;
 
-  cambios.forEach((item) => {
-    const div = document.createElement("div");
+  if (!tieneComparacion) {
+    listaCambios.innerHTML = `
+      <div class="supervisor-empty">
+        <strong>Sin snapshots suficientes</strong>
+        <p>Hace falta tener dos snapshots globales para comparar cambios.</p>
+      </div>
+    `;
+    return;
+  }
 
-    div.className = `supervisor-change-row ${
-      item.esSuba ? "supervisor-change-up" : "supervisor-change-down"
-    }`;
-    div.innerHTML = `
-      <span class="supervisor-change-icon">${item.icono}</span>
-      <span class="supervisor-change-text">${item.nombre}: ${
-        item.diferencia > 0 ? "+" : ""
-      }${item.diferencia}</span>
+  listaCambios.innerHTML = `
+    <div class="supervisor-summary supervisor-change-summary">
+      <div class="supervisor-summary-card supervisor-summary-pending">
+        <span class="supervisor-summary-value">${formatearDiferencia(totalSalidas)}</span>
+        <span class="supervisor-summary-label">Total salida</span>
+      </div>
+      <div class="supervisor-summary-card supervisor-summary-ok">
+        <span class="supervisor-summary-value">${formatearDiferencia(totalEntradas)}</span>
+        <span class="supervisor-summary-label">Total entrada</span>
+      </div>
+    </div>
+  `;
+
+  if (!hayCambios) {
+    const empty = document.createElement("div");
+    empty.className = "supervisor-empty";
+    empty.innerHTML = `
+      <strong>Sin cambios desde el ultimo conteo</strong>
+      <p>El stock total no vario entre los dos ultimos snapshots.</p>
     `;
 
-    listaCambios.appendChild(div);
-  });
+    listaCambios.appendChild(empty);
+    return;
+  }
+
+  const grupos = document.createElement("div");
+  grupos.className = "supervisor-change-groups";
+
+  if (salidas.length) {
+    grupos.appendChild(
+      crearGrupoCambios("⬇️ SALIDAS", "supervisor-change-group-title-down", salidas),
+    );
+  }
+
+  if (entradas.length) {
+    grupos.appendChild(
+      crearGrupoCambios("⬆️ ENTRADAS", "supervisor-change-group-title-up", entradas),
+    );
+  }
+
+  if (sinCambios.length) {
+    const itemsSinCambios = sinCambios.map((item) => ({
+      ...item,
+      icono: ICONOS.cambioNeutral,
+      tipo: "sin_cambio",
+    }));
+
+    grupos.appendChild(
+      crearGrupoCambios(
+        "⚖️ SIN CAMBIOS",
+        "supervisor-change-group-title-neutral",
+        itemsSinCambios,
+      ),
+    );
+  }
+
+  listaCambios.appendChild(grupos);
 }
 
 export function renderAppVersionBadge(version) {
