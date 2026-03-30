@@ -1039,6 +1039,56 @@ footer::before {
   color: var(--red);
 }
 
+.supervisor-change-neutral {
+  background: var(--bg-overlay);
+  border-color: var(--border-base);
+}
+
+.supervisor-change-neutral .supervisor-change-text {
+  color: var(--text-secondary);
+}
+
+.supervisor-change-summary {
+  margin-bottom: var(--sp-3);
+}
+
+.supervisor-change-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.supervisor-change-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.supervisor-change-group-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.supervisor-change-group-title-up {
+  color: var(--green);
+}
+
+.supervisor-change-group-title-down {
+  color: var(--red);
+}
+
+.supervisor-change-group-title-neutral {
+  color: var(--text-muted);
+}
+
+.supervisor-change-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
 /* =====================================================
    ESTADOS VACÍOS Y ERRORES
 ===================================================== */

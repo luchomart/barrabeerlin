@@ -274,12 +274,19 @@ export async function getDiferenciasStock() {
     .map((productoId) => {
       const cantidadActual = actual[productoId] || 0;
       const cantidadAnterior = anterior[productoId] || 0;
+      const diferencia = cantidadActual - cantidadAnterior;
 
       return {
         producto_id: Number(productoId),
         actual: cantidadActual,
         anterior: cantidadAnterior,
-        diferencia: cantidadActual - cantidadAnterior,
+        diferencia,
+        tipo:
+          diferencia > 0
+            ? "entrada"
+            : diferencia < 0
+              ? "salida"
+              : "sin_cambio",
       };
     })
     .sort((a, b) => Math.abs(b.diferencia) - Math.abs(a.diferencia));

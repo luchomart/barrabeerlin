@@ -11,7 +11,7 @@ import {
 } from "../../services/inventarioService.js";
 
 import {
-  buildStockChanges,
+  buildStockChangesReport,
   buildStockData,
   formatPlainText,
 } from "../stock/stockFormatter.js";
@@ -89,7 +89,7 @@ export function initSupervisorApp() {
         getProductos(),
       ]);
 
-      const cambios = buildStockChanges(diferencias, productos);
+      const cambios = buildStockChangesReport(diferencias, productos);
 
       renderSupervisorCambios(listaCambiosStock, cambios);
     } catch (error) {

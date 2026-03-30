@@ -100,6 +100,44 @@ function perteneceACategoria(producto, categoria) {
   return String(producto?.categoria_id) === String(categoria?.id);
 }
 
+function resolverTipoCambio(diferencia, tipo) {
+  if (tipo === "entrada" || tipo === "salida" || tipo === "sin_cambio") {
+    return tipo;
+  }
+
+  if (diferencia > 0) return "entrada";
+  if (diferencia < 0) return "salida";
+
+  return "sin_cambio";
+}
+
+function enriquecerCambioStock(item, nombresPorProducto) {
+  const productoId = Number(item?.producto_id);
+  const actual = Number(item?.actual) || 0;
+  const anterior = Number(item?.anterior) || 0;
+  const diferencia = Number(item?.diferencia) || 0;
+  const tipo = resolverTipoCambio(diferencia, item?.tipo);
+
+  return {
+    producto_id: productoId,
+    actual,
+    anterior,
+    diferencia,
+    tipo,
+    magnitud: Math.abs(diferencia),
+    esSuba: tipo === "entrada",
+    icono:
+      tipo === "entrada"
+        ? ICONOS.suba
+        : tipo === "salida"
+          ? ICONOS.baja
+          : "\u2696\uFE0F",
+    nombre:
+      nombresPorProducto[productoId] ||
+      `Producto ${Number.isFinite(productoId) ? productoId : "sin id"}`,
+  };
+}
+
 export function buildStockDataFromInventario(
   inventario = [],
   productos = [],
@@ -119,34 +157,65 @@ export async function buildStockData(productos, categorias) {
   return buildStockDataFromInventario(inventario, productos, categorias);
 }
 
-export function buildStockChanges(diferencias, productos, limit = 10) {
+export function buildStockChangesReport(
+  diferencias,
+  productos,
+  limit = 10,
+) {
+  const reporteVacio = {
+    tieneComparacion: false,
+    hayCambios: false,
+    totalEntradas: 0,
+    totalSalidas: 0,
+    entradas: [],
+    salidas: [],
+    sinCambios: [],
+    items: [],
+  };
+
   if (!Array.isArray(diferencias) || !Array.isArray(productos)) {
-    return [];
+    return reporteVacio;
   }
 
   const nombresPorProducto = construirMapaProductos(productos);
+  const items = diferencias
+    .map((item) => enriquecerCambioStock(item, nombresPorProducto))
+    .filter((item) => Number.isFinite(item.producto_id))
+    .sort((a, b) => {
+      if (b.magnitud !== a.magnitud) {
+        return b.magnitud - a.magnitud;
+      }
 
-  return diferencias
-    .map((item) => {
-      const productoId = Number(item?.producto_id);
-      const actual = Number(item?.actual) || 0;
-      const anterior = Number(item?.anterior) || 0;
-      const diferencia = Number(item?.diferencia) || 0;
+      return String(a.nombre).localeCompare(String(b.nombre), "es");
+    });
 
-      return {
-        producto_id: productoId,
-        actual,
-        anterior,
-        diferencia,
-        esSuba: diferencia > 0,
-        icono: diferencia > 0 ? ICONOS.suba : ICONOS.baja,
-        nombre:
-          nombresPorProducto[productoId] ||
-          `Producto ${Number.isFinite(productoId) ? productoId : "sin id"}`,
-      };
-    })
-    .filter((item) => Number.isFinite(item.producto_id) && item.diferencia !== 0)
-    .sort((a, b) => Math.abs(b.diferencia) - Math.abs(a.diferencia))
+  const entradas = items.filter((item) => item.tipo === "entrada");
+  const salidas = items.filter((item) => item.tipo === "salida");
+  const sinCambios = items.filter((item) => item.tipo === "sin_cambio");
+
+  return {
+    tieneComparacion: items.length > 0,
+    hayCambios: entradas.length > 0 || salidas.length > 0,
+    totalEntradas: entradas.reduce(
+      (acumulado, item) => acumulado + item.diferencia,
+      0,
+    ),
+    totalSalidas: salidas.reduce(
+      (acumulado, item) => acumulado + item.diferencia,
+      0,
+    ),
+    entradas: entradas.slice(0, limit),
+    salidas: salidas.slice(0, limit),
+    sinCambios: sinCambios.slice(0, limit),
+    items,
+  };
+}
+
+export function buildStockChanges(diferencias, productos, limit = 10) {
+  const reporte = buildStockChangesReport(diferencias, productos, limit);
+
+  return [...reporte.salidas, ...reporte.entradas]
+    .sort((a, b) => b.magnitud - a.magnitud)
     .slice(0, limit);
 }
 
@@ -218,19 +287,38 @@ export function formatPlainText(data, productos) {
 }
 
 export function formatStockChanges(diferencias, productos) {
-  const cambios = buildStockChanges(diferencias, productos);
+  const reporte = buildStockChangesReport(diferencias, productos);
+  const bloques = [];
 
-  if (!cambios.length) {
-    return `${ICONOS.baja} CAMBIOS DE STOCK\n\nSin cambios`;
+  if (!reporte.tieneComparacion) {
+    return `${ICONOS.grafico} CAMBIOS DE STOCK (GLOBAL)\n\nTodavia no hay dos snapshots para comparar`;
   }
 
-  let texto = `${ICONOS.baja} CAMBIOS DE STOCK\n\n`;
+  if (!reporte.hayCambios) {
+    return `${ICONOS.grafico} CAMBIOS DE STOCK (GLOBAL)\n\nSin cambios desde el ultimo conteo`;
+  }
 
-  cambios.forEach((item) => {
-    const signo = item.diferencia > 0 ? "+" : "";
+  if (reporte.salidas.length) {
+    const lineas = reporte.salidas.map(
+      (item) => `- ${item.nombre}: ${item.diferencia}`,
+    );
 
-    texto += `${item.icono} ${item.nombre}: ${signo}${item.diferencia}\n`;
-  });
+    bloques.push(`\u2B07\uFE0F SALIDAS:\n${lineas.join("\n")}`);
+  }
 
-  return texto.trim();
+  if (reporte.entradas.length) {
+    const lineas = reporte.entradas.map(
+      (item) => `- ${item.nombre}: +${item.diferencia}`,
+    );
+
+    bloques.push(`\u2B06\uFE0F ENTRADAS:\n${lineas.join("\n")}`);
+  }
+
+  if (reporte.sinCambios.length) {
+    const lineas = reporte.sinCambios.map((item) => `- ${item.nombre}`);
+
+    bloques.push(`\u2696\uFE0F SIN CAMBIOS:\n${lineas.join("\n")}`);
+  }
+
+  return `${ICONOS.grafico} CAMBIOS DE STOCK (GLOBAL)\n\n${bloques.join("\n\n")}`.trim();
 }
