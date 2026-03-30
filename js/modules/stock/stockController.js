@@ -4,6 +4,7 @@ import {
   CATEGORIA_VIRTUAL_BARRILES,
   EMPLEADOS,
   ORDEN_CATEGORIAS_SECTOR,
+  PRODUCTOS_BARRILES_CAMARA,
   SUPERVISOR_PASSWORD_HASH,
 } from "../../config.js";
 
@@ -28,15 +29,9 @@ import { normalizarTexto } from "../../utils/format.js";
 
 import { buildStockData, formatWhatsappText } from "./stockFormatter.js";
 
-const BARRILES = [
-  "ipa",
-  "session ipa",
-  "mexican lager",
-  "amber",
-  "stout",
-  "honey",
-  "barley wine",
-];
+const BARRILES = PRODUCTOS_BARRILES_CAMARA.map((nombre) =>
+  normalizarTexto(nombre),
+);
 
 export function initStockApp() {
   const selectSector = document.getElementById("select-sector");
@@ -63,6 +58,12 @@ export function initStockApp() {
 
   function obtenerNombreSectorSeleccionado() {
     return selectSector.options[selectSector.selectedIndex]?.text || "";
+  }
+
+  function obtenerSectorNormalizado() {
+    return normalizarTexto(
+      selectSector.options[selectSector.selectedIndex]?.text,
+    );
   }
 
   function reflejarSectorActual() {
@@ -117,9 +118,13 @@ export function initStockApp() {
     selectEmpleado.value = empleadoGuardado;
   }
 
+  function esBarril(producto) {
+    return BARRILES.includes(normalizarTexto(producto?.nombre));
+  }
+
   function obtenerCategoriasOrdenadas() {
     const orden = ORDEN_CATEGORIAS_SECTOR[
-      normalizarTexto(obtenerNombreSectorSeleccionado())
+      obtenerSectorNormalizado()
     ];
 
     if (!orden) {
@@ -142,56 +147,44 @@ export function initStockApp() {
   }
 
   function obtenerProductosBarriles(productos) {
-    const barriles = productos.filter((producto) =>
-      BARRILES.includes(normalizarTexto(producto.nombre)),
-    );
-
-    console.log("Barriles encontrados:", barriles);
-
-    return barriles;
+    return productos.filter(esBarril);
   }
 
   function obtenerCatalogoRenderizable() {
-    const categorias = obtenerCategoriasOrdenadas();
-    const productos = [...appState.productos];
-    const sectorNombre = normalizarTexto(
-      selectSector.options[selectSector.selectedIndex]?.text,
-    );
+    const sectorNombre = obtenerSectorNormalizado();
+    const esCamara = sectorNombre === "camara";
+    const categoriasBase = obtenerCategoriasOrdenadas();
+    const barriles = obtenerProductosBarriles(appState.productos);
 
     console.log("Sector:", sectorNombre);
+    console.log("Es cámara:", esCamara);
+    console.log("Barriles encontrados:", barriles);
 
-    if (sectorNombre !== "camara") {
+    if (esCamara && barriles.length === 0) {
+      console.warn("⚠ No se encontraron barriles en DB");
+    }
+
+    if (esCamara) {
+      const idsBarriles = new Set(
+        barriles.map((producto) => String(producto.id)),
+      );
+      const productosNoBarriles = appState.productos.filter(
+        (producto) => !idsBarriles.has(String(producto.id)),
+      );
+      const barrilesAgrupados = barriles.map((producto) => ({
+        ...producto,
+        categoria_id: CATEGORIA_VIRTUAL_BARRILES.id,
+      }));
+
       return {
-        categorias,
-        productos,
+        categorias: [CATEGORIA_VIRTUAL_BARRILES, ...categoriasBase],
+        productos: [...productosNoBarriles, ...barrilesAgrupados],
       };
     }
-
-    const productosBarriles = obtenerProductosBarriles(productos);
-
-    if (sectorNombre === "camara" && productosBarriles.length === 0) {
-      console.warn("No se encontraron barriles");
-    }
-
-    if (!productosBarriles.length) {
-      return {
-        categorias,
-        productos,
-      };
-    }
-
-    const idsBarriles = new Set(productosBarriles.map((producto) => Number(producto.id)));
-    const productosSinBarriles = productos.filter(
-      (producto) => !idsBarriles.has(Number(producto.id)),
-    );
-    const productosBarrilesAgrupados = productosBarriles.map((producto) => ({
-      ...producto,
-      categoria_id: CATEGORIA_VIRTUAL_BARRILES.id,
-    }));
 
     return {
-      categorias: [CATEGORIA_VIRTUAL_BARRILES, ...categorias],
-      productos: [...productosSinBarriles, ...productosBarrilesAgrupados],
+      categorias: categoriasBase,
+      productos: appState.productos.filter((producto) => !esBarril(producto)),
     };
   }
 

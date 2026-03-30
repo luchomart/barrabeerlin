@@ -1,4 +1,4 @@
-export const APP_VERSION = "0.2.1";
+export const APP_VERSION = "0.2.2";
 
 export const SUPABASE_URL = "https://bcfnqbhrfjaqjdcwynqw.supabase.co";
 
@@ -11,6 +11,17 @@ export const CATEGORIA_VIRTUAL_BARRILES = {
   id: "barriles",
   nombre: "Barriles (sin pinchar)",
 };
+
+export const PRODUCTOS_BARRILES_CAMARA = [
+  "IPA",
+  "Session IPA",
+  "Mexican Lager",
+  "Amber",
+  "Stout",
+  "Honey",
+  "Barley Wine",
+  "Red Ipa",
+];
 
 // Hash SHA-256 del password actual. Esto evita dejar la clave en texto plano,
 // aunque el control real de acceso sigue siendo una mejora futura de backend.
