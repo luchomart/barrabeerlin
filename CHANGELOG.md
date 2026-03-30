@@ -2,6 +2,21 @@
 
 Historial de cambios de Stock Barra.
 
+## v0.2.2 - 2026-03-29
+
+### Added
+- `Red Ipa` al conjunto de barriles disponibles para Camara.
+- Logs de debug para sector detectado, modo Camara y barriles encontrados.
+
+### Changed
+- La normalizacion de texto pasa a una utilidad global reutilizable.
+- La categoria virtual de barriles usa `id: "barriles"` y se inserta al inicio.
+
+### Fixed
+- Los barriles dejan de filtrarse mal por diferencias de mayusculas, acentos o espacios.
+- Los barriles ya no aparecen en sectores distintos de Camara.
+- La integracion de barriles queda aislada sin mutar `appState`.
+
 ## v0.2.1 - 2026-03-27
 
 ### Added
