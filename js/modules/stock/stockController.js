@@ -25,8 +25,13 @@ import {
   renderProductos,
   actualizarInputsStock,
 } from "../../ui/renderer.js";
+import { normalizarTexto } from "../../utils/format.js";
 
 import { buildStockData, formatWhatsappText } from "./stockFormatter.js";
+
+const BARRILES = PRODUCTOS_BARRILES_CAMARA.map((nombre) =>
+  normalizarTexto(nombre),
+);
 
 export function initStockApp() {
   const selectSector = document.getElementById("select-sector");
@@ -55,16 +60,10 @@ export function initStockApp() {
     return selectSector.options[selectSector.selectedIndex]?.text || "";
   }
 
-  function normalizarTexto(texto = "") {
-    return String(texto)
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim();
-  }
-
-  function esSectorCamara() {
-    return normalizarTexto(obtenerNombreSectorSeleccionado()) === "camara";
+  function obtenerSectorNormalizado() {
+    return normalizarTexto(
+      selectSector.options[selectSector.selectedIndex]?.text,
+    );
   }
 
   function reflejarSectorActual() {
@@ -119,9 +118,13 @@ export function initStockApp() {
     selectEmpleado.value = empleadoGuardado;
   }
 
+  function esBarril(producto) {
+    return BARRILES.includes(normalizarTexto(producto?.nombre));
+  }
+
   function obtenerCategoriasOrdenadas() {
     const orden = ORDEN_CATEGORIAS_SECTOR[
-      normalizarTexto(obtenerNombreSectorSeleccionado())
+      obtenerSectorNormalizado()
     ];
 
     if (!orden) {
@@ -144,65 +147,44 @@ export function initStockApp() {
   }
 
   function obtenerProductosBarriles(productos) {
-    const productosPorNombre = new Map(
-      productos.map((producto) => [normalizarTexto(producto.nombre), producto]),
-    );
-    const faltantes = [];
-
-    const barriles = PRODUCTOS_BARRILES_CAMARA.reduce((acumulado, nombre) => {
-      const producto = productosPorNombre.get(normalizarTexto(nombre));
-
-      if (!producto) {
-        faltantes.push(nombre);
-        return acumulado;
-      }
-
-      acumulado.push(producto);
-      return acumulado;
-    }, []);
-
-    if (faltantes.length) {
-      console.warn(
-        "No se encontraron productos configurados para barriles:",
-        faltantes.join(", "),
-      );
-    }
-
-    return barriles;
+    return productos.filter(esBarril);
   }
 
   function obtenerCatalogoRenderizable() {
-    const categorias = obtenerCategoriasOrdenadas();
-    const productos = [...appState.productos];
+    const sectorNombre = obtenerSectorNormalizado();
+    const esCamara = sectorNombre === "camara";
+    const categoriasBase = obtenerCategoriasOrdenadas();
+    const barriles = obtenerProductosBarriles(appState.productos);
 
-    if (!esSectorCamara()) {
-      return {
-        categorias,
-        productos,
-      };
+    console.log("Sector:", sectorNombre);
+    console.log("Es cámara:", esCamara);
+    console.log("Barriles encontrados:", barriles);
+
+    if (esCamara && barriles.length === 0) {
+      console.warn("⚠ No se encontraron barriles en DB");
     }
 
-    const productosBarriles = obtenerProductosBarriles(productos);
+    if (esCamara) {
+      const idsBarriles = new Set(
+        barriles.map((producto) => String(producto.id)),
+      );
+      const productosNoBarriles = appState.productos.filter(
+        (producto) => !idsBarriles.has(String(producto.id)),
+      );
+      const barrilesAgrupados = barriles.map((producto) => ({
+        ...producto,
+        categoria_id: CATEGORIA_VIRTUAL_BARRILES.id,
+      }));
 
-    if (!productosBarriles.length) {
       return {
-        categorias,
-        productos,
+        categorias: [CATEGORIA_VIRTUAL_BARRILES, ...categoriasBase],
+        productos: [...productosNoBarriles, ...barrilesAgrupados],
       };
     }
-
-    const idsBarriles = new Set(productosBarriles.map((producto) => Number(producto.id)));
-    const productosSinBarriles = productos.filter(
-      (producto) => !idsBarriles.has(Number(producto.id)),
-    );
-    const productosBarrilesAgrupados = productosBarriles.map((producto) => ({
-      ...producto,
-      categoria_id: CATEGORIA_VIRTUAL_BARRILES.id,
-    }));
 
     return {
-      categorias: [...categorias, CATEGORIA_VIRTUAL_BARRILES],
-      productos: [...productosSinBarriles, ...productosBarrilesAgrupados],
+      categorias: categoriasBase,
+      productos: appState.productos.filter((producto) => !esBarril(producto)),
     };
   }
 

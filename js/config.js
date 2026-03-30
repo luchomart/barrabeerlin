@@ -1,4 +1,4 @@
-export const APP_VERSION = "0.2.1";
+export const APP_VERSION = "0.2.2";
 
 export const SUPABASE_URL = "https://bcfnqbhrfjaqjdcwynqw.supabase.co";
 
@@ -8,7 +8,7 @@ export const SUPABASE_KEY =
 export const EMPLEADOS = ["", "Karen", "Eve", "Nicolas", "Luciano", "Fiorella"];
 
 export const CATEGORIA_VIRTUAL_BARRILES = {
-  id: "barriles_sin_pinchar",
+  id: "barriles",
   nombre: "\u{1F37A} Barriles (sin pinchar)",
 };
 
@@ -20,6 +20,7 @@ export const PRODUCTOS_BARRILES_CAMARA = [
   "Stout",
   "Honey",
   "Barley Wine",
+  "Red Ipa",
 ];
 
 // Hash SHA-256 del password actual. Esto evita dejar la clave en texto plano,
