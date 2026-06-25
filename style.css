@@ -1,5 +1,5 @@
 /* =====================================================
-   STOCK BARRA — CSS SYSTEM v0.3.0
+   STOCK BARRA - CSS SYSTEM
    Tema: Industrial Operativo / Dark Workshop
 
    Decisiones de diseño:
@@ -206,7 +206,7 @@ header p {
 
 /* Badge de estado operativo en header */
 header::after {
-  content: "● OPERATIVO";
+  content: "\25CF OPERATIVO";
   display: block;
   position: absolute;
   top: var(--sp-4);
@@ -689,12 +689,176 @@ footer::before {
    SUPERVISOR — LAYOUT BASE
 ===================================================== */
 
+.supervisor-auth-shell {
+  padding: var(--sp-4) var(--sp-4) 0;
+}
+
+.supervisor-auth-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-base);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.supervisor-auth-card-session {
+  border-color: var(--green-border);
+  background: linear-gradient(180deg, var(--green-bg), var(--bg-elevated));
+}
+
+.supervisor-auth-card-error {
+  border-color: var(--red-border);
+  background: linear-gradient(180deg, var(--red-bg), var(--bg-elevated));
+}
+
+.supervisor-auth-copy h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--sp-1);
+  color: var(--text-primary);
+}
+
+.supervisor-auth-copy p {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.supervisor-auth-kicker {
+  display: inline-flex;
+  margin-bottom: var(--sp-2);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.supervisor-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.supervisor-auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.supervisor-auth-field span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.supervisor-auth-field input {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-base);
+  border-radius: var(--r-md);
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  outline: none;
+  transition:
+    border-color var(--ease-fast),
+    box-shadow var(--ease-fast),
+    background var(--ease-fast);
+}
+
+.supervisor-auth-field input::placeholder {
+  color: var(--text-muted);
+}
+
+.supervisor-auth-field input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-bg);
+  background: var(--bg-app);
+}
+
+.supervisor-auth-field input:disabled {
+  opacity: 0.65;
+}
+
+.supervisor-auth-actions {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.supervisor-auth-form button,
+.supervisor-auth-actions button {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--green-border);
+  background: var(--green-bg);
+  color: var(--green);
+  font-size: 0.88rem;
+  font-weight: 700;
+  transition:
+    background var(--ease-fast),
+    border-color var(--ease-fast),
+    color var(--ease-fast),
+    transform var(--ease-fast);
+}
+
+.supervisor-auth-form button:hover,
+.supervisor-auth-actions button:hover {
+  background: rgba(0, 232, 122, 0.14);
+}
+
+.supervisor-auth-form button:active,
+.supervisor-auth-actions button:active {
+  transform: scale(0.98);
+}
+
+.supervisor-auth-form button:disabled,
+.supervisor-auth-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+#btn-cerrar-sesion-supervisor {
+  border-color: var(--red-border);
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+#btn-cerrar-sesion-supervisor:hover {
+  background: rgba(255, 77, 77, 0.14);
+}
+
+.supervisor-auth-message {
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.supervisor-auth-message-error {
+  background: var(--red-bg);
+  border: 1px solid var(--red-border);
+  color: var(--red);
+}
+
 .acciones-supervisor {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: var(--sp-2);
   padding: var(--sp-4) var(--sp-4);
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.acciones-supervisor-bloqueado {
+  grid-template-columns: 1fr;
 }
 
 .acciones-supervisor button {

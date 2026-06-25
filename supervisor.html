@@ -16,13 +16,20 @@
         <p>Estado del inventario</p>
       </header>
 
-      <section class="acciones-supervisor">
-        <button id="btn-volver">&#x2B05; Volver a empleados</button>
-        <button id="btn-recargar">&#x1F504; Actualizar</button>
-        <button id="btn-whatsapp">&#x1F4E4; Enviar stock</button>
+      <section id="supervisor-auth-shell" class="supervisor-auth-shell">
+        <div class="supervisor-loader">
+          <span class="supervisor-loader-spinner"></span>
+          <span>Verificando acceso de supervisor...</span>
+        </div>
       </section>
 
-      <section class="supervisor-section">
+      <section class="acciones-supervisor">
+        <button id="btn-volver">&#x2B05; Volver a empleados</button>
+        <button id="btn-recargar" hidden>&#x1F504; Actualizar</button>
+        <button id="btn-whatsapp" hidden>&#x1F4E4; Enviar stock</button>
+      </section>
+
+      <section class="supervisor-section" hidden>
         <h2>Estado de sectores</h2>
 
         <div id="estado-sectores">
@@ -30,7 +37,7 @@
         </div>
       </section>
 
-      <section class="supervisor-section">
+      <section class="supervisor-section" hidden>
         <h2>Ultimos conteos</h2>
 
         <main id="lista-conteos">
@@ -38,7 +45,7 @@
         </main>
       </section>
 
-      <section class="supervisor-section">
+      <section class="supervisor-section" hidden>
         <h2>&#x1F4C9; Cambios de stock</h2>
 
         <div id="lista-cambios-stock">

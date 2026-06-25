@@ -2,6 +2,111 @@
 
 Historial de cambios de Stock Barra.
 
+## v0.3.0 - 2026-04-16
+
+### Added
+- `authService.js` para manejar sesion real de supervisor con Supabase Auth.
+- Login protegido dentro de `supervisor.html`, con cierre de sesion y guard del panel.
+- Smoke tests de seguridad sobre acceso directo, login y logout del supervisor.
+- Guia local de hardening en `docs/SUPERVISOR_AUTH.md`.
+
+### Changed
+- El acceso oculto desde stock ahora redirige al panel protegido en vez de pedir una clave hardcodeada en frontend.
+- `supervisorController` pasa a cargar el panel solo cuando la sesion es valida.
+- `supervisor.html` arranca bloqueado por defecto y habilita acciones/sections solo con sesion.
+
+### Removed
+- Password hash de supervisor embebido en `config.js`.
+
+## v0.2.9 - 2026-04-16
+
+### Added
+- Cobertura ampliada sobre formatter, renderer y servicios de snapshots.
+- Smoke tests operativos adicionales para copiar, acceso supervisor y estados de error.
+
+### Fixed
+- `inventarioService` deja de aceptar `producto_id` nulos o invalidos como si fueran `0` en comparaciones de snapshots.
+- La validacion automatizada cierra huecos en guardado, rollback de sector y fallbacks visuales.
+
+## v0.2.8 - 2026-04-16
+
+### Added
+- Smoke tests extra para copiado, acceso oculto a supervisor y fallbacks visuales de error.
+- Cobertura de navegador sobre normalizacion al guardar, rollback de sector y apertura mockeada de WhatsApp.
+
+### Changed
+- La validacion automatizada ahora cubre los flujos operativos mas sensibles del controller sin tocar produccion.
+
+### Fixed
+- El mock de clipboard en navegador queda estabilizado para validar el flujo de `Copiar`.
+
+## v0.2.7 - 2026-04-16
+
+### Added
+- Smoke tests de navegador con `Playwright` sobre stock y supervisor.
+- Server estatico local para correr la app durante pruebas end-to-end.
+- Mocks seguros de servicios para validar UI sin tocar Supabase real ni stock de produccion.
+
+### Changed
+- El proyecto suma `test:smoke` como comando oficial de validacion.
+- La base de testing ahora cubre logica pura, renderer DOM y flujos reales de navegador.
+
+### Fixed
+- Los flujos criticos de stock y supervisor quedan protegidos contra regresiones basicas de UI.
+
+## v0.2.6 - 2026-04-16
+
+### Added
+- Modulo `stockCatalog.js` para encapsular la logica de catalogo renderizable por sector y barriles.
+- Cobertura `jsdom` para render DOM critico y renderizado de catalogo/barriles.
+- Suites nuevas para `renderer` y `stockCatalog`.
+
+### Changed
+- `stockController.js` delega el armado del catalogo renderizable en un helper puro testeable.
+- La base de testing ahora cubre logica pura y smoke tests de DOM dentro de Vitest.
+
+### Fixed
+- Se elimina redundancia interna del controller alrededor de la logica de barriles.
+- La categoria virtual de barriles y el render supervisor quedan cubiertos por pruebas automatizadas.
+
+## v0.2.5 - 2026-04-09
+
+### Added
+- Base de testing con `Node.js` + `Vitest`.
+- Scripts `npm test`, `npm run test:watch` y `npm run test:coverage`.
+- Suites iniciales para `appState`, normalizacion de texto, formatter y snapshots con mocks de Supabase.
+
+### Changed
+- El proyecto suma `package.json`, `vitest.config.js` y `package-lock.json` como base de desarrollo reproducible.
+- El reporte de cambios conserva metadatos de fecha de snapshots para futuras vistas de supervisor.
+
+### Fixed
+- La primera implementacion de fechas en el reporte de cambios ya queda propagada correctamente desde las diferencias.
+
+## v0.2.4 - 2026-04-09
+
+### Changed
+- El guardado de snapshots pasa a devolver un estado explicito (`created`, `deduplicated`, `empty`, `invalid`) para que el frontend no dependa de efectos implicitos.
+- La comparacion de snapshots se centraliza sobre helpers comunes y agrega metadatos listos para futuras vistas o diagnosticos.
+
+### Fixed
+- Se endurece la deduplicacion reciente de snapshots sin cambiar la estructura de la base.
+- El flujo de WhatsApp deja de asumir que todo snapshot no fallido fue insertado realmente.
+
+## v0.2.3 - 2026-04-09
+
+### Added
+- Checklist corta de QA pre-release en `docs/QA_CHECKLIST.md`.
+
+### Changed
+- El supervisor usa textos mas claros en estados vacios, errores y resumenes de cambios.
+- Se alinea la documentacion operativa con la pasada de hardening.
+
+### Fixed
+- Se eliminan logs de debug de barriles que habian quedado activos en produccion.
+- Se normalizan textos visibles para reducir ruido de codificacion en la app.
+- El badge operativo del header pasa a usar escape unicode seguro en CSS.
+
 ## v0.2.2 - 2026-03-29
 
 ### Added

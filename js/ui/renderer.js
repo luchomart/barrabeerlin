@@ -8,6 +8,25 @@ const ICONOS = {
   sector: "\u{1F4E6}",
 };
 
+function escapeHtml(texto) {
+  return String(texto ?? "").replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#39;";
+      default:
+        return char;
+    }
+  });
+}
+
 function formatearDiferencia(valor) {
   const numero = Number(valor) || 0;
 
@@ -214,7 +233,7 @@ export function actualizarInputsStock(data) {
 
 export function renderSupervisorLoader(container, texto) {
   container.innerHTML = `
-    <div class="loader supervisor-loader">
+    <div class="supervisor-loader">
       <span class="supervisor-loader-spinner"></span>
       <span>${texto}</span>
     </div>
@@ -225,6 +244,107 @@ export function renderSupervisorError(container, texto) {
   container.innerHTML = `
     <div class="supervisor-empty supervisor-empty-error">
       <strong>${ICONOS.advertencia} ${texto}</strong>
+      <p>Reintenta con Actualizar o vuelve a cargar la pagina.</p>
+    </div>
+  `;
+}
+
+export function renderSupervisorAuthPanel(container, state = {}) {
+  const {
+    mode = "login",
+    email = "",
+    message = "",
+    loading = false,
+    userEmail = "",
+  } = state;
+
+  if (mode === "loading") {
+    container.innerHTML = `
+      <div class="supervisor-auth-card">
+        <div class="supervisor-loader">
+          <span class="supervisor-loader-spinner"></span>
+          <span>${escapeHtml(message || "Verificando acceso...")}</span>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (mode === "error") {
+    container.innerHTML = `
+      <div class="supervisor-auth-card supervisor-auth-card-error">
+        <span class="supervisor-auth-kicker">Acceso supervisor</span>
+        <h2>No se pudo validar la sesion</h2>
+        <p>${escapeHtml(message || "Reintenta en unos segundos.")}</p>
+        <div class="supervisor-auth-actions">
+          <button id="btn-reintentar-auth" type="button">Reintentar</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (mode === "session") {
+    container.innerHTML = `
+      <div class="supervisor-auth-card supervisor-auth-card-session">
+        <div class="supervisor-auth-copy">
+          <span class="supervisor-auth-kicker">Sesion activa</span>
+          <h2>Supervisor autenticado</h2>
+          <p>${escapeHtml(userEmail || "Cuenta de supervisor activa")}</p>
+        </div>
+        <div class="supervisor-auth-actions">
+          <button id="btn-cerrar-sesion-supervisor" type="button">
+            Cerrar sesion
+          </button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="supervisor-auth-card">
+      <div class="supervisor-auth-copy">
+        <span class="supervisor-auth-kicker">Acceso supervisor</span>
+        <h2>Ingresar al panel</h2>
+        <p>Usa la cuenta de supervisor de Supabase para abrir esta vista.</p>
+      </div>
+      <form id="supervisor-login-form" class="supervisor-auth-form" autocomplete="on">
+        <label class="supervisor-auth-field" for="supervisor-login-email">
+          <span>Email</span>
+          <input
+            id="supervisor-login-email"
+            name="email"
+            type="email"
+            inputmode="email"
+            autocomplete="username"
+            placeholder="supervisor@tu-dominio.com"
+            value="${escapeHtml(email)}"
+            ${loading ? "disabled" : ""}
+            required
+          />
+        </label>
+        <label class="supervisor-auth-field" for="supervisor-login-password">
+          <span>Contrasena</span>
+          <input
+            id="supervisor-login-password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            placeholder="Ingresar contrasena"
+            ${loading ? "disabled" : ""}
+            required
+          />
+        </label>
+        ${
+          message
+            ? `<div class="supervisor-auth-message supervisor-auth-message-error">${escapeHtml(message)}</div>`
+            : ""
+        }
+        <button id="supervisor-login-submit" type="submit" ${loading ? "disabled" : ""}>
+          ${loading ? "Ingresando..." : "Ingresar"}
+        </button>
+      </form>
     </div>
   `;
 }
@@ -234,7 +354,7 @@ export function renderSupervisorConteos(listaConteos, conteos) {
     listaConteos.innerHTML = `
       <div class="supervisor-empty">
         <strong>Sin conteos hoy</strong>
-        <p>Todavia no se registraron movimientos en esta jornada.</p>
+        <p>Todavia no se registraron conteos en esta jornada.</p>
       </div>
     `;
     return;
@@ -258,7 +378,7 @@ export function renderSupervisorConteos(listaConteos, conteos) {
       <h3>${conteo.empleado || "Sin empleado"}</h3>
       <div class="supervisor-card-meta">
         <span class="supervisor-chip">${ICONOS.sector} ${conteo.sectores?.nombre || "Sector"}</span>
-        <span class="supervisor-chip supervisor-chip-muted">Ultimo conteo</span>
+        <span class="supervisor-chip supervisor-chip-muted">Conteo mas reciente</span>
       </div>
     `;
 
@@ -317,7 +437,7 @@ export function renderSupervisorCambios(listaCambios, reporte) {
     listaCambios.innerHTML = `
       <div class="supervisor-empty">
         <strong>Sin datos de cambios</strong>
-        <p>No se pudo armar el analisis global del stock.</p>
+        <p>No se pudo preparar el analisis global del stock.</p>
       </div>
     `;
     return;
@@ -337,7 +457,7 @@ export function renderSupervisorCambios(listaCambios, reporte) {
     listaCambios.innerHTML = `
       <div class="supervisor-empty">
         <strong>Sin snapshots suficientes</strong>
-        <p>Hace falta tener dos snapshots globales para comparar cambios.</p>
+        <p>Todavia hacen falta dos snapshots globales para comparar cambios.</p>
       </div>
     `;
     return;
@@ -347,11 +467,11 @@ export function renderSupervisorCambios(listaCambios, reporte) {
     <div class="supervisor-summary supervisor-change-summary">
       <div class="supervisor-summary-card supervisor-summary-pending">
         <span class="supervisor-summary-value">${formatearDiferencia(totalSalidas)}</span>
-        <span class="supervisor-summary-label">Total salida</span>
+        <span class="supervisor-summary-label">Salida total</span>
       </div>
       <div class="supervisor-summary-card supervisor-summary-ok">
         <span class="supervisor-summary-value">${formatearDiferencia(totalEntradas)}</span>
-        <span class="supervisor-summary-label">Total entrada</span>
+        <span class="supervisor-summary-label">Entrada total</span>
       </div>
     </div>
   `;
@@ -360,8 +480,8 @@ export function renderSupervisorCambios(listaCambios, reporte) {
     const empty = document.createElement("div");
     empty.className = "supervisor-empty";
     empty.innerHTML = `
-      <strong>Sin cambios desde el ultimo conteo</strong>
-      <p>El stock total no vario entre los dos ultimos snapshots.</p>
+      <strong>Sin cambios desde el ultimo snapshot</strong>
+      <p>El stock total se mantuvo igual entre las dos ultimas capturas.</p>
     `;
 
     listaCambios.appendChild(empty);
@@ -373,13 +493,13 @@ export function renderSupervisorCambios(listaCambios, reporte) {
 
   if (salidas.length) {
     grupos.appendChild(
-      crearGrupoCambios("⬇️ SALIDAS", "supervisor-change-group-title-down", salidas),
+      crearGrupoCambios("\u2B07\uFE0F SALIDAS", "supervisor-change-group-title-down", salidas),
     );
   }
 
   if (entradas.length) {
     grupos.appendChild(
-      crearGrupoCambios("⬆️ ENTRADAS", "supervisor-change-group-title-up", entradas),
+      crearGrupoCambios("\u2B06\uFE0F ENTRADAS", "supervisor-change-group-title-up", entradas),
     );
   }
 
@@ -392,7 +512,7 @@ export function renderSupervisorCambios(listaCambios, reporte) {
 
     grupos.appendChild(
       crearGrupoCambios(
-        "⚖️ SIN CAMBIOS",
+        "\u2696\uFE0F SIN CAMBIOS",
         "supervisor-change-group-title-neutral",
         itemsSinCambios,
       ),
