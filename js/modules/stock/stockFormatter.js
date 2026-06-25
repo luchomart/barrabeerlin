@@ -123,6 +123,8 @@ function enriquecerCambioStock(item, nombresPorProducto) {
     actual,
     anterior,
     diferencia,
+    snapshot_actual_fecha: item?.snapshot_actual_fecha || null,
+    snapshot_anterior_fecha: item?.snapshot_anterior_fecha || null,
     tipo,
     magnitud: Math.abs(diferencia),
     esSuba: tipo === "entrada",
@@ -165,6 +167,8 @@ export function buildStockChangesReport(
   const reporteVacio = {
     tieneComparacion: false,
     hayCambios: false,
+    snapshotActualFecha: null,
+    snapshotAnteriorFecha: null,
     totalEntradas: 0,
     totalSalidas: 0,
     entradas: [],
@@ -192,10 +196,13 @@ export function buildStockChangesReport(
   const entradas = items.filter((item) => item.tipo === "entrada");
   const salidas = items.filter((item) => item.tipo === "salida");
   const sinCambios = items.filter((item) => item.tipo === "sin_cambio");
+  const primerItem = items[0] || {};
 
   return {
     tieneComparacion: items.length > 0,
     hayCambios: entradas.length > 0 || salidas.length > 0,
+    snapshotActualFecha: primerItem.snapshot_actual_fecha || null,
+    snapshotAnteriorFecha: primerItem.snapshot_anterior_fecha || null,
     totalEntradas: entradas.reduce(
       (acumulado, item) => acumulado + item.diferencia,
       0,
@@ -295,7 +302,7 @@ export function formatStockChanges(diferencias, productos) {
   }
 
   if (!reporte.hayCambios) {
-    return `${ICONOS.grafico} CAMBIOS DE STOCK (GLOBAL)\n\nSin cambios desde el ultimo conteo`;
+    return `${ICONOS.grafico} CAMBIOS DE STOCK (GLOBAL)\n\nSin cambios desde el ultimo snapshot`;
   }
 
   if (reporte.salidas.length) {

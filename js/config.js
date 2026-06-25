@@ -1,4 +1,4 @@
-export const APP_VERSION = "0.2.2";
+export const APP_VERSION = "0.3.0";
 
 export const SUPABASE_URL = "https://bcfnqbhrfjaqjdcwynqw.supabase.co";
 
@@ -22,11 +22,6 @@ export const PRODUCTOS_BARRILES_CAMARA = [
   "Barley Wine",
   "Red Ipa",
 ];
-
-// Hash SHA-256 del password actual. Esto evita dejar la clave en texto plano,
-// aunque el control real de acceso sigue siendo una mejora futura de backend.
-export const SUPERVISOR_PASSWORD_HASH =
-  "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4";
 
 export const ORDEN_CATEGORIAS_SECTOR = {
   camara: [

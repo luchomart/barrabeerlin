@@ -5,6 +5,10 @@ const db = supabase;
 const SNAPSHOT_DEDUP_WINDOW_MS = 10000;
 const SNAPSHOT_PAGE_SIZE = 250;
 
+function esProductoIdValido(valor) {
+  return Number.isInteger(valor) && valor > 0;
+}
+
 function normalizarCantidadSnapshot(valor) {
   const cantidad = Number(valor);
 
@@ -23,7 +27,7 @@ function normalizarRegistrosSnapshot(stockPorProducto = {}) {
   return Object.entries(stockPorProducto).reduce((acumulado, [productoId, cantidad]) => {
     const productoIdNormalizado = Number(productoId);
 
-    if (!Number.isFinite(productoIdNormalizado)) {
+    if (!esProductoIdValido(productoIdNormalizado)) {
       return acumulado;
     }
 
@@ -42,8 +46,28 @@ function normalizarRowsSnapshot(rows = []) {
       producto_id: Number(row?.producto_id),
       cantidad: normalizarCantidadSnapshot(row?.cantidad),
     }))
-    .filter((row) => Number.isFinite(row.producto_id))
+    .filter((row) => esProductoIdValido(row.producto_id))
     .sort((a, b) => a.producto_id - b.producto_id);
+}
+
+function construirFingerprintSnapshot(rows = []) {
+  return normalizarRowsSnapshot(rows)
+    .map((row) => `${row.producto_id}:${row.cantidad}`)
+    .join("|");
+}
+
+function construirResumenSnapshot(rows = [], fecha = null) {
+  const normalizados = normalizarRowsSnapshot(rows);
+
+  return {
+    fecha: fecha || null,
+    totalProductos: normalizados.length,
+    totalUnidades: normalizados.reduce(
+      (acumulado, row) => acumulado + row.cantidad,
+      0,
+    ),
+    fingerprint: construirFingerprintSnapshot(normalizados),
+  };
 }
 
 function snapshotsSonIguales(snapshotA = [], snapshotB = []) {
@@ -130,6 +154,28 @@ async function getSnapshotByFecha(fecha) {
   return Array.isArray(data) ? data : [];
 }
 
+async function getSnapshotsRecientes(cantidad = 2) {
+  const fechas = await getUltimasFechasSnapshot(cantidad);
+
+  if (!fechas.length) {
+    return [];
+  }
+
+  const snapshots = await Promise.all(
+    fechas.map(async (fecha) => {
+      const rows = await getSnapshotByFecha(fecha);
+
+      return {
+        fecha,
+        rows,
+        resumen: construirResumenSnapshot(rows, fecha),
+      };
+    }),
+  );
+
+  return snapshots.filter((snapshot) => snapshot.rows.length > 0);
+}
+
 export async function getInventarioSector(sectorId) {
   const { data, error } = await db
     .from("inventario")
@@ -194,25 +240,39 @@ export async function saveStockSnapshot(stockData) {
   const stockPorProducto = stockData?.stockPorProducto;
 
   if (!stockPorProducto || typeof stockPorProducto !== "object") {
-    return [];
+    return {
+      status: "invalid",
+      fecha: null,
+      registros: [],
+      resumen: null,
+    };
   }
 
   const registrosBase = normalizarRegistrosSnapshot(stockPorProducto);
+  const resumenBase = construirResumenSnapshot(registrosBase);
 
   if (!registrosBase.length) {
-    return [];
+    return {
+      status: "empty",
+      fecha: null,
+      registros: [],
+      resumen: resumenBase,
+    };
   }
 
-  const [ultimaFecha] = await getUltimasFechasSnapshot(1);
+  const [ultimoSnapshot] = await getSnapshotsRecientes(1);
 
-  if (ultimaFecha) {
-    const ultimoSnapshot = await getSnapshotByFecha(ultimaFecha);
-
+  if (ultimoSnapshot) {
     if (
-      esSnapshotReciente(ultimaFecha) &&
-      snapshotsSonIguales(registrosBase, ultimoSnapshot)
+      esSnapshotReciente(ultimoSnapshot.fecha) &&
+      snapshotsSonIguales(registrosBase, ultimoSnapshot.rows)
     ) {
-      return [];
+      return {
+        status: "deduplicated",
+        fecha: ultimoSnapshot.fecha,
+        registros: ultimoSnapshot.rows,
+        resumen: ultimoSnapshot.resumen,
+      };
     }
   }
 
@@ -226,39 +286,44 @@ export async function saveStockSnapshot(stockData) {
 
   if (error) throw error;
 
-  return Array.isArray(data) ? data : [];
+  const rows = Array.isArray(data) ? data : [];
+
+  return {
+    status: "created",
+    fecha,
+    registros: rows,
+    resumen: construirResumenSnapshot(rows, fecha),
+  };
 }
 
 export async function getDiferenciasStock() {
-  const ultimasFechas = await getUltimasFechasSnapshot(2);
+  const snapshots = await getSnapshotsRecientes(2);
 
-  if (ultimasFechas.length < 2) {
+  if (snapshots.length < 2) {
     return [];
   }
 
-  const [fechaActual, fechaAnterior] = ultimasFechas;
-  const [snapshotActual, snapshotAnterior] = await Promise.all([
-    getSnapshotByFecha(fechaActual),
-    getSnapshotByFecha(fechaAnterior),
-  ]);
+  const [snapshotActual, snapshotAnterior] = snapshots;
+  const fechaActual = snapshotActual.fecha;
+  const fechaAnterior = snapshotAnterior.fecha;
 
   const actual = {};
   const anterior = {};
 
-  snapshotActual.forEach((item) => {
+  snapshotActual.rows.forEach((item) => {
     const productoId = Number(item?.producto_id);
 
-    if (!Number.isFinite(productoId)) {
+    if (!esProductoIdValido(productoId)) {
       return;
     }
 
     actual[productoId] = normalizarCantidadSnapshot(item?.cantidad);
   });
 
-  snapshotAnterior.forEach((item) => {
+  snapshotAnterior.rows.forEach((item) => {
     const productoId = Number(item?.producto_id);
 
-    if (!Number.isFinite(productoId)) {
+    if (!esProductoIdValido(productoId)) {
       return;
     }
 
@@ -281,13 +346,16 @@ export async function getDiferenciasStock() {
         actual: cantidadActual,
         anterior: cantidadAnterior,
         diferencia,
+        magnitud: Math.abs(diferencia),
         tipo:
           diferencia > 0
             ? "entrada"
             : diferencia < 0
               ? "salida"
               : "sin_cambio",
+        snapshot_actual_fecha: fechaActual,
+        snapshot_anterior_fecha: fechaAnterior,
       };
     })
-    .sort((a, b) => Math.abs(b.diferencia) - Math.abs(a.diferencia));
+    .sort((a, b) => b.magnitud - a.magnitud);
 }

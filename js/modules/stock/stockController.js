@@ -5,7 +5,6 @@ import {
   EMPLEADOS,
   ORDEN_CATEGORIAS_SECTOR,
   PRODUCTOS_BARRILES_CAMARA,
-  SUPERVISOR_PASSWORD_HASH,
 } from "../../config.js";
 
 import {
@@ -26,6 +25,7 @@ import {
   actualizarInputsStock,
 } from "../../ui/renderer.js";
 import { normalizarTexto } from "../../utils/format.js";
+import { buildCatalogoRenderizable } from "./stockCatalog.js";
 
 import { buildStockData, formatWhatsappText } from "./stockFormatter.js";
 
@@ -118,73 +118,23 @@ export function initStockApp() {
     selectEmpleado.value = empleadoGuardado;
   }
 
-  function esBarril(producto) {
-    return BARRILES.includes(normalizarTexto(producto?.nombre));
-  }
-
-  function obtenerCategoriasOrdenadas() {
-    const orden = ORDEN_CATEGORIAS_SECTOR[
-      obtenerSectorNormalizado()
-    ];
-
-    if (!orden) {
-      return [...appState.categorias];
-    }
-
-    return [...appState.categorias].sort((categoriaA, categoriaB) => {
-      const posA = orden.findIndex(
-        (nombre) => normalizarTexto(nombre) === normalizarTexto(categoriaA.nombre),
-      );
-      const posB = orden.findIndex(
-        (nombre) => normalizarTexto(nombre) === normalizarTexto(categoriaB.nombre),
-      );
-
-      if (posA === -1) return 1;
-      if (posB === -1) return -1;
-
-      return posA - posB;
-    });
-  }
-
-  function obtenerProductosBarriles(productos) {
-    return productos.filter(esBarril);
-  }
-
   function obtenerCatalogoRenderizable() {
-    const sectorNombre = obtenerSectorNormalizado();
-    const esCamara = sectorNombre === "camara";
-    const categoriasBase = obtenerCategoriasOrdenadas();
-    const barriles = obtenerProductosBarriles(appState.productos);
+    const catalogo = buildCatalogoRenderizable({
+      sectorNombre: obtenerSectorNormalizado(),
+      categorias: appState.categorias,
+      productos: appState.productos,
+      ordenCategoriasSector: ORDEN_CATEGORIAS_SECTOR,
+      categoriaVirtualBarriles: CATEGORIA_VIRTUAL_BARRILES,
+      nombresBarrilesNormalizados: BARRILES,
+    });
 
-    console.log("Sector:", sectorNombre);
-    console.log("Es cámara:", esCamara);
-    console.log("Barriles encontrados:", barriles);
-
-    if (esCamara && barriles.length === 0) {
-      console.warn("⚠ No se encontraron barriles en DB");
-    }
-
-    if (esCamara) {
-      const idsBarriles = new Set(
-        barriles.map((producto) => String(producto.id)),
-      );
-      const productosNoBarriles = appState.productos.filter(
-        (producto) => !idsBarriles.has(String(producto.id)),
-      );
-      const barrilesAgrupados = barriles.map((producto) => ({
-        ...producto,
-        categoria_id: CATEGORIA_VIRTUAL_BARRILES.id,
-      }));
-
-      return {
-        categorias: [CATEGORIA_VIRTUAL_BARRILES, ...categoriasBase],
-        productos: [...productosNoBarriles, ...barrilesAgrupados],
-      };
+    if (catalogo.sinBarrilesConfigurados) {
+      console.warn("No se encontraron barriles configurados para Camara.");
     }
 
     return {
-      categorias: categoriasBase,
-      productos: appState.productos.filter((producto) => !esBarril(producto)),
+      categorias: catalogo.categorias,
+      productos: catalogo.productos,
     };
   }
 
@@ -209,6 +159,23 @@ export function initStockApp() {
     }
 
     return Object.keys(stockPorProducto).length > 0;
+  }
+
+  async function guardarSnapshotSiCorresponde(data) {
+    if (snapshotGuardado || !puedeGuardarSnapshot(data)) {
+      return null;
+    }
+
+    const resultado = await saveStockSnapshot(data);
+
+    if (
+      resultado?.status === "created" ||
+      resultado?.status === "deduplicated"
+    ) {
+      snapshotGuardado = true;
+    }
+
+    return resultado;
   }
 
   function debounceWhatsapp() {
@@ -239,29 +206,6 @@ export function initStockApp() {
     }
 
     return cantidad;
-  }
-
-  async function sha256(texto) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(texto);
-    const digest = await window.crypto.subtle.digest("SHA-256", data);
-
-    return Array.from(new Uint8Array(digest))
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("");
-  }
-
-  async function validarPasswordSupervisor(password) {
-    if (!password) {
-      return false;
-    }
-
-    if (!window.crypto?.subtle) {
-      alert("Tu navegador no soporta la verificacion segura del acceso supervisor.");
-      return false;
-    }
-
-    return (await sha256(password)) === SUPERVISOR_PASSWORD_HASH;
   }
 
   async function cargarStockSector() {
@@ -434,23 +378,13 @@ export function initStockApp() {
   }
 
   function configurarAccesoSupervisor() {
-    tituloApp.addEventListener("click", async () => {
+    tituloApp.addEventListener("click", () => {
       contadorToques += 1;
 
       if (contadorToques < 5) return;
 
       contadorToques = 0;
-
-      const password = prompt("Contrasena de supervisor");
-
-      if (!password) return;
-
-      if (await validarPasswordSupervisor(password)) {
-        window.location.href = "supervisor.html";
-        return;
-      }
-
-      alert("Contrasena incorrecta");
+      window.location.href = "supervisor.html";
     });
   }
 
@@ -497,13 +431,10 @@ export function initStockApp() {
       const { categorias, productos } = obtenerCatalogoRenderizable();
       const data = await buildStockData(productos, categorias);
 
-      if (!snapshotGuardado && puedeGuardarSnapshot(data)) {
-        try {
-          await saveStockSnapshot(data);
-          snapshotGuardado = true;
-        } catch (error) {
-          console.error(error);
-        }
+      try {
+        await guardarSnapshotSiCorresponde(data);
+      } catch (error) {
+        console.error(error);
       }
 
       const texto = formatWhatsappText(data, productos);

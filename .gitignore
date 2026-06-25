@@ -1,0 +1,6 @@
+.tools/
+node_modules/
+coverage/
+.vitest/
+playwright-report/
+test-results/
