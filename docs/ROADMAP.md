@@ -1,174 +1,371 @@
 # Roadmap - Stock Barra
 
-Roadmap actualizado segun el estado real del proyecto al 2026-04-16.
+Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
+
+Este documento es la guia de decision para futuras implementaciones. La regla general es simple: mejorar estabilidad, velocidad operativa y seguridad sin romper el flujo actual de uso real.
+
+## Principios del producto
+
+- No hacer rewrites completos mientras la app siga en uso real.
+- Mantener mobile-first como prioridad principal.
+- No tocar el buscador salvo que exista una razon concreta y pruebas que cubran regresiones.
+- Preservar IDs del DOM y estructura visual salvo mejoras controladas.
+- Usar `appState` como fuente unica de estado de frontend.
+- Mantener `services` como capa de datos, `modules` como logica, `ui/renderer.js` como render y `core` como estado.
+- Priorizar cambios pequenos, testeables y reversibles.
+- Documentar cada cambio que afecte seguridad, Supabase o flujo operativo.
 
 ## Estado actual
 
 Version base:
-- `0.3.0`
 
-Capas ya consolidadas:
-- arquitectura modular con `services`, `modules`, `ui` y `core`
-- carga de stock por sector con `appState`
-- supervisor operativo
-- snapshots globales de stock
-- comparacion de cambios entre snapshots
-- conteo de barriles en `Camara`
-- versionado centralizado
+- `0.3.3`
 
-Hallazgos del analisis:
-- `stockController.js` ya quedo mas liviano, pero todavia concentra demasiado flujo operativo
-- el supervisor ya usa sesion real con Supabase Auth, pero el cierre total del backend todavia depende de aplicar el hardening en Supabase
-- la deduplicacion de snapshots ya es mas consistente, pero todavia depende de convenciones de frontend y no de una identidad real en DB
-- la base de tests ya cubre la mayor parte del flujo critico, pero todavia conviene seguir ampliando casos sobre auth, services y errores raros
+Capas consolidadas:
 
-## Prioridad inmediata
+- Arquitectura modular con `services`, `modules`, `ui` y `core`.
+- Carga de stock por sector con empleado + sector.
+- Buscador estable.
+- Guardado de inventario en Supabase.
+- Supervisor con login real usando Supabase Auth.
+- Snapshots globales de stock.
+- Comparacion global de cambios entre snapshots.
+- Conteo de barriles en `Camara`.
+- Versionado centralizado en `js/config.js`.
+- Tests unitarios y smoke tests de navegador.
 
-Lo primero que conviene estabilizar antes de sumar features nuevas:
-- aplicar en Supabase el hardening backend preparado para supervisor
-- terminar de reforzar el contrato de snapshots desde backend o con identidad propia
-- terminar de cerrar ramas raras de services y helpers internos
-- ordenar responsabilidades dentro de `stockController.js`
+Estado de validacion conocido:
 
-## v0.2.9 - Cierre de huecos de testing (completado)
+- `50` tests unitarios.
+- `12` smoke tests de navegador.
+- Cobertura unitaria aproximada: `90%` statements y `93%` lines.
+- Smoke tests seguros con mocks, sin tocar stock real.
 
-Objetivo:
-- usar la bateria de tests para encontrar y cerrar bugs reales antes de pasar al frente de seguridad
+## Hallazgos del analisis
 
-Incluye:
-- cobertura ampliada sobre formatter, renderer e inventario
-- smoke tests operativos extra sobre copiar, acceso supervisor y errores
-- correccion de `producto_id` invalido en comparaciones de snapshots
+Fortalezas actuales:
 
-## v0.2.3 - Hardening operativo (completado)
+- La app ya tiene una arquitectura razonable para crecer sin reescribir.
+- El flujo critico esta cubierto por pruebas automatizadas.
+- El supervisor dejo de depender de password hardcodeado en frontend.
+- La logica de barriles esta aislada en catalogo renderizable y no deberia contaminar otros sectores.
+- Los snapshots ya se guardan desde stock total consolidado, que es la direccion correcta.
 
-Objetivo:
-- dejar la version actual mas solida, consistente y limpia sin cambiar el flujo de uso
+Riesgos actuales:
 
-Incluye:
-- normalizar codificacion UTF-8 en `style.css`, `renderer.js`, `stockController.js` y textos visibles
-- limpiar logs de debug de barriles y mensajes temporales de desarrollo
-- revisar y cerrar la UX de errores y estados vacios del supervisor
-- alinear `CHANGELOG.md`, `README.md` y roadmap con el estado real del producto
-- documentar una checklist manual corta de validacion antes de deploy
+- `stockController.js` todavia concentra demasiadas responsabilidades operativas.
+- La seguridad backend aun necesita una segunda capa mas fuerte con politicas/RPCs en Supabase.
+- Los snapshots todavia dependen de convenciones de fecha/contenido y no de una identidad fuerte de snapshot.
+- Algunas experiencias usan `alert()`, correcto para estabilidad pero limitado para UX mobile.
+- El supervisor detecta posibles errores/anomalias, pero todavia no los convierte en un diagnostico visual accionable.
+- La administracion de catalogo/productos todavia depende de SQL manual.
+- La configuracion de smoke tests puede ser sensible a concurrencia del navegador; conviene estandarizar corrida estable.
 
-## v0.2.4 - Consistencia de snapshots (completado)
+## Criterio de prioridad
 
-Objetivo:
-- hacer mas predecible el guardado y la lectura de snapshots sin cambiar la UX ni la base actual
+P0 - Seguridad e integridad:
 
-Incluye:
-- contrato explicito de resultado al guardar snapshots
-- helpers compartidos para resumen, fingerprint y comparacion de snapshots recientes
-- integracion mas robusta con el flujo de WhatsApp para no depender de inserciones implicitas
-- checklist manual extendida para validar deduplicacion y comparacion
+- Se hace antes que features visuales si hay riesgo de exponer datos, perder stock o guardar datos corruptos.
+- Incluye RLS, RPCs, validacion, snapshots confiables y rollback.
 
-## v0.2.5 - Base de testing (completado)
+P1 - Operacion diaria:
 
-Objetivo:
-- tener una base real de validacion automatizada sin meter una infraestructura pesada
+- Mejora lo que el usuario toca todos los dias durante el conteo.
+- Incluye velocidad de carga, inputs, feedback, errores claros y experiencia mobile.
 
-Incluye:
-- `Node.js` como runtime de desarrollo
-- `Vitest` para pruebas de logica pura
-- primera bateria sobre `appState`, formatter, normalizacion y snapshots
-- comandos de testing documentados para uso diario
+P2 - Supervisor y analisis:
 
-## v0.2.6 - Cobertura de catalogo y DOM (completado)
+- Mejora lectura, decision y control.
+- Incluye dashboard, alertas, comparaciones y anomalias.
 
-Objetivo:
-- bajar riesgo en el flujo real de stock cubriendo el armado del catalogo y el render DOM mas sensible
+P3 - Mantenimiento y escala:
 
-Incluye:
-- extraccion de la logica de catalogo/barriles a un modulo puro
-- pruebas de `stockCatalog` para Camara, sectores normales y categoria virtual
-- pruebas `jsdom` para `renderer` y estados criticos del supervisor
-- integracion del controller sobre helpers mas faciles de mantener
+- Reduce costo futuro.
+- Incluye tests, CI, documentacion, release workflow, migraciones y limpieza tecnica.
 
-## v0.2.7 - Smoke tests de navegador (completado)
+## No hacer todavia
 
-Objetivo:
-- validar los flujos criticos visibles en un navegador real sin tocar produccion
+- No migrar a React/Vue ni introducir framework grande.
+- No cambiar la estructura de base de datos de inventario sin migracion y pruebas.
+- No cerrar `inventario` con RLS agresivo antes de separar lecturas de supervisor.
+- No crear un dashboard complejo antes de robustecer snapshots y permisos.
+- No agregar gestion completa de usuarios/roles hasta cerrar el caso supervisor actual.
+- No tocar el buscador estable salvo bugs demostrados.
+- No cambiar nombres comerciales de productos sin decision operativa.
 
-Incluye:
-- `Playwright` con `Microsoft Edge` en modo headless
-- server estatico local para correr la app durante pruebas
-- mocks de servicios para stock y supervisor
-- smoke tests sobre Camara, barriles, buscador y panel supervisor
+## v0.3.1 - Cierre post-publicacion (completado)
 
-## v0.2.8 - Smoke tests operativos ampliados (completado)
+Tipo:
+
+- `PATCH`
 
 Objetivo:
-- cubrir en navegador las interacciones mas delicadas del flujo real sin tocar datos productivos
+
+- Dejar la version publicada consistente, documentada y facil de validar despues de un tiempo sin tocar la app.
 
 Incluye:
-- guardado con normalizacion de cantidades
-- cancelacion de cambio de sector con rollback
-- copiado a portapapeles con mock de clipboard
-- acceso oculto a supervisor por password
-- fallbacks visuales ante errores de servicios
 
-## v0.3.0 - Seguridad de supervisor (completado en app, backend preparado)
+- Actualizar documentacion de validacion a `46` tests unitarios.
+- Estandarizar comando recomendado de smoke tests si la corrida paralela vuelve a ser inestable.
+- Revisar checklist de QA contra el flujo real publicado.
+- Confirmar que login/logout supervisor funciona en produccion.
+- Confirmar que los productos nuevos del catalogo aparecen donde corresponde.
+- Validar que no quedaron logs temporales de debug visibles en produccion.
+
+Criterio de salida:
+
+- `npm test` pasa.
+- `npm run test:smoke` pasa o queda documentada la corrida estable.
+- Checklist manual principal completada.
+- No hay cambios de UX no intencionales.
+
+## v0.3.2 - Hardening backend de supervisor (completado)
+
+Tipo:
+
+- `PATCH`
 
 Objetivo:
-- salir del password hardcodeado de frontend y dejar el panel supervisor protegido por sesion real
+
+- Convertir la proteccion del supervisor en seguridad real de backend, no solo bloqueo de UI.
 
 Incluye:
-- `authService.js` apoyado en Supabase Auth
-- login bloqueante dentro de `supervisor.html`
-- logout explicito y guard del panel aun con acceso directo por URL
-- acceso oculto desde stock convertido en redireccion al panel protegido
-- smoke tests nuevos sobre acceso directo, login y cierre de sesion
-- documentacion y plantilla de hardening backend para cerrar RLS despues sin rehacer frontend
 
-Siguiente paso recomendado:
-- aplicar el paquete de hardening de `docs/SUPERVISOR_AUTH.md` en Supabase para convertir esta mejora en seguridad backend real
-- definir mejor el contrato de errores entre `services` y `controllers`
+- Consolidar `public.is_supervisor()` en Supabase.
+- Mover lecturas sensibles del supervisor a RPCs dedicadas.
+- Restringir lectura de `stock_snapshots` a supervisor autenticado.
+- Definir politicas RLS para que el flujo de stock siga funcionando sin exponer mas de lo necesario.
+- Documentar SQL final aplicado y rollback manual.
+
+Criterio de salida:
+
+- Stock principal sigue cargando, guardando y compartiendo.
+- Supervisor solo lee datos sensibles con sesion autorizada.
+- El frontend usa servicios de supervisor compatibles con RPCs protegidas.
+- SQL versionado en `docs/sql/supervisor-hardening-v0.3.2.sql` aplicado en Supabase.
+
+Riesgo:
+
+- No cerrar todavia `stock_snapshots` para `anon` porque el guardado de snapshots aun deduplica leyendo snapshots recientes desde frontend.
+
+## v0.3.3 - Snapshots confiables (completado)
+
+Tipo:
+
+- `PATCH`
+
+Objetivo:
+
+- Hacer que los snapshots sean una base solida para analisis futuro.
+
+Incluye:
+
+- Definir identidad de snapshot mas fuerte que solo `fecha`.
+- Evaluar `snapshot_id` o `batch_id` para agrupar filas de un mismo snapshot.
+- Guardar metadata minima: origen, version app, usuario/supervisor si aplica.
+- Revisar deduplicacion desde frontend vs restriccion en DB.
+- Agregar pruebas para casos con fechas iguales, duplicados y snapshots incompletos.
+
+Criterio de salida:
+
+- Comparar ultimos 2 snapshots no depende de casualidades de timestamp.
+- Doble click o repeticion accidental no duplica analisis.
+- El supervisor puede mostrar estado "sin datos suficientes" de forma confiable.
+- SQL versionado en `docs/sql/snapshot-rpc-v0.3.3.sql` aplicado en Supabase.
 
 ## v0.4.0 - Velocidad de conteo
 
-Objetivo:
-- hacer la carga mas rapida en contexto real de barra sin romper la UX actual
+Tipo:
 
-Incluye:
-- sistema de packs / unidades
-- acciones rapidas `+1`, `+6`, `+12`
-- mejoras de foco y navegacion para carga intensiva en mobile
-- revision de densidad visual para sectores con muchos productos
-- optimizacion de tiempos de recarga entre sector y guardado
-
-## v0.5.0 - Inteligencia operativa
+- `MINOR`
 
 Objetivo:
-- convertir el supervisor en una herramienta de lectura y decision, no solo de consulta
+
+- Reducir tiempo y friccion durante carga real de stock en mobile.
 
 Incluye:
-- dashboard de supervisor con resumen global mas claro
-- alertas de stock bajo
-- sugerencias de compra
-- comparaciones historicas entre snapshots
-- deteccion de anomalias o diferencias atipicas
+
+- Acciones rapidas `+1`, `+6`, `+12` o equivalentes configurables.
+- Mejoras de foco entre inputs.
+- Mejor lectura de categorias largas.
+- Feedback no bloqueante para guardado/copiar.
+- Revision de densidad visual sin cambiar el flujo base.
+- Posible mejora de rendimiento al cambiar de sector.
+
+Criterio de salida:
+
+- El conteo se siente mas rapido en celular.
+- No cambia el resultado guardado.
+- El buscador sigue funcionando igual.
+- Los usuarios pueden seguir usando inputs normales.
+
+## v0.4.1 - Gestion controlada de catalogo
+
+Tipo:
+
+- `PATCH`
+
+Objetivo:
+
+- Reducir dependencia de SQL manual para altas simples de productos.
+
+Opciones posibles:
+
+- Mantener SQL templates bien documentados para agregar productos.
+- Crear una mini herramienta interna protegida para productos/categorias.
+- Agregar campo `activo` para ocultar productos sin borrar historial.
+- Documentar reglas de nombres, categorias y orden.
+
+Criterio de salida:
+
+- Agregar productos nuevos deja de ser riesgoso.
+- No se rompe historial de inventario.
+- No se requiere modificar codigo para cada alta comun, salvo casos especiales.
+
+Decision pendiente:
+
+- Elegir entre mantener SQL guiado o construir una UI chica de administracion.
+
+## v0.5.0 - Supervisor inteligente
+
+Tipo:
+
+- `MINOR`
+
+Objetivo:
+
+- Convertir el supervisor en una herramienta de decision rapida.
+
+Incluye:
+
+- Dashboard con resumen operativo global.
+- Alertas de stock bajo.
+- Ranking de mayores salidas y entradas.
+- Estado de sectores con antiguedad del ultimo conteo.
+- Deteccion visual de anomalias.
+- Export o copia de reportes operativos.
+- Filtros simples por fecha/rango si los datos lo justifican.
+
+Criterio de salida:
+
+- En menos de 3 segundos se entiende que falta, que cambio y que sectores estan al dia.
+- No requiere entrenamiento para leer lo importante.
+- Los calculos vienen de datos consolidados y no duplican logica de UI.
 
 ## v0.6.0 - Calidad y release workflow
 
+Tipo:
+
+- `MINOR`
+
 Objetivo:
-- profesionalizar el mantenimiento del proyecto
+
+- Hacer que publicar cambios sea repetible y menos riesgoso.
 
 Incluye:
-- smoke tests automatizados para flujos criticos
-- estrategia minima de testing para formatter, snapshots y supervisor
-- checklist de release versionada
-- convenciones de ramas, merge y versionado documentadas
-- preparacion para deploys mas seguros y rollback manual claro
 
-## v1.0.0 - Sistema estable de inventario
+- GitHub Actions para `npm test`.
+- Workflow documentado para `dev -> main -> deploy`.
+- Checklist de release por version.
+- Estrategia de rollback manual.
+- Convencion de ramas y commits.
+- Posible script de version bump.
+- Evidencia minima de QA antes de publicar.
+
+Criterio de salida:
+
+- Ningun cambio importante llega a `main` sin pruebas.
+- Publicar deja de depender de memoria.
+- Volver atras esta documentado.
+
+## v0.7.0 - Resiliencia operativa
+
+Tipo:
+
+- `MINOR`
 
 Objetivo:
-- considerar Stock Barra un sistema estable, mantenible y seguro para uso continuo
+
+- Reducir riesgo cuando hay mala conexion o uso intenso en barra.
+
+Incluye:
+
+- Guardado de borrador local antes de enviar a Supabase.
+- Indicador claro de estado de guardado.
+- Reintento controlado si falla red.
+- Prevencion de perdida accidental al cerrar o cambiar sector.
+- Evaluar PWA/offline parcial solo si aporta de verdad.
+
+Criterio de salida:
+
+- Una falla de red no hace perder un conteo cargado.
+- El usuario entiende si algo quedo guardado o pendiente.
+- No se generan duplicados por reintentos.
+
+## v1.0.0 - Sistema estable
+
+Tipo:
+
+- `MAJOR`
+
+Objetivo:
+
+- Considerar Stock Barra estable para uso continuo y mantenimiento ordenado.
 
 Condiciones esperadas:
-- flujos criticos cubiertos por pruebas o smoke checks repetibles
-- seguridad de supervisor resuelta de forma real
-- snapshots y comparaciones robustas
-- documentacion tecnica y operativa al dia
-- roadmap de nuevas features separado del trabajo de estabilizacion
+
+- Seguridad backend aplicada y probada.
+- Flujos criticos cubiertos por tests o smoke checks repetibles.
+- Snapshots robustos con identidad clara.
+- Supervisor util para decision operativa real.
+- Catalogo mantenible sin tocar codigo para cada cambio menor.
+- Documentacion tecnica y operativa al dia.
+- Release workflow claro.
+
+## Backlog de ideas
+
+Ideas utiles, pero no comprometidas a version todavia:
+
+- Exportar reportes a CSV o PDF.
+- Plantillas de WhatsApp para compra/reposicion.
+- Historial por producto.
+- Vista de "productos sin contar".
+- Modo evento o cierre de noche.
+- QR/barcode scanning si el catalogo crece mucho.
+- Auditoria de quien cargo o modifico cada conteo.
+- Roles adicionales: supervisor, encargado, empleado.
+- Umbrales configurables por producto.
+- Panel simple de salud del sistema.
+
+## Orden recomendado de ejecucion
+
+1. Avanzar a `v0.4.0` para mejorar velocidad de conteo.
+2. Recien despues construir `v0.5.0` con supervisor inteligente.
+
+## Preguntas de producto abiertas
+
+- El catalogo deberia seguir siendo administrado por SQL guiado o necesita una UI protegida?
+- Los snapshots deben representar cada envio por WhatsApp o cada cierre operativo de stock?
+- Quien puede ver supervisor en el futuro: una sola cuenta o varios roles?
+- Que productos necesitan umbrales de alerta y cuales no?
+- Que tan importante es offline/PWA para el uso real en barra?
+
+## Historial cerrado
+
+Versiones ya completadas y documentadas en `CHANGELOG.md`:
+
+- `v0.1.0`: modularizacion base.
+- `v0.2.0`: snapshots, comparacion y versionado inicial.
+- `v0.2.1`: barriles, deduplicacion y limpieza legacy.
+- `v0.2.2`: `Red Ipa` y normalizacion de sector `Camara`.
+- `v0.2.3`: hardening operativo y QA checklist.
+- `v0.2.4`: consistencia de snapshots.
+- `v0.2.5`: base de testing con Node/Vitest.
+- `v0.2.6`: cobertura de catalogo y DOM.
+- `v0.2.7`: smoke tests de navegador.
+- `v0.2.8`: smoke tests operativos ampliados.
+- `v0.2.9`: cierre de huecos de testing.
+- `v0.3.0`: seguridad de supervisor en app y backend preparado.
+- `v0.3.1`: cierre post-publicacion, roadmap rector y QA estabilizado.
+- `v0.3.2`: servicios de supervisor por RPC y SQL de hardening compatible aplicado.
+- `v0.3.3`: snapshots con identidad propia y RPC de guardado aplicada.

@@ -58,6 +58,7 @@ Comandos disponibles:
 - `npm run test:watch`: deja Vitest en modo watch.
 - `npm run test:coverage`: genera cobertura en `coverage/`.
 - `npm run test:smoke`: corre smoke tests de navegador sobre app local con mocks seguros.
+- `npm run test:smoke:stable`: corre smoke tests con un solo worker para evitar flakes de navegador.
 - `npm run test:all`: corre unidad + smoke en una sola pasada.
 
 Cobertura inicial:
@@ -74,7 +75,7 @@ Cobertura inicial:
 
 Estado actual de validacion:
 
-- `45` tests unitarios
+- `50` tests unitarios
 - `12` smoke tests de navegador
 - cobertura unitaria sobre `90%` de statements y `93%` de lines
 
@@ -83,6 +84,7 @@ Notas para smoke tests:
 - usan `Microsoft Edge` del sistema en modo headless
 - levantan un server local y mockean `catalogoService` / `inventarioService`
 - no leen ni escriben stock real
+- si aparece un timeout aislado de navegador, repetir con `npm run test:smoke:stable`
 
 ## Seguridad de supervisor
 
@@ -100,6 +102,8 @@ Setup minimo recomendado:
 1. Crear una cuenta dedicada de supervisor en Supabase Auth.
 2. Usar email + password para entrar al panel.
 3. Revisar `docs/SUPERVISOR_AUTH.md` para el paquete de hardening backend y politicas recomendadas.
+4. Aplicar `docs/sql/supervisor-hardening-v0.3.2.sql` para habilitar RPCs protegidas del panel.
+5. Aplicar `docs/sql/snapshot-rpc-v0.3.3.sql` para habilitar snapshots con identidad propia.
 
 ## Versionado
 

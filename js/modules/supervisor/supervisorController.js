@@ -5,9 +5,9 @@ import {
 } from "../../services/catalogoService.js";
 
 import {
-  getConteosDesde,
-  getDiferenciasStock,
-  getInventarioConSectores,
+  getSupervisorConteosDesde,
+  getSupervisorDiferenciasStock,
+  getSupervisorInventarioConSectores,
 } from "../../services/inventarioService.js";
 
 import {
@@ -187,7 +187,7 @@ export function initSupervisorApp() {
 
     try {
       const [conteos, sectores] = await Promise.all([
-        getConteosDesde(obtenerInicioDeHoy()),
+        getSupervisorConteosDesde(obtenerInicioDeHoy()),
         getSectores(),
       ]);
 
@@ -212,7 +212,7 @@ export function initSupervisorApp() {
 
     try {
       const [diferencias, productos] = await Promise.all([
-        getDiferenciasStock(),
+        getSupervisorDiferenciasStock(),
         getProductos(),
       ]);
 
@@ -239,7 +239,7 @@ export function initSupervisorApp() {
     }
 
     try {
-      const data = await getInventarioConSectores();
+      const data = await getSupervisorInventarioConSectores();
       const productos = {};
 
       (Array.isArray(data) ? data : []).forEach((item) => {

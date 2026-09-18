@@ -2,6 +2,39 @@
 
 Historial de cambios de Stock Barra.
 
+## v0.3.3 - 2026-09-18
+
+### Added
+- Soporte frontend para guardar snapshots mediante RPC `save_stock_snapshot`.
+- SQL versionado `docs/sql/snapshot-rpc-v0.3.3.sql` para agregar `snapshot_id`, backfill historico y RPC de guardado/deduplicacion.
+- Test unitario para validar el contrato RPC de snapshots.
+
+### Changed
+- `saveStockSnapshot()` conserva fallback compatible, pero prioriza backend transaccional cuando la RPC esta disponible.
+- La comparacion de supervisor queda preparada para agrupar por `snapshot_id` y usar `fecha` solo como compatibilidad historica.
+- Documentacion de base de datos actualizada para snapshots con identidad propia.
+
+## v0.3.2 - 2026-07-27
+
+### Added
+- Funciones de servicio especificas de supervisor con soporte para RPCs protegidas.
+- SQL versionado `docs/sql/supervisor-hardening-v0.3.2.sql` para centralizar lecturas sensibles del supervisor en Supabase.
+- Tests unitarios para normalizacion de respuestas RPC del supervisor.
+
+### Changed
+- `supervisorController` deja de consumir lecturas crudas generales y pasa a usar servicios orientados a supervisor.
+- El hardening backend queda preparado con fallback compatible para no romper la app si el SQL aun no fue aplicado.
+
+## v0.3.1 - 2026-07-27
+
+### Added
+- Comando `test:smoke:stable` para correr smoke tests con un solo worker cuando el navegador tiene timeouts aislados.
+
+### Changed
+- Roadmap reorganizado como guia de decision futura con prioridades, criterios de salida, riesgos y backlog.
+- README y checklist de QA alineados con el estado real de validacion.
+- Version visible de la app actualizada a `0.3.1`.
+
 ## v0.3.0 - 2026-04-16
 
 ### Added

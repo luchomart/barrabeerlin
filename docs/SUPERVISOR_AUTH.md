@@ -30,6 +30,12 @@ Motivo:
 
 ## Hardening backend recomendado
 
+SQL aplicado:
+
+- `docs/sql/supervisor-hardening-v0.3.2.sql`
+
+Ese archivo crea RPCs protegidas para las lecturas del supervisor y mantiene compatible el flujo actual de stock.
+
 ### 1. Definir la cuenta de supervisor
 
 Usar una cuenta de Supabase Auth dedicada para supervisor.
@@ -59,25 +65,18 @@ as $$
 $$;
 ```
 
-### 3. Cerrar lectura sensible de snapshots
+### 3. Centralizar lecturas del supervisor
 
-La lectura de `stock_snapshots` ya es claramente de supervisor. Se puede endurecer sin romper el flujo actual de stock:
+El panel supervisor debe leer datos sensibles mediante funciones RPC dedicadas:
 
-```sql
-alter table public.stock_snapshots enable row level security;
-
-drop policy if exists "supervisor select stock_snapshots" on public.stock_snapshots;
-
-create policy "supervisor select stock_snapshots"
-on public.stock_snapshots
-for select
-to authenticated
-using (public.is_supervisor());
-```
+- `get_supervisor_conteos_desde(...)`
+- `get_supervisor_inventario_con_sectores()`
+- `get_supervisor_diferencias_stock()`
 
 Nota:
 
-- mantener la politica de `insert` que hoy necesite el flujo de snapshots desde stock
+- estas funciones ya estan preparadas en `docs/sql/supervisor-hardening-v0.3.2.sql`
+- el frontend intenta usarlas y conserva fallback temporal si todavia no existen en Supabase
 
 ### 4. No cerrar `inventario` a ciegas
 
@@ -89,15 +88,15 @@ Antes de endurecer `select` sobre `inventario`, conviene mover las lecturas del 
 - stock total para compartir
 - snapshots desde stock
 
-### 5. Paso siguiente recomendado
+### 5. No cerrar `stock_snapshots` todavia
 
-Mover estas lecturas a funciones dedicadas de Supabase:
+Aunque los cambios de stock son de supervisor, el flujo actual de WhatsApp usa `saveStockSnapshot()` y necesita leer snapshots recientes para deduplicar.
 
-- `get_supervisor_conteos_desde(...)`
-- `get_supervisor_inventario_con_sectores()`
-- cualquier otra lectura agregada solo para panel supervisor
+Por eso:
 
-Esas funciones deberian validarse con `public.is_supervisor()` y recien entonces leer `inventario`.
+- no cerrar `select` de `stock_snapshots` para `anon` todavia
+- mover el guardado/deduplicacion de snapshots a RPC transaccional en el siguiente paso
+- recien despues endurecer completamente `stock_snapshots`
 
 ## Criterio final
 

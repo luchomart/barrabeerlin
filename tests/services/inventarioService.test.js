@@ -5,6 +5,8 @@ const scenario = {
   snapshotByFecha: new Map(),
   inserted: [],
   insertResponse: null,
+  rpcResponses: new Map(),
+  rpcCalls: [],
 };
 
 function buildStockSnapshotsTable() {
@@ -55,6 +57,25 @@ function buildStockSnapshotsTable() {
 }
 
 const mockSupabase = {
+  rpc(name, params) {
+    scenario.rpcCalls.push({ name, params });
+
+    if (!scenario.rpcResponses.has(name)) {
+      return Promise.resolve({
+        data: null,
+        error: {
+          code: "PGRST202",
+          message: `Could not find the function public.${name}`,
+        },
+      });
+    }
+
+    return Promise.resolve({
+      data: scenario.rpcResponses.get(name),
+      error: null,
+    });
+  },
+
   from(table) {
     if (table !== "stock_snapshots") {
       throw new Error(`Tabla no mockeada: ${table}`);
@@ -71,6 +92,9 @@ vi.mock("../../js/services/supabaseClient.js", () => ({
 const {
   getDiferenciasStock,
   saveStockSnapshot,
+  getSupervisorConteosDesde,
+  getSupervisorDiferenciasStock,
+  getSupervisorInventarioConSectores,
 } = await import("../../js/services/inventarioService.js");
 
 describe("inventarioService snapshots", () => {
@@ -79,6 +103,8 @@ describe("inventarioService snapshots", () => {
     scenario.snapshotByFecha = new Map();
     scenario.inserted = [];
     scenario.insertResponse = null;
+    scenario.rpcResponses = new Map();
+    scenario.rpcCalls = [];
     vi.useRealTimers();
   });
 
@@ -86,6 +112,7 @@ describe("inventarioService snapshots", () => {
     await expect(saveStockSnapshot()).resolves.toEqual({
       status: "invalid",
       fecha: null,
+      snapshot_id: null,
       registros: [],
       resumen: null,
     });
@@ -109,6 +136,7 @@ describe("inventarioService snapshots", () => {
     expect(resultado.fecha).toBe("2026-04-09T10:00:00.000Z");
     expect(resultado.resumen).toEqual({
       fecha: "2026-04-09T10:00:00.000Z",
+      snapshot_id: null,
       totalProductos: 2,
       totalUnidades: 3,
       fingerprint: "1:3|2:0",
@@ -139,9 +167,11 @@ describe("inventarioService snapshots", () => {
     expect(resultado).toEqual({
       status: "empty",
       fecha: null,
+      snapshot_id: null,
       registros: [],
       resumen: {
         fecha: null,
+        snapshot_id: null,
         totalProductos: 0,
         totalUnidades: 0,
         fingerprint: "",
@@ -171,10 +201,65 @@ describe("inventarioService snapshots", () => {
     expect(resultado.fecha).toBe(fecha);
     expect(resultado.resumen).toEqual({
       fecha,
+      snapshot_id: null,
       totalProductos: 2,
       totalUnidades: 4,
       fingerprint: "1:3|2:1",
     });
+    expect(scenario.inserted).toEqual([]);
+  });
+
+  it("usa RPC para guardar snapshot cuando esta disponible", async () => {
+    scenario.rpcResponses.set("save_stock_snapshot", {
+      status: "created",
+      fecha: "2026-07-27T10:00:00.000Z",
+      snapshot_id: "00000000-0000-4000-8000-000000000001",
+      registros: [
+        {
+          producto_id: 1,
+          cantidad: 3,
+          fecha: "2026-07-27T10:00:00.000Z",
+          snapshot_id: "00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      resumen: {
+        fecha: "2026-07-27T10:00:00.000Z",
+        snapshot_id: "00000000-0000-4000-8000-000000000001",
+        totalProductos: 1,
+        totalUnidades: 3,
+        fingerprint: "1:3",
+      },
+    });
+
+    await expect(
+      saveStockSnapshot({ stockPorProducto: { 1: 3 } }),
+    ).resolves.toEqual({
+      status: "created",
+      fecha: "2026-07-27T10:00:00.000Z",
+      snapshot_id: "00000000-0000-4000-8000-000000000001",
+      registros: [
+        {
+          producto_id: 1,
+          cantidad: 3,
+          fecha: "2026-07-27T10:00:00.000Z",
+          snapshot_id: "00000000-0000-4000-8000-000000000001",
+        },
+      ],
+      resumen: {
+        fecha: "2026-07-27T10:00:00.000Z",
+        snapshot_id: "00000000-0000-4000-8000-000000000001",
+        totalProductos: 1,
+        totalUnidades: 3,
+        fingerprint: "1:3",
+      },
+    });
+
+    expect(scenario.rpcCalls).toEqual([
+      {
+        name: "save_stock_snapshot",
+        params: { stock_por_producto: { 1: 3 } },
+      },
+    ]);
     expect(scenario.inserted).toEqual([]);
   });
 
@@ -273,6 +358,79 @@ describe("inventarioService snapshots", () => {
         tipo: "entrada",
         snapshot_actual_fecha: fechaActual,
         snapshot_anterior_fecha: fechaAnterior,
+      },
+    ]);
+  });
+
+  it("lee conteos de supervisor por RPC y normaliza sector", async () => {
+    scenario.rpcResponses.set("get_supervisor_conteos_desde", [
+      {
+        empleado: "Karen",
+        sector_id: "1",
+        ultima_actualizacion: "2026-07-27T10:00:00.000Z",
+        sector_nombre: "Camara",
+      },
+    ]);
+
+    await expect(
+      getSupervisorConteosDesde("2026-07-27T00:00:00.000Z"),
+    ).resolves.toEqual([
+      {
+        empleado: "Karen",
+        sector_id: "1",
+        ultima_actualizacion: "2026-07-27T10:00:00.000Z",
+        sectores: { nombre: "Camara" },
+      },
+    ]);
+
+    expect(scenario.rpcCalls).toEqual([
+      {
+        name: "get_supervisor_conteos_desde",
+        params: { fecha_desde: "2026-07-27T00:00:00.000Z" },
+      },
+    ]);
+  });
+
+  it("lee inventario de supervisor por RPC y normaliza sector", async () => {
+    scenario.rpcResponses.set("get_supervisor_inventario_con_sectores", [
+      {
+        producto_id: "101",
+        cantidad: "7",
+        sector_nombre: "Camara",
+      },
+    ]);
+
+    await expect(getSupervisorInventarioConSectores()).resolves.toEqual([
+      {
+        producto_id: 101,
+        cantidad: 7,
+        sectores: { nombre: "Camara" },
+      },
+    ]);
+  });
+
+  it("lee diferencias de supervisor por RPC y completa magnitud/tipo", async () => {
+    scenario.rpcResponses.set("get_supervisor_diferencias_stock", [
+      {
+        producto_id: "101",
+        actual: "4",
+        anterior: "10",
+        diferencia: "-6",
+        snapshot_actual_fecha: "2026-07-27T10:00:00.000Z",
+        snapshot_anterior_fecha: "2026-07-27T09:00:00.000Z",
+      },
+    ]);
+
+    await expect(getSupervisorDiferenciasStock()).resolves.toEqual([
+      {
+        producto_id: 101,
+        actual: 4,
+        anterior: 10,
+        diferencia: -6,
+        magnitud: 6,
+        tipo: "salida",
+        snapshot_actual_fecha: "2026-07-27T10:00:00.000Z",
+        snapshot_anterior_fecha: "2026-07-27T09:00:00.000Z",
       },
     ]);
   });

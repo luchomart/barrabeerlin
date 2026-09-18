@@ -31,9 +31,11 @@
 - `producto_id`
 - `cantidad`
 - `fecha`
+- `snapshot_id`
 
 Notas:
 
 - Cada snapshot guarda stock total por producto, no por sector.
-- Las filas de un mismo snapshot comparten la misma `fecha`.
-- La app evita duplicados recientes en frontend antes de insertar.
+- Las filas de un mismo snapshot comparten `snapshot_id`.
+- Los snapshots historicos sin `snapshot_id` se pueden agrupar por `fecha`.
+- El guardado nuevo queda preparado para usar la RPC `save_stock_snapshot(...)`.

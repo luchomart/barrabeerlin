@@ -2,6 +2,13 @@
 
 Usar esta lista corta antes de publicar cambios a produccion.
 
+## Validacion automatizada
+
+1. Ejecutar `npm test`.
+2. Ejecutar `npm run test:smoke`.
+3. Si hay un timeout aislado del navegador, repetir con `npm run test:smoke:stable`.
+4. Confirmar que los smoke tests no tocaron Supabase real ni stock productivo.
+
 ## Stock
 
 1. Abrir `index.html`.

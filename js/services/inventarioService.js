@@ -99,6 +99,117 @@ function esSnapshotReciente(fechaIso) {
   return Date.now() - timestamp <= SNAPSHOT_DEDUP_WINDOW_MS;
 }
 
+function esRpcNoDisponible(error) {
+  const code = String(error?.code || "").toUpperCase();
+  const message = String(error?.message || "").toLowerCase();
+
+  return (
+    code === "PGRST202" ||
+    message.includes("could not find the function") ||
+    message.includes("schema cache") ||
+    message.includes("function public.")
+  );
+}
+
+async function llamarRpcConFallback(nombre, params, fallback) {
+  if (typeof db.rpc !== "function") {
+    return fallback();
+  }
+
+  const { data, error } = await db.rpc(nombre, params);
+
+  if (error) {
+    if (esRpcNoDisponible(error)) {
+      return fallback();
+    }
+
+    throw error;
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
+async function llamarRpcObjetoConFallback(nombre, params, fallback) {
+  if (typeof db.rpc !== "function") {
+    return fallback();
+  }
+
+  const { data, error } = await db.rpc(nombre, params);
+
+  if (error) {
+    if (esRpcNoDisponible(error)) {
+      return fallback();
+    }
+
+    throw error;
+  }
+
+  return data && typeof data === "object" ? data : fallback();
+}
+
+function normalizarResultadoSnapshot(resultado = {}) {
+  const registros = Array.isArray(resultado.registros)
+    ? resultado.registros
+    : [];
+  const fecha = resultado.fecha || null;
+
+  return {
+    status: resultado.status || "invalid",
+    fecha,
+    snapshot_id: resultado.snapshot_id || null,
+    registros,
+    resumen:
+      resultado.resumen && typeof resultado.resumen === "object"
+        ? {
+            fecha: resultado.resumen.fecha || fecha,
+            snapshot_id:
+              resultado.resumen.snapshot_id || resultado.snapshot_id || null,
+            totalProductos: Number(resultado.resumen.totalProductos) || 0,
+            totalUnidades: Number(resultado.resumen.totalUnidades) || 0,
+            fingerprint: resultado.resumen.fingerprint || "",
+          }
+        : construirResumenSnapshot(registros, fecha),
+  };
+}
+
+function normalizarConteoSupervisor(row = {}) {
+  return {
+    empleado: row.empleado || "",
+    sector_id: row.sector_id,
+    ultima_actualizacion: row.ultima_actualizacion,
+    sectores: {
+      nombre: row.sector_nombre || row.sectores?.nombre || "",
+    },
+  };
+}
+
+function normalizarInventarioSupervisor(row = {}) {
+  return {
+    cantidad: Number(row.cantidad) || 0,
+    producto_id: Number(row.producto_id),
+    sectores: {
+      nombre: row.sector_nombre || row.sectores?.nombre || "",
+    },
+  };
+}
+
+function normalizarDiferenciaSupervisor(row = {}) {
+  const diferencia = Number(row.diferencia) || 0;
+
+  return {
+    producto_id: Number(row.producto_id),
+    actual: Number(row.actual) || 0,
+    anterior: Number(row.anterior) || 0,
+    diferencia,
+    magnitud: Number(row.magnitud) || Math.abs(diferencia),
+    tipo:
+      row.tipo ||
+      (diferencia > 0 ? "entrada" : diferencia < 0 ? "salida" : "sin_cambio"),
+    snapshot_actual_fecha: row.snapshot_actual_fecha || null,
+    snapshot_anterior_fecha: row.snapshot_anterior_fecha || null,
+  };
+}
+
 async function getUltimasFechasSnapshot(cantidad = 2) {
   const fechas = [];
   const vistas = new Set();
@@ -236,6 +347,36 @@ export async function getInventarioConSectores() {
   return data;
 }
 
+export async function getSupervisorConteosDesde(fechaIso) {
+  const rows = await llamarRpcConFallback(
+    "get_supervisor_conteos_desde",
+    { fecha_desde: fechaIso },
+    () => getConteosDesde(fechaIso),
+  );
+
+  return rows.map(normalizarConteoSupervisor);
+}
+
+export async function getSupervisorInventarioConSectores() {
+  const rows = await llamarRpcConFallback(
+    "get_supervisor_inventario_con_sectores",
+    {},
+    getInventarioConSectores,
+  );
+
+  return rows.map(normalizarInventarioSupervisor);
+}
+
+export async function getSupervisorDiferenciasStock() {
+  const rows = await llamarRpcConFallback(
+    "get_supervisor_diferencias_stock",
+    {},
+    getDiferenciasStock,
+  );
+
+  return rows.map(normalizarDiferenciaSupervisor);
+}
+
 export async function saveStockSnapshot(stockData) {
   const stockPorProducto = stockData?.stockPorProducto;
 
@@ -243,11 +384,22 @@ export async function saveStockSnapshot(stockData) {
     return {
       status: "invalid",
       fecha: null,
+      snapshot_id: null,
       registros: [],
       resumen: null,
     };
   }
 
+  return normalizarResultadoSnapshot(
+    await llamarRpcObjetoConFallback(
+      "save_stock_snapshot",
+      { stock_por_producto: stockPorProducto },
+      () => saveStockSnapshotFallback(stockPorProducto),
+    ),
+  );
+}
+
+async function saveStockSnapshotFallback(stockPorProducto) {
   const registrosBase = normalizarRegistrosSnapshot(stockPorProducto);
   const resumenBase = construirResumenSnapshot(registrosBase);
 
@@ -255,6 +407,7 @@ export async function saveStockSnapshot(stockData) {
     return {
       status: "empty",
       fecha: null,
+      snapshot_id: null,
       registros: [],
       resumen: resumenBase,
     };
@@ -270,6 +423,7 @@ export async function saveStockSnapshot(stockData) {
       return {
         status: "deduplicated",
         fecha: ultimoSnapshot.fecha,
+        snapshot_id: null,
         registros: ultimoSnapshot.rows,
         resumen: ultimoSnapshot.resumen,
       };
@@ -291,6 +445,7 @@ export async function saveStockSnapshot(stockData) {
   return {
     status: "created",
     fecha,
+    snapshot_id: null,
     registros: rows,
     resumen: construirResumenSnapshot(rows, fecha),
   };

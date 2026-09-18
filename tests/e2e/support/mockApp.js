@@ -223,6 +223,10 @@ function buildInventarioServiceMock(options = {}) {
       return conteosHoy;
     }
 
+    export async function getSupervisorConteosDesde() {
+      return getConteosDesde();
+    }
+
     export async function getInventarioConSectores() {
       if (${JSON.stringify(failInventarioConSectores)}) {
         throw new Error("mock getInventarioConSectores error");
@@ -231,12 +235,20 @@ function buildInventarioServiceMock(options = {}) {
       return inventarioConSectores;
     }
 
+    export async function getSupervisorInventarioConSectores() {
+      return getInventarioConSectores();
+    }
+
     export async function getDiferenciasStock() {
       if (${JSON.stringify(failCambios)}) {
         throw new Error("mock getDiferenciasStock error");
       }
 
       return diferenciasStock;
+    }
+
+    export async function getSupervisorDiferenciasStock() {
+      return getDiferenciasStock();
     }
   `;
 

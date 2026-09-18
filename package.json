@@ -7,6 +7,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:smoke": "playwright test",
+    "test:smoke:stable": "playwright test --workers=1",
     "test:all": "npm test && npm run test:smoke"
   },
   "engines": {
