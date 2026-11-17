@@ -5,7 +5,9 @@ Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 ## Donde quedamos (2026-11-17)
 
 - `docs/sql/admin-v0.4.2.sql` (mover producto de categoria) aplicado en Supabase el 2026-11-17
-  (verificacion: `sin_anon = true`).
+  (verificacion: `sin_anon = true`). La prueba movio 4 duplicados sin categoria a Vinos; ya se
+  revirtio (`docs/sql/revertir-prueba-mover-2026-11-17.sql`, verificado).
+- Idea: borrar esos 4 duplicados (ids 19, 32, 33, 34) despues de revisar si tienen stock cargado.
 - Buscador: al escribir, la lista sube hasta el primer resultado y en el celu el pie se oculta
   mientras el teclado esta abierto.
 - Hechos en `dev`: buscador sin tildes, mensaje de WhatsApp renovado (totales, "Sin stock",

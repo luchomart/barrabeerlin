@@ -108,4 +108,7 @@ Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos.
   categoria nueva). No toca inventario, snapshots ni ventas.
 - Sirve para darle categoria a los productos que hoy no tienen.
 - Aplicado por Luciano el 2026-11-17; la consulta de verificacion dio `sin_anon = true`.
+- La prueba en produccion movio a Vinos los 4 productos sin categoria (duplicados: 19, 32, 33, 34).
+  Se revirtio con `docs/sql/revertir-prueba-mover-2026-11-17.sql` (verificado: los 4 con
+  `categoria_id` y `orden` en null). Siguen siendo los unicos productos sin categoria.
 - Probado en PGlite imitando roles y esquema (con v0.4.0 y v0.4.1 cargados): 14 casos OK.
