@@ -4,6 +4,13 @@ Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 
 ## Donde quedamos (2026-11-17)
 
+- Critica de diseño (`/impeccable critique`, 23/40) y arreglos aplicados en `dev`: progreso por
+  categoria, aviso antes de guardar sin revisar todo, comprobante en vez de `alert`, indicador real de
+  conexion, error con `Reintentar`, botones − / +, pie mas chico, contraste y accesibilidad (ver
+  CHANGELOG "Changed"). Falta probarlo en el Moto G9 antes de publicar: cambia el flujo que el
+  personal ya conoce (ya no hay `alert` al guardar).
+- Pendiente de la critica: poder **empezar** un conteo sin internet (guardar en el celu el ultimo
+  stock de cada sector). Se decidio dejarlo para despues.
 - En `dev`, sin publicar: revision de v0.4.0 + conteo a prueba de cortes de internet (ver CHANGELOG
   "Sin publicar"). Incluye un arreglo de seguridad: nombres sin escapar en el supervisor (XSS via
   `inventario.empleado`, que `anon` puede escribir). beerlin.online sigue expuesto hasta publicar.

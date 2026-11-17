@@ -14,6 +14,17 @@ function aceptarDialogos(page) {
   return mensajes;
 }
 
+// Toca Guardar y, si avisa que hay categorias sin abrir, confirma "Guardar igual".
+async function guardarConteo(page) {
+  await page.click("#btn-guardar");
+
+  const guardarIgual = page.locator('#aviso-guardar [data-accion="guardar-igual"]');
+
+  if (await guardarIgual.isVisible()) {
+    await guardarIgual.click();
+  }
+}
+
 function filaProducto(page, productoId) {
   return page.locator(`.producto-fila:has(input[data-id="${productoId}"])`);
 }
@@ -87,12 +98,9 @@ test("stock smoke: guardar normaliza cantidades y resetea sector", async ({ page
 
   await page.locator('input[data-id="101"]').fill("9999");
 
-  page.once("dialog", async (dialog) => {
-    await expect(dialog.message()).toContain("Conteo guardado");
-    await dialog.accept();
-  });
-
-  await page.click("#btn-guardar");
+  await guardarConteo(page);
+  await expect(page.locator("#comprobante-conteo")).toContainText("Camara guardado");
+  await expect(page.locator("#comprobante-conteo")).toContainText("Karen");
 
   const guardado = await page.evaluate(() => globalThis.__mockUltimoGuardado);
   const ipa = guardado.find((item) => String(item.producto_id) === "101");
@@ -107,7 +115,7 @@ test("stock smoke: guardar normaliza cantidades y resetea sector", async ({ page
   await expect(page.locator("#lista-productos")).not.toBeVisible();
 });
 
-test("stock smoke: cancelar cambio de sector mantiene datos pendientes", async ({ page }) => {
+test("stock smoke: cambiar de sector conserva lo contado como borrador", async ({ page }) => {
   await mockAppServices(page);
   await page.goto("/");
 
@@ -119,16 +127,72 @@ test("stock smoke: cancelar cambio de sector mantiene datos pendientes", async (
 
   await page.locator('input[data-id="101"]').fill("7");
 
-  page.once("dialog", async (dialog) => {
-    expect(dialog.type()).toBe("confirm");
-    await dialog.dismiss();
-  });
+  await page.selectOption("#select-sector", { label: "Estantes Barra" });
+  await expect(page.locator("#aviso-stock")).toContainText("Camara quedó guardado como borrador");
 
+  await page.selectOption("#select-sector", { label: "Camara" });
+  await expect(page.locator('input[data-id="101"]')).toHaveValue("7");
+  await expect(page.locator('input[data-id="101"]')).toHaveClass(/input-modificado/);
+  await expect(page.locator("#aviso-stock")).toContainText("Se recuperó el conteo sin guardar de Camara");
+});
+
+test("stock smoke: progreso por categoria y aviso antes de guardar sin revisar todo", async ({ page }) => {
+  await mockAppServices(page);
+  await page.goto("/");
+
+  await page.selectOption("#select-empleado", { label: "Karen" });
   await page.selectOption("#select-sector", { label: "Estantes Barra" });
 
-  await expect(page.locator("#select-sector")).toHaveValue("1");
-  await expect(page.locator('input[data-id="101"]')).toHaveValue("7");
-  await expect(page.locator(".categoria-bloque", { hasText: "Barriles (sin pinchar)" })).toHaveCount(1);
+  const progreso = page.locator("#progreso-conteo");
+  const total = await page.locator(".categoria-bloque").count();
+
+  await expect(progreso).toHaveText(`0 de ${total} categorías revisadas`);
+
+  // Abrir una categoria la marca como revisada.
+  const primera = page.locator(".categoria-bloque").first();
+  await primera.locator(".categoria-titulo").click();
+  await expect(primera.locator(".categoria-estado")).toBeVisible();
+  await expect(progreso).toHaveText(`1 de ${total} categorías revisadas`);
+
+  // Guardar con categorias sin abrir avisa y no guarda todavia.
+  await page.click("#btn-guardar");
+  await expect(page.locator("#aviso-guardar")).toContainText("Se guardan con la cantidad que ya tenían");
+  expect(await page.evaluate(() => globalThis.__mockUltimoGuardado)).toBeUndefined();
+
+  // "Revisar" abre la siguiente sin revisar.
+  await page.click('#aviso-guardar [data-accion="revisar"]');
+  await expect(page.locator("#aviso-guardar")).toBeHidden();
+  await expect(progreso).toHaveText(
+    total === 2 ? `Revisaste las ${total} categorías` : `2 de ${total} categorías revisadas`,
+  );
+
+  await guardarConteo(page);
+  await expect(page.locator("#comprobante-conteo")).toContainText("Estantes Barra guardado");
+  expect(Array.isArray(await page.evaluate(() => globalThis.__mockUltimoGuardado))).toBe(true);
+});
+
+test("stock smoke: los botones − y + cambian la cantidad sin teclado", async ({ page }) => {
+  await mockAppServices(page);
+  await page.goto("/");
+
+  await page.selectOption("#select-empleado", { label: "Karen" });
+  await page.selectOption("#select-sector", { label: "Camara" });
+  await page
+    .locator(".categoria-titulo", { hasText: "Barriles (sin pinchar)" })
+    .click();
+
+  const fila = filaProducto(page, 101);
+  const input = page.locator('input[data-id="101"]');
+
+  await expect(input).toHaveValue("4");
+  await fila.locator('[data-paso="1"]').click();
+  await fila.locator('[data-paso="1"]').click();
+  await expect(input).toHaveValue("6");
+  await expect(input).toHaveClass(/input-modificado/);
+
+  await fila.locator('[data-paso="-1"]').click();
+  await expect(input).toHaveValue("5");
+  await expect(input).toHaveAttribute("aria-label", "Cantidad de IPA");
 });
 
 test("stock smoke: WhatsApp genera snapshot y abre URL mockeada", async ({ page }) => {
@@ -210,12 +274,8 @@ test("stock smoke: copiar usa clipboard mockeado sin tocar datos reales", async 
   await page.selectOption("#select-empleado", { label: "Karen" });
   await page.selectOption("#select-sector", { label: "Camara" });
 
-  page.once("dialog", async (dialog) => {
-    await expect(dialog.message()).toContain("Copiado al portapapeles");
-    await dialog.accept();
-  });
-
   await page.click("#btn-copiar-stock");
+  await expect(page.locator("#btn-copiar-stock")).toHaveText("Copiado");
 
   const copiedTexts = await page.evaluate(() => globalThis.__copiedTexts);
 
@@ -258,9 +318,10 @@ test("stock smoke: error de catalogo muestra fallback de carga", async ({ page }
   await mockAppServices(page, { failProductos: true });
   await page.goto("/");
 
-  await expect(page.locator("#lista-productos")).toContainText(
-    "Error cargando la aplicacion",
-  );
+  await expect(page.locator("#lista-productos")).toContainText("No se pudo cargar la app");
+  await expect(page.locator("#btn-reintentar-carga")).toBeVisible();
+  await expect(page.locator("#btn-guardar")).toBeDisabled();
+  await expect(page.locator("#estado-conexion")).toHaveAttribute("data-estado", "error");
 });
 
 test("supervisor smoke: errores de servicios muestran fallbacks visuales", async ({ page }) => {
@@ -291,7 +352,7 @@ test("stock smoke: el desplegable de empleados sale de Supabase e ignora un empl
   await page.goto("/");
 
   await expect(page.locator("#select-empleado option")).toHaveText([
-    "Seleccionar...",
+    "Elegí…",
     "Karen",
     "Eve",
     "Nicolas",
@@ -313,7 +374,7 @@ test("stock smoke: si fallan los empleados se usa la ultima lista guardada y se 
   await page.goto("/");
 
   await expect(page.locator("#select-empleado option")).toHaveText([
-    "Seleccionar...",
+    "Elegí…",
     "Karen",
     "Eve",
     "Nuevo",
@@ -340,11 +401,11 @@ test("stock smoke: sin internet el conteo queda pendiente y se envia al volver l
     globalThis.__mockSinRed = true;
   });
 
-  const mensajes = aceptarDialogos(page);
-  await page.click("#btn-guardar");
-  await expect.poll(() => mensajes.join("\n")).toContain("quedo guardado en este celular");
+  await guardarConteo(page);
+  await expect(page.locator("#comprobante-conteo")).toContainText("Camara quedó guardado en este celular");
 
   await expect(page.locator("#aviso-stock")).toContainText("1 conteo sin enviar");
+  await expect(page.locator("#estado-conexion")).toHaveText("1 sin enviar");
   await expect(page.locator("#select-sector")).toHaveValue("");
 
   // Vuelve internet: se envia solo.
@@ -353,7 +414,8 @@ test("stock smoke: sin internet el conteo queda pendiente y se envia al volver l
     window.dispatchEvent(new Event("online"));
   });
 
-  await expect(page.locator("#aviso-stock")).toContainText("Se envio el conteo pendiente de Camara");
+  await expect(page.locator("#aviso-stock")).toContainText("Se envió el conteo pendiente de Camara");
+  await expect(page.locator("#estado-conexion")).toHaveText("En línea");
 
   const guardado = await page.evaluate(() => globalThis.__mockUltimoGuardado);
   const ipa = guardado.find((item) => String(item.producto_id) === "101");
@@ -389,7 +451,7 @@ test("stock smoke: un pendiente no pisa un conteo mas nuevo del mismo sector", a
 
   const mensajes = aceptarDialogos(page);
   await page.goto("/");
-  await expect.poll(() => mensajes.join("\n")).toContain("ya tiene un conteo mas nuevo");
+  await expect.poll(() => mensajes.join("\n")).toContain("ya tiene un conteo más nuevo");
 
   expect(await page.evaluate(() => globalThis.__mockUltimoGuardado)).toBeUndefined();
   expect(await page.evaluate(() => localStorage.getItem("stock-pendientes"))).toBeNull();
@@ -414,11 +476,10 @@ test("stock smoke: lo tipeado se recupera si se recarga la pagina", async ({ pag
   await expect(page.locator("#select-empleado")).toHaveValue("Karen");
   await expect(page.locator('input[data-id="101"]')).toHaveValue("12");
   await expect(page.locator('input[data-id="101"]')).toHaveClass(/input-modificado/);
-  await expect(page.locator("#aviso-stock")).toContainText("Se recupero el conteo sin guardar de Camara");
+  await expect(page.locator("#aviso-stock")).toContainText("Se recuperó el conteo sin guardar de Camara");
 
   // Guardar bien borra el borrador.
-  page.once("dialog", (dialog) => dialog.accept());
-  await page.click("#btn-guardar");
+  await guardarConteo(page);
   await expect(page.locator("#select-sector")).toHaveValue("");
   expect(await page.evaluate(() => localStorage.getItem("stock-borradores"))).toBeNull();
 });
@@ -439,9 +500,8 @@ test("stock smoke: si se cambia rapido de sector, la carga vieja no pisa al sect
   await expect(page.locator("#select-sector")).not.toHaveValue("1");
   await expect(page.locator(".categoria-bloque", { hasText: "Barriles (sin pinchar)" })).toHaveCount(0);
 
-  const mensajes = aceptarDialogos(page);
-  await page.click("#btn-guardar");
-  await expect.poll(() => mensajes.join("\n")).toContain("Conteo guardado");
+  await guardarConteo(page);
+  await expect(page.locator("#comprobante-conteo")).toContainText("Estantes Barra guardado");
 
   const guardado = await page.evaluate(() => globalThis.__mockUltimoGuardado);
   // El producto 201 tiene 6 en Camara y 8 en Estantes Barra.
@@ -486,7 +546,7 @@ test("supervisor smoke: admin agrega y elimina empleados, categorias y productos
   ).toBeDisabled();
   await bloqueCategorias.locator('input[name="nombre"]').fill("Sidras");
   await bloqueCategorias.locator('button[type="submit"]').click();
-  await expect(mensaje).toHaveText('Categoria "Sidras" agregada.');
+  await expect(mensaje).toHaveText('Categoría "Sidras" agregada.');
 
   // Productos
   const bloqueProductos = admin.locator('[data-bloque="productos"]');
@@ -508,7 +568,7 @@ test("supervisor smoke: admin agrega y elimina empleados, categorias y productos
   await bloqueProductos.locator('[data-accion="eliminar-producto"][data-nombre="Coca Cola"]').click();
   await expect(mensaje).toHaveText('Producto "Coca Cola" eliminado.');
   expect(textoConfirmacion).toContain("Tiene 8 unidad(es) en 1 sector(es).");
-  expect(textoConfirmacion).toContain("historial de snapshots");
+  expect(textoConfirmacion).toContain("historial de capturas");
 
   // Cancelar la confirmacion no borra nada
   page.once("dialog", (dialog) => dialog.dismiss());

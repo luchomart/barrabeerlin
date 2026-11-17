@@ -4,6 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   actualizarInputsStock,
+  marcarCategoriaRevisada,
+  renderAvisoGuardar,
+  renderComprobante,
+  renderErrorCarga,
+  renderEstadoConexion,
   renderAppVersionBadge,
   renderSupervisorAuthPanel,
   renderProductos,
@@ -103,7 +108,7 @@ describe("renderer", () => {
     const options = select.querySelectorAll("option");
 
     expect(options).toHaveLength(3);
-    expect(options[0].textContent).toBe("Seleccionar...");
+    expect(options[0].textContent).toBe("Elegí…");
     expect(options[1].value).toBe("1");
     expect(options[2].textContent).toBe("Estantes Barra");
   });
@@ -137,7 +142,7 @@ describe("renderer", () => {
 
     renderSupervisorError(container, "Error cargando");
     expect(container.textContent).toContain("Error cargando");
-    expect(container.textContent).toContain("Reintenta con Actualizar");
+    expect(container.textContent).toContain("Reintentá con Actualizar");
   });
 
   it("renderiza estados de autenticacion del supervisor", () => {
@@ -165,7 +170,7 @@ describe("renderer", () => {
       mode: "session",
       userEmail: "supervisor@beerlin.online",
     });
-    expect(container.textContent).toContain("Supervisor autenticado");
+    expect(container.textContent).toContain("Sesión de supervisor");
     expect(container.textContent).toContain("supervisor@beerlin.online");
 
     renderSupervisorAuthPanel(container, {
@@ -207,7 +212,6 @@ describe("renderer", () => {
 
     expect(container.textContent).toContain("Karen");
     expect(container.textContent).toContain("Camara");
-    expect(container.textContent).toContain("Conteo mas reciente");
   });
 
   it("escapa nombres de empleados, sectores, categorias y productos", () => {
@@ -319,7 +323,7 @@ describe("renderer", () => {
       salidas: [],
       sinCambios: [],
     });
-    expect(container.textContent).toContain("Sin snapshots suficientes");
+    expect(container.textContent).toContain("Todavía no hay con qué comparar");
 
     renderSupervisorCambios(container, {
       tieneComparacion: true,
@@ -330,7 +334,7 @@ describe("renderer", () => {
       salidas: [],
       sinCambios: [],
     });
-    expect(container.textContent).toContain("Sin cambios desde el ultimo snapshot");
+    expect(container.textContent).toContain("Sin cambios desde la última captura");
   });
 
   it("renderiza badge de version una sola vez y lo actualiza", () => {
@@ -342,5 +346,159 @@ describe("renderer", () => {
     expect(badges).toHaveLength(1);
     expect(badges[0].textContent).toBe("v0.2.7");
     expect(document.querySelector("footer").contains(badges[0])).toBe(true);
+  });
+
+  it("abre varias categorias a la vez, las marca revisadas y avisa la apertura", () => {
+    const onCategoriaAbierta = vi.fn();
+    const lista = document.getElementById("lista-productos");
+
+    renderProductos(
+      lista,
+      [
+        { id: 1, nombre: "Cervezas" },
+        { id: 2, nombre: "Aguas" },
+      ],
+      [
+        { id: 1, nombre: "IPA", categoria_id: 1 },
+        { id: 2, nombre: "Agua", categoria_id: 2 },
+      ],
+      vi.fn(),
+      onCategoriaAbierta,
+    );
+
+    const [cervezas, aguas] = lista.querySelectorAll(".categoria-bloque");
+    const tituloCervezas = cervezas.querySelector(".categoria-titulo");
+
+    expect(tituloCervezas.tagName).toBe("BUTTON");
+    expect(tituloCervezas.getAttribute("aria-expanded")).toBe("false");
+    expect(cervezas.querySelector(".categoria-estado").hidden).toBe(true);
+
+    tituloCervezas.click();
+    aguas.querySelector(".categoria-titulo").click();
+
+    expect(tituloCervezas.getAttribute("aria-expanded")).toBe("true");
+    expect(cervezas.querySelector(".categoria-productos").classList.contains("categoria-cerrada")).toBe(false);
+    expect(aguas.querySelector(".categoria-productos").classList.contains("categoria-cerrada")).toBe(false);
+    expect(cervezas.classList.contains("categoria-revisada")).toBe(true);
+    expect(cervezas.querySelector(".categoria-estado").hidden).toBe(false);
+    expect(onCategoriaAbierta).toHaveBeenCalledTimes(2);
+
+    // Cerrarla no vuelve a avisar ni le saca la marca.
+    tituloCervezas.click();
+    expect(tituloCervezas.getAttribute("aria-expanded")).toBe("false");
+    expect(cervezas.classList.contains("categoria-revisada")).toBe(true);
+    expect(onCategoriaAbierta).toHaveBeenCalledTimes(2);
+  });
+
+  it("los botones - y + suman y restan sin bajar de 0 ni pasar de 1000", () => {
+    const onInput = vi.fn();
+    const lista = document.getElementById("lista-productos");
+
+    renderProductos(
+      lista,
+      [{ id: 1, nombre: "Cervezas" }],
+      [{ id: 1, nombre: "IPA", categoria_id: 1 }],
+      onInput,
+    );
+
+    const input = lista.querySelector('input[data-id="1"]');
+    const menos = lista.querySelector('[data-paso="-1"]');
+    const mas = lista.querySelector('[data-paso="1"]');
+
+    expect(input.getAttribute("aria-label")).toBe("Cantidad de IPA");
+    expect(mas.getAttribute("aria-label")).toBe("Sumar uno a IPA");
+
+    menos.click();
+    expect(input.value).toBe("0");
+    expect(onInput).not.toHaveBeenCalled();
+
+    mas.click();
+    mas.click();
+    expect(input.value).toBe("2");
+    expect(onInput).toHaveBeenCalledTimes(2);
+
+    input.value = "1000";
+    mas.click();
+    expect(input.value).toBe("1000");
+    expect(onInput).toHaveBeenCalledTimes(2);
+  });
+
+  it("marcarCategoriaRevisada tolera bloques nulos o ya marcados", () => {
+    expect(() => marcarCategoriaRevisada(null)).not.toThrow();
+
+    const bloque = document.createElement("div");
+    bloque.innerHTML = '<span class="categoria-estado" hidden></span>';
+
+    marcarCategoriaRevisada(bloque);
+    marcarCategoriaRevisada(bloque);
+
+    expect(bloque.classList.contains("categoria-revisada")).toBe(true);
+    expect(bloque.querySelector(".categoria-estado").hidden).toBe(false);
+  });
+
+  it("renderiza el comprobante de guardado y el de pendiente sin conexion", () => {
+    const el = document.createElement("section");
+
+    renderComprobante(el, {
+      tipo: "ok",
+      sector: "Estantes Barra",
+      hora: "21:43",
+      empleado: "Karen",
+      productos: 16,
+    });
+
+    expect(el.hidden).toBe(false);
+    expect(el.className).toContain("comprobante-ok");
+    expect(el.textContent).toContain("Estantes Barra guardado");
+    expect(el.textContent).toContain("21:43 · Karen · 16 productos");
+    expect(el.querySelector('[data-accion="whatsapp"]')).not.toBeNull();
+
+    renderComprobante(el, { tipo: "pendiente", sector: "<b>Camara</b>", productos: 1 });
+
+    expect(el.className).toContain("comprobante-pendiente");
+    expect(el.textContent).toContain("<b>Camara</b> quedó guardado en este celular");
+    expect(el.textContent).toContain("1 producto");
+    expect(el.querySelector("b")).toBeNull();
+
+    renderComprobante(el, null);
+    expect(el.hidden).toBe(true);
+    expect(el.innerHTML).toBe("");
+  });
+
+  it("renderiza el aviso junto a Guardar con acciones y lo oculta sin texto", () => {
+    const el = document.createElement("div");
+
+    renderAvisoGuardar(el, {
+      tipo: "atencion",
+      texto: "No abriste <Aguas>",
+      acciones: [
+        { accion: "revisar", texto: "Revisar" },
+        { accion: "guardar-igual", texto: "Guardar igual", principal: true },
+      ],
+    });
+
+    expect(el.hidden).toBe(false);
+    expect(el.className).toContain("aviso-guardar-atencion");
+    expect(el.textContent).toContain("No abriste <Aguas>");
+    expect(el.querySelectorAll("button[data-accion]")).toHaveLength(2);
+    expect(el.querySelector(".aviso-guardar-principal").dataset.accion).toBe("guardar-igual");
+
+    renderAvisoGuardar(el);
+    expect(el.hidden).toBe(true);
+    expect(el.innerHTML).toBe("");
+  });
+
+  it("renderiza estado de conexion y error de carga con reintento", () => {
+    const estado = document.createElement("span");
+
+    renderEstadoConexion(estado, "pendiente", "2 sin enviar");
+    expect(estado.dataset.estado).toBe("pendiente");
+    expect(estado.textContent).toBe("2 sin enviar");
+
+    const lista = document.getElementById("lista-productos");
+    renderErrorCarga(lista, "No se pudo cargar la app");
+
+    expect(lista.querySelector('[role="alert"]').textContent).toContain("No se pudo cargar la app");
+    expect(lista.querySelector("#btn-reintentar-carga")).not.toBeNull();
   });
 });

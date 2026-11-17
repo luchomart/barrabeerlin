@@ -46,7 +46,7 @@ describe("adminRenderer", () => {
     expect(grupos.map((grupo) => grupo.nombre)).toEqual([
       "Energizantes",
       "Gaseosas",
-      "Sin categoria",
+      "Sin categoría",
     ]);
     expect(grupos[1].productos.map((producto) => producto.nombre)).toEqual([
       "Coca Cola",

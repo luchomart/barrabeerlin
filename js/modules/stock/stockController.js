@@ -21,10 +21,15 @@ import {
 } from "../../services/inventarioService.js";
 
 import {
+  renderAvisoGuardar,
   renderAvisoStock,
+  renderComprobante,
+  renderErrorCarga,
+  renderEstadoConexion,
   renderSectores,
   renderProductos,
   actualizarInputsStock,
+  marcarCategoriaRevisada,
 } from "../../ui/renderer.js";
 import { normalizarTexto } from "../../utils/format.js";
 import {
@@ -57,6 +62,10 @@ export function initStockApp() {
   const buscador = document.getElementById("buscar-producto");
   const tituloApp = document.getElementById("titulo-app");
   const avisoStock = document.getElementById("aviso-stock");
+  const avisoGuardar = document.getElementById("aviso-guardar");
+  const progresoConteo = document.getElementById("progreso-conteo");
+  const comprobante = document.getElementById("comprobante-conteo");
+  const estadoConexion = document.getElementById("estado-conexion");
 
   const btnGuardar = document.getElementById("btn-guardar");
   const btnCopiarStock = document.getElementById("btn-copiar-stock");
@@ -70,13 +79,15 @@ export function initStockApp() {
   let guardando = false;
   let enviandoPendientes = false;
   let timerAviso = null;
+  let errorCarga = false;
+  const TEXTO_GUARDAR = btnGuardar.textContent.trim() || "Guardar conteo";
 
   function formatearHora(fechaIso) {
     const fecha = new Date(fechaIso);
 
     return Number.isNaN(fecha.getTime())
       ? ""
-      : fecha.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+      : fecha.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
   }
 
   // Los avisos temporales desaparecen solos y vuelve a verse el de pendientes (si hay).
@@ -86,8 +97,26 @@ export function initStockApp() {
     timerAviso = setTimeout(actualizarAvisoPendientes, 8000);
   }
 
+  function actualizarEstadoConexion() {
+    if (errorCarga) {
+      renderEstadoConexion(estadoConexion, "error", "Sin datos");
+      return;
+    }
+
+    const pendientes = leerPendientes().length;
+
+    if (pendientes) {
+      renderEstadoConexion(estadoConexion, "pendiente", `${pendientes} sin enviar`);
+    } else if (navigator.onLine === false) {
+      renderEstadoConexion(estadoConexion, "sin-conexion", "Sin conexión");
+    } else {
+      renderEstadoConexion(estadoConexion, "en-linea", "En línea");
+    }
+  }
+
   function actualizarAvisoPendientes() {
     clearTimeout(timerAviso);
+    actualizarEstadoConexion();
 
     const cantidad = leerPendientes().length;
 
@@ -100,10 +129,84 @@ export function initStockApp() {
       tipo: "pendiente",
       texto:
         (cantidad === 1
-          ? "\u{1F4E4} 1 conteo sin enviar por falta de conexion."
-          : `\u{1F4E4} ${cantidad} conteos sin enviar por falta de conexion.`) +
-        " Se envia solo cuando vuelva internet: no hace falta volver a contar.",
+          ? "1 conteo sin enviar por falta de conexión."
+          : `${cantidad} conteos sin enviar por falta de conexión.`) +
+        " Se envía solo cuando vuelva internet: no hace falta volver a contar.",
     });
+  }
+
+  // ---------- Progreso del conteo y aviso junto a Guardar ----------
+
+  function categoriasSinRevisar() {
+    return Array.from(
+      listaProductos.querySelectorAll(".categoria-bloque:not(.categoria-revisada)"),
+    );
+  }
+
+  function actualizarProgreso() {
+    const total = listaProductos.querySelectorAll(".categoria-bloque").length;
+
+    if (!sectorRenderizado || !total) {
+      progresoConteo.hidden = true;
+      return;
+    }
+
+    const revisadas = total - categoriasSinRevisar().length;
+    const completo = revisadas === total;
+
+    progresoConteo.hidden = false;
+    progresoConteo.classList.toggle("progreso-completo", completo);
+    progresoConteo.textContent = completo
+      ? `Revisaste las ${total} categorías`
+      : `${revisadas} de ${total} categorías revisadas`;
+  }
+
+  function ocultarAvisoGuardar() {
+    renderAvisoGuardar(avisoGuardar);
+  }
+
+  function manejarCategoriaAbierta() {
+    ocultarAvisoGuardar();
+    actualizarProgreso();
+  }
+
+  function revisarPrimeraPendiente() {
+    ocultarAvisoGuardar();
+
+    const bloque = categoriasSinRevisar()[0];
+    const titulo = bloque?.querySelector(".categoria-titulo");
+
+    if (!titulo) return;
+
+    if (!titulo.classList.contains("categoria-abierta")) {
+      titulo.click();
+    }
+
+    bloque.scrollIntoView({ block: "start" });
+    titulo.focus({ preventScroll: true });
+  }
+
+  // Confirmacion breve en el propio boton (reemplaza al alert).
+  function confirmarEnBoton(boton, texto) {
+    const original = boton.dataset.textoOriginal || boton.innerHTML;
+
+    boton.dataset.textoOriginal = original;
+    boton.textContent = texto;
+    boton.classList.add("boton-confirmado");
+
+    clearTimeout(boton._timerConfirmacion);
+    boton._timerConfirmacion = setTimeout(() => {
+      boton.innerHTML = original;
+      boton.classList.remove("boton-confirmado");
+      delete boton.dataset.textoOriginal;
+    }, 2000);
+  }
+
+  function nombreSector(sectorId) {
+    return (
+      (appState.sectores || []).find((sector) => String(sector.id) === String(sectorId))
+        ?.nombre || ""
+    );
   }
 
   function obtenerEmpleadoSeleccionado() {
@@ -134,11 +237,12 @@ export function initStockApp() {
     if (!empleado || !sector) {
       listaProductos.style.display = "none";
       btnGuardar.disabled = true;
+      actualizarProgreso();
       return false;
     }
 
     listaProductos.style.display = "block";
-    btnGuardar.disabled = false;
+    btnGuardar.disabled = guardando;
 
     return true;
   }
@@ -148,7 +252,7 @@ export function initStockApp() {
 
     const optionInicial = document.createElement("option");
     optionInicial.value = "";
-    optionInicial.textContent = "Seleccionar...";
+    optionInicial.textContent = "Elegí…";
 
     selectEmpleado.appendChild(optionInicial);
 
@@ -228,8 +332,11 @@ export function initStockApp() {
 
   function manejarCambioInput(input) {
     input.classList.add("input-modificado");
+    marcarCategoriaRevisada(input.closest(".categoria-bloque"));
     appState.setCambiosPendientes(true);
     actualizarBorrador();
+    ocultarAvisoGuardar();
+    actualizarProgreso();
   }
 
   // Guarda en el celular lo tipeado en el sector actual (sobrevive a cierres y recargas).
@@ -268,6 +375,7 @@ export function initStockApp() {
 
       input.value = valor;
       input.classList.add("input-modificado");
+      marcarCategoriaRevisada(input.closest(".categoria-bloque"));
       aplicados += 1;
     });
 
@@ -360,6 +468,8 @@ export function initStockApp() {
     if (!validarSeleccion()) return;
 
     sectorRenderizado = null;
+    renderComprobante(comprobante, null);
+    ocultarAvisoGuardar();
 
     const { categorias, productos } = obtenerCatalogoRenderizable();
 
@@ -368,7 +478,9 @@ export function initStockApp() {
       categorias,
       productos,
       manejarCambioInput,
+      manejarCategoriaAbierta,
     );
+    actualizarProgreso();
 
     const sector = appState.sector;
 
@@ -378,40 +490,83 @@ export function initStockApp() {
 
     const recuperado = aplicarBorrador();
 
+    actualizarProgreso();
+
     if (recuperado) {
       mostrarAviso(
         "info",
-        `Se recupero el conteo sin guardar de ${recuperado.sector_nombre || "este sector"}` +
-          ` (${formatearHora(recuperado.actualizado)}). Revisalo y toca Guardar.`,
+        `Se recuperó el conteo sin guardar de ${recuperado.sector_nombre || "este sector"}` +
+          ` (${formatearHora(recuperado.actualizado)}). Revisalo y tocá Guardar.`,
       );
     }
+
+    return true;
   }
 
-  // Deja la pantalla lista para el proximo conteo.
-  function finalizarConteo() {
+  // Deja la pantalla lista para el proximo conteo, con el comprobante del que se guardo.
+  function finalizarConteo(datosComprobante) {
     resetSnapshotGuardado();
     sectorRenderizado = null;
     appState.resetSector();
     reflejarSectorActual();
     listaProductos.style.display = "none";
+    buscador.value = "";
+    ocultarAvisoGuardar();
     validarSeleccion();
+    renderComprobante(comprobante, datosComprobante);
+    window.scrollTo({ top: 0 });
   }
 
-  async function guardar() {
+  function marcarGuardando(activo) {
+    guardando = activo;
+    btnGuardar.disabled = activo || !appState.empleado || !appState.sector;
+    btnGuardar.textContent = activo ? "Guardando…" : TEXTO_GUARDAR;
+    btnGuardar.setAttribute("aria-busy", String(activo));
+  }
+
+  async function guardar({ confirmado = false } = {}) {
     if (guardando) return;
+
+    const inputs = document.querySelectorAll("#lista-productos input");
+
+    if (!inputs.length || sectorRenderizado !== appState.sector) {
+      renderAvisoGuardar(avisoGuardar, {
+        tipo: "atencion",
+        texto: "Todavía se están cargando los productos del sector. Esperá un momento.",
+      });
+      return;
+    }
+
+    // Guardar manda todo el sector: si hay categorias sin abrir, se avisa antes.
+    const sinRevisar = categoriasSinRevisar();
+
+    if (!confirmado && sinRevisar.length) {
+      const nombres = sinRevisar
+        .map((bloque) => bloque.querySelector(".categoria-nombre")?.textContent.trim())
+        .filter(Boolean);
+
+      renderAvisoGuardar(avisoGuardar, {
+        tipo: "atencion",
+        texto:
+          `${nombres.length === 1 ? "No abriste" : `No abriste ${nombres.length} categorías:`} ` +
+          `${nombres.join(", ")}. Se guardan con la cantidad que ya tenían.`,
+        acciones: [
+          { accion: "revisar", texto: "Revisar" },
+          { accion: "guardar-igual", texto: "Guardar igual", principal: true },
+        ],
+      });
+      return;
+    }
 
     const registros = [];
     const ultimaActualizacion = new Date().toISOString();
+    const sectorNombre = obtenerNombreSectorSeleccionado();
+    const empleado = appState.empleado;
 
-    guardando = true;
+    ocultarAvisoGuardar();
+    marcarGuardando(true);
 
     try {
-      const inputs = document.querySelectorAll("#lista-productos input");
-
-      if (!inputs.length || sectorRenderizado !== appState.sector) {
-        alert("Todavia no se cargaron los productos del sector.");
-        return;
-      }
 
       inputs.forEach((input) => {
         const cantidad = normalizarCantidad(input.value);
@@ -430,8 +585,14 @@ export function initStockApp() {
       await guardarInventario(registros);
 
       borrarBorrador(appState.sector);
-      alert(`Conteo guardado\nEmpleado: ${appState.empleado}\nSector: ${obtenerNombreSectorSeleccionado()}`);
-      finalizarConteo();
+      marcarGuardando(false);
+      finalizarConteo({
+        tipo: "ok",
+        sector: sectorNombre,
+        hora: formatearHora(ultimaActualizacion),
+        empleado,
+        productos: registros.length,
+      });
     } catch (error) {
       console.error(error);
 
@@ -441,27 +602,34 @@ export function initStockApp() {
           ? agregarPendiente({
               registros,
               sector_id: appState.sector,
-              sector_nombre: obtenerNombreSectorSeleccionado(),
-              empleado: appState.empleado,
+              sector_nombre: sectorNombre,
+              empleado,
               creado: ultimaActualizacion,
             })
           : null;
 
+      marcarGuardando(false);
+
       if (pendiente) {
         borrarBorrador(appState.sector);
-        alert(
-          `Sin conexion: el conteo de ${pendiente.sector_nombre} quedo guardado en este celular.\n` +
-            "Se envia solo cuando vuelva internet. No hace falta volver a contar.",
-        );
-        finalizarConteo();
+        finalizarConteo({
+          tipo: "pendiente",
+          sector: pendiente.sector_nombre,
+          hora: formatearHora(ultimaActualizacion),
+          empleado,
+          productos: registros.length,
+        });
         actualizarAvisoPendientes();
         return;
       }
 
       // Lo tipeado sigue en pantalla y en el borrador: se puede reintentar.
-      alert("Error guardando el conteo. Lo cargado no se perdio: reintenta Guardar.");
+      renderAvisoGuardar(avisoGuardar, {
+        tipo: "error",
+        texto: "No se pudo guardar el conteo. Lo cargado no se perdió: tocá Guardar de nuevo.",
+      });
     } finally {
-      guardando = false;
+      if (guardando) marcarGuardando(false);
     }
   }
 
@@ -485,8 +653,8 @@ export function initStockApp() {
           descartados
             .map(
               (item) =>
-                `No se envio el conteo de ${item.sector_nombre} (${item.empleado}, ${formatearHora(item.creado)}): ` +
-                "ese sector ya tiene un conteo mas nuevo.",
+                `No se envió el conteo de ${item.sector_nombre} (${item.empleado}, ${formatearHora(item.creado)}): ` +
+                "ese sector ya tiene un conteo más nuevo.",
             )
             .join("\n"),
         );
@@ -508,8 +676,8 @@ export function initStockApp() {
         mostrarAviso(
           "ok",
           enviados.length === 1
-            ? `✅ Se envio el conteo pendiente de ${enviados[0].sector_nombre}.`
-            : `✅ Se enviaron ${enviados.length} conteos pendientes.`,
+            ? `Se envió el conteo pendiente de ${enviados[0].sector_nombre}.`
+            : `Se enviaron ${enviados.length} conteos pendientes.`,
         );
       }
     } finally {
@@ -532,7 +700,10 @@ export function initStockApp() {
       await renderizarYCargar();
     } catch (error) {
       console.error(error);
-      alert("Error cargando el stock del sector");
+      mostrarAviso(
+        "error",
+        "No se pudo cargar el stock del sector. Revisá la conexión y elegilo de nuevo.",
+      );
     }
   }
 
@@ -541,27 +712,29 @@ export function initStockApp() {
 
     appState.setSector(sectorSeleccionado);
 
-    if (appState.cambiosPendientes) {
-      const confirmar = confirm(
-        "Hay cambios sin guardar. Si cambias de sector se perderan. Continuar?",
-      );
-
-      if (!confirmar) {
-        appState.rollbackSector();
-        reflejarSectorActual();
-        return;
-      }
-
-      borrarBorrador(appState.sectorAnterior);
-    }
+    // Lo contado en el sector anterior queda como borrador: no se pierde.
+    const quedoBorrador =
+      appState.cambiosPendientes && leerBorrador(appState.sectorAnterior)
+        ? nombreSector(appState.sectorAnterior)
+        : "";
 
     if (!validarSeleccion()) return;
 
     try {
-      await renderizarYCargar();
+      const cargado = await renderizarYCargar();
+
+      if (cargado && quedoBorrador && avisoStock.hidden !== false) {
+        mostrarAviso(
+          "info",
+          `Lo que contaste en ${quedoBorrador} quedó guardado como borrador: volvé a ese sector para seguir.`,
+        );
+      }
     } catch (error) {
       console.error(error);
-      alert("Error cargando el stock del sector");
+      mostrarAviso(
+        "error",
+        "No se pudo cargar el stock del sector. Revisá la conexión y elegilo de nuevo.",
+      );
 
       appState.rollbackSector();
       reflejarSectorActual();
@@ -586,13 +759,14 @@ export function initStockApp() {
     }
 
     await navigator.clipboard.writeText(texto);
-    alert("Copiado al portapapeles");
+    confirmarEnBoton(btnCopiarStock, "Copiado");
   }
 
   function configurarBuscador() {
     buscador.addEventListener("input", () => {
       const texto = buscador.value.toLowerCase();
       const categorias = document.querySelectorAll(".categoria-bloque");
+      let algunaCoincidencia = false;
 
       categorias.forEach((categoria) => {
         const productos = categoria.querySelectorAll(".producto-fila");
@@ -616,6 +790,7 @@ export function initStockApp() {
           categoria.style.display = "block";
           productosDiv.classList.add("categoria-cerrada");
           titulo.classList.remove("categoria-abierta");
+          titulo.setAttribute("aria-expanded", "false");
 
           productos.forEach((producto) => {
             producto.style.display = "flex";
@@ -624,10 +799,26 @@ export function initStockApp() {
           categoria.style.display = "block";
           productosDiv.classList.remove("categoria-cerrada");
           titulo.classList.add("categoria-abierta");
+          titulo.setAttribute("aria-expanded", "true");
+          algunaCoincidencia = true;
         } else {
           categoria.style.display = "none";
         }
       });
+
+      let sinResultados = listaProductos.querySelector(".busqueda-vacia");
+
+      if (texto && !algunaCoincidencia && categorias.length) {
+        if (!sinResultados) {
+          sinResultados = document.createElement("p");
+          sinResultados.className = "busqueda-vacia";
+          listaProductos.appendChild(sinResultados);
+        }
+
+        sinResultados.textContent = `No hay productos con "${buscador.value.trim()}" en este sector.`;
+      } else {
+        sinResultados?.remove();
+      }
     });
   }
 
@@ -701,7 +892,9 @@ export function initStockApp() {
 
   async function init() {
     try {
+      errorCarga = false;
       listaProductos.style.display = "none";
+      renderEstadoConexion(estadoConexion, "cargando", "Cargando");
 
       const empleadosPromesa = getEmpleados().then(
         (lista) => {
@@ -740,8 +933,10 @@ export function initStockApp() {
       await restaurarBorrador();
     } catch (error) {
       console.error(error);
+      errorCarga = true;
+      btnGuardar.disabled = true;
       listaProductos.style.display = "block";
-      listaProductos.innerHTML = "Error cargando la aplicacion";
+      renderErrorCarga(listaProductos, "No se pudo cargar la app");
     }
 
     // Si ya hay un aviso temporal, el de pendientes aparece cuando ese se va.
@@ -752,17 +947,44 @@ export function initStockApp() {
     procesarPendientes();
   }
 
-  window.addEventListener("online", procesarPendientes);
+  window.addEventListener("online", () => {
+    actualizarEstadoConexion();
+    procesarPendientes();
+  });
+  window.addEventListener("offline", actualizarEstadoConexion);
   setInterval(procesarPendientes, 30000);
 
-  btnGuardar.addEventListener("click", guardar);
+  btnGuardar.addEventListener("click", () => guardar());
+
+  avisoGuardar.addEventListener("click", (event) => {
+    const accion = event.target.closest("button[data-accion]")?.dataset.accion;
+
+    if (accion === "guardar-igual") guardar({ confirmado: true });
+    if (accion === "revisar") revisarPrimeraPendiente();
+  });
+
+  comprobante.addEventListener("click", (event) => {
+    if (event.target.closest('button[data-accion="whatsapp"]')) {
+      btnWppStock.click();
+    }
+  });
+
+  listaProductos.addEventListener("click", (event) => {
+    if (!event.target.closest("#btn-reintentar-carga")) return;
+
+    listaProductos.innerHTML = '<div class="loader">Cargando productos…</div>';
+    init();
+  });
 
   btnCopiarStock.addEventListener("click", async () => {
     try {
       await compartirStock(false);
     } catch (error) {
       console.error(error);
-      alert("Error generando el stock");
+      renderAvisoGuardar(avisoGuardar, {
+        tipo: "error",
+        texto: "No se pudo armar el stock para copiar. Probá de nuevo.",
+      });
     }
   });
 
@@ -788,7 +1010,10 @@ export function initStockApp() {
       window.open(url, "_blank");
     } catch (error) {
       console.error(error);
-      alert("Error generando el stock");
+      renderAvisoGuardar(avisoGuardar, {
+        tipo: "error",
+        texto: "No se pudo armar el stock para WhatsApp. Probá de nuevo.",
+      });
     }
   });
 

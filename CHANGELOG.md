@@ -4,6 +4,34 @@ Historial de cambios de Stock Barra.
 
 ## Sin publicar (revision 2026-11-17)
 
+### Changed (critica de diseño, 2026-11-17)
+- Pantalla de conteo:
+  - cada categoria muestra "Revisada" al abrirla o tocarla, y junto a `Guardar` se ve
+    "N de M categorias revisadas";
+  - si hay categorias sin abrir, `Guardar` avisa en pantalla (`Revisar` / `Guardar igual`);
+    se sigue guardando todo el sector.
+- `Guardar` muestra "Guardando…" y, en vez del `alert`, deja un comprobante en pantalla (sector,
+  hora, empleado, productos) con `Enviar stock por WhatsApp`. Sin internet, el comprobante es amarillo.
+- El badge fijo "OPERATIVO" paso a ser un indicador real: En linea / Sin conexion / N sin enviar / Sin datos.
+- Si falla la carga de la app: tarjeta de error con `Reintentar` y `Guardar` deshabilitado.
+- Cambiar de sector con cambios sin guardar ya no pregunta ni borra: lo contado queda como borrador.
+- Botones − / + de 44px en cada producto (antes solo con teclado fisico), varias categorias abiertas
+  a la vez y nombres largos en dos lineas en vez de cortados.
+- Pie mas chico (Guardar + una fila "Stock total: Copiar / WhatsApp"); el buscador queda fijo arriba
+  y el header se va al scrollear.
+- Accesibilidad:
+  - las categorias son botones con `aria-expanded` y cada cantidad tiene etiqueta;
+  - hay foco visible con teclado;
+  - todo el texto pasa 4.5:1 de contraste;
+  - los toques miden al menos 44px y se respeta `prefers-reduced-motion`.
+- Textos con tildes y ñ. Se sacan "Supabase" y "snapshots" de la interfaz, y la hora va en 24 h.
+- Supervisor:
+  - acciones en una fila neutra, "Volver al conteo" arriba y la sesion compacta;
+  - las tarjetas de conteo sin etiquetas repetidas;
+  - sin emojis decorativos.
+- Se sacan adornos: linea de acento, circulos, ripple, brillo verde y entrada escalonada. Las fuentes
+  cargan con `<link>` (no `@import`).
+
 ### Added
 - Conteo a prueba de cortes de internet: lo tipeado en cada sector se guarda en el celular y se
   recupera si se cierra o recarga la pagina. Si `Guardar` falla por falta de red, el conteo queda

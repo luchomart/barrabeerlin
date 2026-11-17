@@ -13,18 +13,24 @@ Usar esta lista corta antes de publicar cambios a produccion.
 
 1. Abrir `index.html`.
 2. Verificar que carguen empleado, sector y buscador.
-3. Seleccionar empleado + sector y confirmar que aparezcan productos.
-4. Cambiar cantidades y verificar que se marquen cambios pendientes.
-5. Cambiar de sector con cambios sin guardar y confirmar que aparezca la confirmacion.
-6. Guardar un conteo y verificar que no falle el flujo.
-7. Probar `Copiar` y `WhatsApp`.
-8. Elegir primero el sector y despues el empleado: tienen que aparecer los productos.
+3. Seleccionar empleado + sector y confirmar que aparezcan productos y "0 de N categorias revisadas".
+4. Cambiar cantidades con el teclado y con los botones − / +: se marcan en amarillo y la categoria
+   queda con "Revisada".
+5. Cambiar de sector con cambios sin guardar: no pregunta nada, avisa que quedo como borrador, y al
+   volver al sector aparece lo contado.
+6. Tocar `Guardar` sin abrir todas las categorias: aviso con `Revisar` y `Guardar igual`.
+7. Guardar: el boton dice "Guardando…" y despues queda el comprobante (sector, hora, empleado,
+   cantidad de productos) con `Enviar stock por WhatsApp`.
+8. Probar `Copiar` (el boton cambia a "Copiado") y `WhatsApp`.
+9. Elegir primero el sector y despues el empleado: tienen que aparecer los productos.
+10. Indicador del header: "En linea"; con modo avion "Sin conexion"; con pendientes "N sin enviar".
 
 ## Sin internet (en el celular)
 
 1. Elegir empleado + sector, cambiar una cantidad y recargar la pagina: se recupera lo tipeado
    (aviso azul "Se recupero el conteo sin guardar").
-2. Activar modo avion, tocar `Guardar`: aviso "quedo guardado en este celular" y aviso amarillo de pendiente.
+2. Activar modo avion, tocar `Guardar`: comprobante amarillo "quedó guardado en este celular" y aviso
+   amarillo de pendiente.
 3. Desactivar modo avion con la pagina abierta: en segundos aparece "Se envio el conteo pendiente" y
    el supervisor ve el conteo con la hora original.
 

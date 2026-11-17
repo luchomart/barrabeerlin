@@ -43,7 +43,7 @@ export function construirStockPorProducto(inventario = []) {
 }
 
 export function textoConfirmacionProducto(nombre, stock) {
-  const lineas = [`Eliminar "${nombre}"?`, ""];
+  const lineas = [`¿Eliminar "${nombre}"?`, ""];
 
   if (stock === undefined) {
     lineas.push("No se pudo consultar su stock actual.");
@@ -56,7 +56,7 @@ export function textoConfirmacionProducto(nombre, stock) {
   }
 
   lineas.push(
-    "Tambien se borra su stock y su historial de snapshots. No se puede deshacer.\n" +
+    "También se borra su stock y su historial de capturas. No se puede deshacer.\n" +
       "(Si ya tiene ventas registradas, no se puede borrar.)",
   );
 
@@ -86,7 +86,7 @@ export function initAdminPanel({ section, contenido, button } = {}) {
   async function cargarDatos(numeroCarga) {
 
     if (!datos) {
-      renderSupervisorLoader(contenido, "Cargando administracion...");
+      renderSupervisorLoader(contenido, "Cargando administración…");
     }
 
     // El stock solo se usa para avisar al borrar: si falla, el panel sigue andando.
@@ -124,7 +124,7 @@ export function initAdminPanel({ section, contenido, button } = {}) {
 
       datos = null;
       stockDisponible = false;
-      renderSupervisorError(contenido, "Error cargando administracion");
+      renderSupervisorError(contenido, "Error cargando administración");
       return false;
     }
   }
@@ -156,7 +156,7 @@ export function initAdminPanel({ section, contenido, button } = {}) {
       console.error(error);
       renderAdminMensaje(contenido, {
         tipo: "error",
-        texto: error?.message || "No se pudo completar la operacion.",
+        texto: error?.message || "No se pudo completar la operación.",
       });
       return false;
     } finally {
@@ -200,12 +200,12 @@ export function initAdminPanel({ section, contenido, button } = {}) {
     if (form.dataset.form === "empleado") {
       await ejecutar(() => agregarEmpleado(nombre), `Empleado "${nombre}" agregado.`);
     } else if (form.dataset.form === "categoria") {
-      await ejecutar(() => agregarCategoria(nombre), `Categoria "${nombre}" agregada.`);
+      await ejecutar(() => agregarCategoria(nombre), `Categoría "${nombre}" agregada.`);
     } else if (form.dataset.form === "producto") {
       const categoriaId = formData.get("categoria_id");
 
       if (!categoriaId) {
-        renderAdminMensaje(contenido, { tipo: "error", texto: "Elegi una categoria." });
+        renderAdminMensaje(contenido, { tipo: "error", texto: "Elegí una categoría." });
         return;
       }
 
@@ -225,16 +225,16 @@ export function initAdminPanel({ section, contenido, button } = {}) {
 
     if (accion === "eliminar-empleado") {
       const confirmar = confirm(
-        `Eliminar a "${nombre}" de la lista de empleados?\n\nSus conteos anteriores no se borran.`,
+        `¿Eliminar a "${nombre}" de la lista de empleados?\n\nSus conteos anteriores no se borran.`,
       );
 
       if (!confirmar) return;
 
       await ejecutar(() => eliminarEmpleado(id), `Empleado "${nombre}" eliminado.`);
     } else if (accion === "eliminar-categoria") {
-      if (!confirm(`Eliminar la categoria "${nombre}"?`)) return;
+      if (!confirm(`¿Eliminar la categoría "${nombre}"?`)) return;
 
-      await ejecutar(() => eliminarCategoria(id), `Categoria "${nombre}" eliminada.`);
+      await ejecutar(() => eliminarCategoria(id), `Categoría "${nombre}" eliminada.`);
     } else if (accion === "eliminar-producto") {
       const stock = stockDisponible
         ? datos?.stockPorProducto?.[String(id)] || null

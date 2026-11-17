@@ -45,7 +45,7 @@ export function agruparProductosPorCategoria(categorias = [], productos = []) {
   if (sinCategoria.length) {
     grupos.push({
       id: SIN_CATEGORIA_ID,
-      nombre: "Sin categoria",
+      nombre: "Sin categoría",
       productos: sinCategoria,
       sinCategoria: true,
     });
@@ -65,7 +65,7 @@ function botonBorrar(accion, id, nombre, { disabled = false, title = "" } = {}) 
       aria-label="Eliminar ${escapeHtml(nombre)}"
       ${title ? `title="${escapeHtml(title)}"` : ""}
       ${disabled ? "disabled" : ""}
-    >&#x2715;</button>
+    ><svg class="icono" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
   `;
 }
 
@@ -114,10 +114,10 @@ function renderCategorias(grupos = []) {
 
   return `
     <div class="admin-bloque" data-bloque="categorias">
-      <h3>Categorias</h3>
-      <ul class="admin-lista">${items || '<li class="admin-vacio">Sin categorias</li>'}</ul>
+      <h3>Categorías</h3>
+      <ul class="admin-lista">${items || '<li class="admin-vacio">Sin categorías</li>'}</ul>
       <form class="admin-form" data-form="categoria" autocomplete="off">
-        <input name="nombre" type="text" maxlength="60" placeholder="Nueva categoria" aria-label="Nombre de la categoria" required />
+        <input name="nombre" type="text" maxlength="60" placeholder="Nueva categoría" aria-label="Nombre de la categoría" required />
         <button type="submit">Agregar</button>
       </form>
     </div>
@@ -154,7 +154,7 @@ function renderProductos(grupos = [], stockPorProducto = {}, abiertos = new Set(
       return `
         <details class="admin-grupo${grupo.sinCategoria ? " admin-grupo-alerta" : ""}" data-categoria="${escapeHtml(grupo.id)}" ${abiertos.has(grupo.id) ? "open" : ""}>
           <summary>${escapeHtml(grupo.nombre)} <span class="admin-count">(${grupo.productos.length})</span></summary>
-          ${grupo.sinCategoria ? '<p class="admin-nota">Estos productos no aparecen en ningun sector.</p>' : ""}
+          ${grupo.sinCategoria ? '<p class="admin-nota">Estos productos no aparecen en ningún sector.</p>' : ""}
           <ul class="admin-lista">${items}</ul>
         </details>
       `;
@@ -166,8 +166,8 @@ function renderProductos(grupos = [], stockPorProducto = {}, abiertos = new Set(
       <h3>Productos</h3>
       <form class="admin-form admin-form-producto" data-form="producto" autocomplete="off">
         <input name="nombre" type="text" maxlength="80" placeholder="Nombre del producto" aria-label="Nombre del producto" required />
-        <select name="categoria_id" aria-label="Categoria del producto" required>
-          <option value="" selected disabled>Categoria...</option>
+        <select name="categoria_id" aria-label="Categoría del producto" required>
+          <option value="" selected disabled>Categoría…</option>
           ${opciones}
         </select>
         <button type="submit">Agregar</button>

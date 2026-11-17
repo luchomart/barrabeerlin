@@ -3,18 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0d0f12" />
 
     <title>Stock Barra</title>
 
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8D%BA%3C/text%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" />
     <link rel="stylesheet" href="style.css" />
   </head>
 
   <body>
-    <div class="container">
+    <div class="container container-conteo">
       <header>
-        <h1 id="titulo-app">&#x1F37A; Stock Barra</h1>
-        <p>Selecciona el sector y carga las unidades</p>
+        <div class="header-fila">
+          <h1 id="titulo-app"><span aria-hidden="true">&#x1F37A;</span> Stock Barra</h1>
+          <span
+            id="estado-conexion"
+            class="estado-conexion"
+            data-estado="cargando"
+            role="status"
+            aria-live="polite"
+          >Cargando</span>
+        </div>
+        <p>Elegí tu nombre y el sector para empezar</p>
       </header>
 
       <div
@@ -26,39 +39,64 @@
       ></div>
 
       <section class="config">
-        <label for="select-empleado">Empleado:</label>
-        <select id="select-empleado"></select>
+        <div class="campo">
+          <label for="select-empleado">Empleado</label>
+          <select id="select-empleado"></select>
+        </div>
 
-        <label for="select-sector">Sector:</label>
-        <select id="select-sector"></select>
+        <div class="campo">
+          <label for="select-sector">Sector</label>
+          <select id="select-sector"></select>
+        </div>
       </section>
 
       <section class="busqueda">
         <div class="buscador-wrapper">
-          <span class="buscador-icon">&#x1F50E;</span>
+          <svg class="buscador-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6" />
+            <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
           <input
-            type="text"
+            type="search"
             id="buscar-producto"
-            placeholder="Buscar producto..."
+            placeholder="Buscar producto"
+            aria-label="Buscar producto"
             autocomplete="off"
           />
         </div>
       </section>
 
+      <section
+        id="comprobante-conteo"
+        class="comprobante"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></section>
+
       <main id="lista-productos">
-        <div class="loader">Cargando productos...</div>
+        <div class="loader">Cargando productos…</div>
       </main>
 
+      <div data-version-slot></div>
+
       <footer>
-        <button id="btn-guardar">&#x1F4BE; Guardar conteo</button>
+        <div
+          id="aviso-guardar"
+          class="aviso-guardar"
+          role="status"
+          aria-live="polite"
+          hidden
+        ></div>
 
-        <div class="acciones-stock">
-          <p class="acciones-titulo">&#x1F4E6; Compartir stock</p>
+        <p id="progreso-conteo" class="progreso-conteo" hidden></p>
 
-          <div class="acciones-botones">
-            <button id="btn-copiar-stock">&#x1F4CB; Copiar</button>
-            <button id="btn-wpp-stock">&#x1F4F1; WhatsApp</button>
-          </div>
+        <button id="btn-guardar" type="button" disabled>Guardar conteo</button>
+
+        <div class="acciones-stock" role="group" aria-labelledby="acciones-titulo">
+          <span id="acciones-titulo" class="acciones-titulo">Stock total</span>
+          <button id="btn-copiar-stock" type="button" aria-label="Copiar stock total">Copiar</button>
+          <button id="btn-wpp-stock" type="button" aria-label="Enviar stock total por WhatsApp">WhatsApp</button>
         </div>
       </footer>
     </div>

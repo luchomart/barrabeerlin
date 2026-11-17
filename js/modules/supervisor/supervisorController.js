@@ -77,25 +77,25 @@ function obtenerMensajeAuth(error) {
   const mensaje = String(error?.message || "").toLowerCase();
 
   if (!mensaje) {
-    return "No se pudo iniciar sesion de supervisor.";
+    return "No se pudo iniciar sesión de supervisor.";
   }
 
   if (
     mensaje.includes("invalid login credentials") ||
     mensaje.includes("invalid_credentials")
   ) {
-    return "Email o contrasena incorrectos.";
+    return "Email o contraseña incorrectos.";
   }
 
   if (mensaje.includes("email not confirmed")) {
-    return "La cuenta de supervisor todavia no confirmo su email.";
+    return "La cuenta de supervisor todavía no confirmó su email.";
   }
 
   if (mensaje.includes("network")) {
-    return "No se pudo conectar con el servicio de autenticacion.";
+    return "No se pudo conectar con el servicio de autenticación.";
   }
 
-  return "No se pudo iniciar sesion de supervisor.";
+  return "No se pudo iniciar sesión de supervisor.";
 }
 
 export function initSupervisorApp() {
@@ -195,8 +195,8 @@ export function initSupervisorApp() {
   }
 
   async function cargarResumen() {
-    renderSupervisorLoader(listaConteos, "Cargando ultimos conteos...");
-    renderSupervisorLoader(estadoSectores, "Cargando estado de sectores...");
+    renderSupervisorLoader(listaConteos, "Cargando últimos conteos…");
+    renderSupervisorLoader(estadoSectores, "Cargando estado de sectores…");
 
     try {
       const [conteos, sectores] = await Promise.all([
@@ -221,7 +221,7 @@ export function initSupervisorApp() {
   }
 
   async function cargarCambiosStock() {
-    renderSupervisorLoader(listaCambiosStock, "Calculando cambios de stock...");
+    renderSupervisorLoader(listaCambiosStock, "Calculando cambios de stock…");
 
     try {
       const [diferencias, productos] = await Promise.all([
@@ -316,7 +316,7 @@ export function initSupervisorApp() {
     if (mostrarLoader) {
       renderSupervisorAuthPanel(authShell, {
         mode: "loading",
-        message: "Verificando sesion de supervisor...",
+        message: "Verificando sesión de supervisor…",
       });
     }
 
@@ -344,7 +344,7 @@ export function initSupervisorApp() {
     } catch (error) {
       console.error(error);
       authLoading = false;
-      renderAuthError("No se pudo verificar la sesion del supervisor.");
+      renderAuthError("No se pudo verificar la sesión del supervisor.");
     }
   }
 
@@ -394,7 +394,7 @@ export function initSupervisorApp() {
     authLoading = true;
     renderSupervisorAuthPanel(authShell, {
       mode: "loading",
-      message: "Cerrando sesion de supervisor...",
+      message: "Cerrando sesión de supervisor…",
     });
 
     try {
@@ -404,7 +404,7 @@ export function initSupervisorApp() {
     } catch (error) {
       console.error(error);
       authLoading = false;
-      renderAuthError("No se pudo cerrar la sesion del supervisor.");
+      renderAuthError("No se pudo cerrar la sesión del supervisor.");
     }
   });
 
