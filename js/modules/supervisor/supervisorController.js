@@ -20,8 +20,9 @@ import {
 import {
   buildStockChangesReport,
   buildStockData,
-  formatPlainText,
+  formatWhatsappText,
 } from "../stock/stockFormatter.js";
+import { buildCatalogoStockTotal } from "../stock/stockCatalog.js";
 
 import {
   renderSupervisorAuthPanel,
@@ -298,8 +299,9 @@ export function initSupervisorApp() {
         getCategorias(),
       ]);
 
-      const data = await buildStockData(productos, categorias);
-      const texto = formatPlainText(data, productos);
+      const catalogo = buildCatalogoStockTotal(categorias, productos);
+      const data = await buildStockData(catalogo.productos, catalogo.categorias);
+      const texto = formatWhatsappText(data, catalogo.productos);
       const url = "https://wa.me/?text=" + encodeURIComponent(texto);
 
       window.open(url, "_blank");

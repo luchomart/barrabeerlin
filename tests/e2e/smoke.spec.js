@@ -86,6 +86,25 @@ test("stock smoke: buscador sigue funcionando sobre el render actual", async ({ 
   await expect(page.locator(".categoria-bloque", { hasText: "Barriles (sin pinchar)" })).toHaveCount(1);
 });
 
+test("stock smoke: el buscador ignora tildes y mayusculas", async ({ page }) => {
+  await mockAppServices(page);
+  await page.addInitScript(() => {
+    globalThis.__mockCatalogo = {
+      productos: [{ id: 901, nombre: "Levité Pomelo", categoria_id: 3, orden: 1 }],
+      categorias: [{ id: 3, nombre: "Aguas" }],
+      empleados: [{ id: 1, nombre: "Karen" }],
+    };
+  });
+  await page.goto("/");
+
+  await page.selectOption("#select-empleado", { label: "Karen" });
+  await page.selectOption("#select-sector", { label: "Estantes Barra" });
+
+  await page.fill("#buscar-producto", "LEVITE");
+  await expect(filaProducto(page, 901)).toBeVisible();
+  await expect(page.locator(".busqueda-vacia")).toHaveCount(0);
+});
+
 test("stock smoke: guardar normaliza cantidades y resetea sector", async ({ page }) => {
   await mockAppServices(page);
   await page.goto("/");
@@ -272,7 +291,8 @@ test("stock smoke: copiar usa clipboard mockeado sin tocar datos reales", async 
   await page.goto("/");
 
   await page.selectOption("#select-empleado", { label: "Karen" });
-  await page.selectOption("#select-sector", { label: "Camara" });
+  // Con otro sector elegido, el stock total igual trae los barriles.
+  await page.selectOption("#select-sector", { label: "Estantes Barra" });
 
   await page.click("#btn-copiar-stock");
   await expect(page.locator("#btn-copiar-stock")).toHaveText("Copiado");
@@ -281,6 +301,7 @@ test("stock smoke: copiar usa clipboard mockeado sin tocar datos reales", async 
 
   expect(copiedTexts).toHaveLength(1);
   expect(copiedTexts[0]).toContain("STOCK TOTAL BARRA");
+  expect(copiedTexts[0]).toContain("*BARRILES (SIN PINCHAR)*");
   expect(copiedTexts[0]).toContain("IPA: 4");
 });
 

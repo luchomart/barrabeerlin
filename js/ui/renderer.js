@@ -1,3 +1,5 @@
+import { normalizarTexto } from "../utils/format.js";
+
 const ICONOS = {
   cambioNeutral: "\u2696\uFE0F",
 };
@@ -181,7 +183,8 @@ export function renderProductos(
       const nombre = escapeHtml(producto.nombre);
       const fila = document.createElement("div");
       fila.className = "producto-fila";
-      fila.dataset.nombre = String(producto.nombre || "").toLowerCase();
+      // Sin mayusculas ni tildes: "levite" encuentra "Levité".
+      fila.dataset.nombre = normalizarTexto(String(producto.nombre || ""));
       fila.innerHTML = `
         <span class="producto-nombre">${nombre}</span>
         <span class="cantidad-control">

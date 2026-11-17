@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildCatalogoRenderizable,
+  buildCatalogoStockTotal,
   esProductoBarril,
   obtenerIdsCategoriasBarriles,
   obtenerProductosBarriles,
@@ -202,6 +203,27 @@ describe("stockCatalog", () => {
     expect(resultado.categorias.map((categoria) => categoria.nombre)).toEqual([
       "Aguas",
       "Gaseosas",
+    ]);
+  });
+
+  it("el catalogo del stock total incluye barriles sin importar el sector", () => {
+    const { categorias, productos } = buildCatalogoStockTotal(
+      [
+        { id: 1, nombre: "Cervezas" },
+        { id: 9, nombre: "Barriles" },
+      ],
+      [
+        { id: 10, nombre: "Lata Stout", categoria_id: 1 },
+        { id: 11, nombre: "Pale Ale", categoria_id: 9 },
+        { id: 12, nombre: "IPA", categoria_id: 1 },
+      ],
+    );
+
+    expect(categorias[0].id).toBe("barriles");
+    expect(productos.map((producto) => [producto.nombre, producto.categoria_id])).toEqual([
+      ["Lata Stout", 1],
+      ["Pale Ale", "barriles"],
+      ["IPA", "barriles"],
     ]);
   });
 });

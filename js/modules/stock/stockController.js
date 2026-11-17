@@ -34,6 +34,7 @@ import {
 import { normalizarTexto } from "../../utils/format.js";
 import {
   buildCatalogoRenderizable,
+  buildCatalogoStockTotal,
   obtenerIdsCategoriasBarriles,
 } from "./stockCatalog.js";
 import {
@@ -746,7 +747,10 @@ export function initStockApp() {
   }
 
   async function compartirStock(abrirWhatsapp) {
-    const { categorias, productos } = obtenerCatalogoRenderizable();
+    const { categorias, productos } = buildCatalogoStockTotal(
+      appState.categorias,
+      appState.productos,
+    );
     const data = await buildStockData(productos, categorias);
     const texto = formatWhatsappText(data, productos);
 
@@ -764,7 +768,7 @@ export function initStockApp() {
 
   function configurarBuscador() {
     buscador.addEventListener("input", () => {
-      const texto = buscador.value.toLowerCase();
+      const texto = normalizarTexto(buscador.value);
       const categorias = document.querySelectorAll(".categoria-bloque");
       let algunaCoincidencia = false;
 
@@ -994,7 +998,10 @@ export function initStockApp() {
     }
 
     try {
-      const { categorias, productos } = obtenerCatalogoRenderizable();
+      const { categorias, productos } = buildCatalogoStockTotal(
+        appState.categorias,
+        appState.productos,
+      );
       const data = await buildStockData(productos, categorias);
 
       try {

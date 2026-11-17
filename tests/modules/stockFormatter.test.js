@@ -14,6 +14,7 @@ const {
   formatPlainText,
   formatStockChanges,
   formatWhatsappText,
+  obtenerEmojiCategoria,
 } = await import("../../js/modules/stock/stockFormatter.js");
 
 describe("stockFormatter", () => {
@@ -156,11 +157,32 @@ describe("stockFormatter", () => {
     );
 
     expect(texto).toContain("STOCK TOTAL BARRA");
-    expect(texto).toContain("GASEOSAS");
-    expect(texto).toContain("- Coca Cola: 6");
-    expect(texto).not.toContain("Sprite");
-    expect(texto).toContain("CERVEZAS");
-    expect(texto).toContain("- IPA: 4");
+    expect(texto).toContain("\u{1F964} *GASEOSAS* · 6\nCoca Cola: 6");
+    expect(texto).toContain("\u{1F37A} *CERVEZAS* · 4\nIPA: 4");
+    // Lo que esta en 0 va al final, en "Sin stock".
+    expect(texto.endsWith("*SIN STOCK*\nSprite")).toBe(true);
+  });
+
+  it("arma el encabezado con fecha y hora en 24 h", () => {
+    const texto = formatWhatsappText(
+      { categoriasOrdenadas: [], stockPorProducto: {} },
+      [],
+      new Date(2026, 10, 17, 21, 43),
+    );
+
+    expect(texto).toBe("\u{1F4CA} *STOCK TOTAL BARRA*\n17/11/2026 · 21:43");
+  });
+
+  it("elige el emoji de la categoria por su nombre y usa una caja si no lo reconoce", () => {
+    expect(obtenerEmojiCategoria("Aguas saborizadas")).toBe("\u{1F34B}");
+    expect(obtenerEmojiCategoria("Aguas")).toBe("\u{1F4A7}");
+    expect(obtenerEmojiCategoria("Energéticas")).toBe("\u26A1");
+    expect(obtenerEmojiCategoria("Sidras")).toBe("\u{1F34F}");
+    expect(obtenerEmojiCategoria("Barriles (sin pinchar)")).toBe("\u{1F6E2}\uFE0F");
+    expect(obtenerEmojiCategoria("Gin")).toBe("\u{1F378}");
+    // "gin" solo como palabra entera: "Ginger ale" no es destilado.
+    expect(obtenerEmojiCategoria("Ginger ale")).toBe("\u{1F4E6}");
+    expect(obtenerEmojiCategoria("Snacks")).toBe("\u{1F4E6}");
   });
 
   it("formatea stock plano por categoria", () => {
@@ -191,7 +213,7 @@ describe("stockFormatter", () => {
     const productos = [{ id: 1, nombre: "IPA" }];
 
     expect(formatStockChanges([], productos)).toContain(
-      "Todavia no hay dos snapshots para comparar",
+      "Todavía no hay dos capturas para comparar",
     );
 
     expect(
@@ -207,7 +229,7 @@ describe("stockFormatter", () => {
         ],
         productos,
       ),
-    ).toContain("Sin cambios desde el ultimo snapshot");
+    ).toContain("Sin cambios desde la última captura");
   });
 
   it("devuelve reporte vacio para entradas invalidas", () => {
