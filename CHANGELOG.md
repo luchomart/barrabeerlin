@@ -2,7 +2,7 @@
 
 Historial de cambios de Stock Barra.
 
-## v0.4.0 - sin publicar
+## v0.4.0 - 2026-11-16
 
 ### Added
 - Panel `Admin` dentro de `supervisor.html`: agregar y eliminar empleados, categorias y productos.
