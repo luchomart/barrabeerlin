@@ -73,7 +73,7 @@ Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos.
 - `productos`, `categorias`, `sectores`: `anon` solo lectura.
 - `ventas*`: solo lectura para supervisor; escritura solo via `registrar_venta`.
 - `inventario` y `stock_snapshots` tenian politicas "permitir todo" creadas a mano (`inventario libre`, `allow all`).
-  Se cierran con `docs/sql/hardening-v0.3.4.sql` (pendiente de aplicar).
+  Se cierran con `docs/sql/hardening-v0.3.4.sql` (aplicado y verificado el 2026-11-16: ya no existen).
 - Hay politicas duplicadas de etapas anteriores (`app select …`, `public read …`, `lectura …`).
 - FKs: `inventario.producto_id` y `stock_snapshots.producto_id` -> `productos` con `ON DELETE CASCADE`;
   `productos.categoria_id` -> `categorias` sin cascade. Hay 4 productos sin categoria (no aparecen en ningun sector).
