@@ -78,7 +78,7 @@ Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos.
 - FKs: `inventario.producto_id` y `stock_snapshots.producto_id` -> `productos` con `ON DELETE CASCADE`;
   `productos.categoria_id` -> `categorias` sin cascade. Hay 4 productos sin categoria (no aparecen en ningun sector).
 
-## Administracion (v0.4.0, pendiente de aplicar)
+## Administracion (v0.4.0, aplicado 2026-11-16)
 
 `docs/sql/admin-v0.4.0.sql` crea `empleados` y las RPCs `admin_agregar/eliminar_empleado`,
 `admin_agregar/eliminar_categoria` y `admin_agregar/eliminar_producto`.
@@ -86,3 +86,5 @@ Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos.
 - `SECURITY DEFINER`, ejecutables solo por `authenticated` (se revoca `anon`) y cada una exige `is_supervisor()`.
 - Borrar un producto borra en cascada su inventario y sus snapshots. Borrar una categoria con productos se rechaza.
 - Probado en un Postgres local (PGlite) imitando roles y esquema de produccion: 23 casos OK.
+- Verificado en produccion tras aplicarlo: 5 empleados cargados; las 6 RPCs solo con EXECUTE para
+  `authenticated` (sin `anon`); los helpers `admin_exigir_supervisor` y `admin_nombre_limpio` sin acceso para `anon`/`authenticated`.

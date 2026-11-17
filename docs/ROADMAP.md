@@ -9,7 +9,7 @@ Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
   barriles por categoria y fix del orden de `Estante Cocina`. 69 tests unitarios y 16 smoke OK.
 - Para publicar, en este orden:
   1. Aplicar `docs/sql/hardening-v0.3.4.sql` en Supabase.
-  2. Aplicar `docs/sql/admin-v0.4.0.sql` (sin esto el desplegable de empleados queda vacio).
+  2. ~~Aplicar `docs/sql/admin-v0.4.0.sql`~~ aplicado y verificado el 2026-11-16.
   3. Push de `dev`, QA (`docs/QA_CHECKLIST.md`, seccion Administracion) y merge a `main`.
 - Decisiones: borrar producto = borrado real con cascada de inventario y snapshots; categoria con productos no se borra;
   empleados no inician sesion (solo la lista del desplegable).
