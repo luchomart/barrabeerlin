@@ -678,6 +678,17 @@ test("supervisor smoke: admin agrega y elimina empleados, categorias y productos
     bloqueProductos.locator('details[data-categoria="2"] [data-nombre="Agua"]').first(),
   ).toBeVisible();
 
+  // No avisar si esta en 0
+  const bloqueSinAviso = admin.locator('[data-bloque="sin-aviso"]');
+  await expect(bloqueSinAviso).toContainText("Todos los productos avisan.");
+  await bloqueSinAviso.locator("select").selectOption({ label: "Gin" });
+  await bloqueSinAviso.locator('button[type="submit"]').click();
+  await expect(mensaje).toHaveText('"Gin" ya no se avisa cuando está en 0.');
+  await expect(bloqueSinAviso.locator(".admin-item")).toHaveCount(1);
+  await bloqueSinAviso.locator('[data-accion="volver-a-avisar"]').click();
+  await expect(mensaje).toHaveText('"Gin" vuelve a avisarse cuando está en 0.');
+  await expect(bloqueSinAviso).toContainText("Todos los productos avisan.");
+
   const llamadas = await page.evaluate(() => globalThis.__mockAdminLlamadas.map((l) => l.nombre));
   expect(llamadas).toEqual([
     "agregarEmpleado",
@@ -687,6 +698,8 @@ test("supervisor smoke: admin agrega y elimina empleados, categorias y productos
     "agregarProducto",
     "eliminarProducto",
     "moverProducto",
+    "cambiarAvisoSinStock",
+    "cambiarAvisoSinStock",
   ]);
 });
 

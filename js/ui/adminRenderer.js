@@ -197,6 +197,67 @@ function renderProductos(grupos = [], stockPorProducto = {}, abiertos = new Set(
   `;
 }
 
+// Productos que no aparecen en "Sin stock" del mensaje cuando estan en 0.
+function renderSinAviso(grupos = []) {
+  const conCategoria = grupos.filter((grupo) => !grupo.sinCategoria);
+  const sinAviso = conCategoria.flatMap((grupo) =>
+    grupo.productos
+      .filter((producto) => producto.avisar_sin_stock === false)
+      .map((producto) => ({ ...producto, categoria: grupo.nombre })),
+  );
+
+  const items = sinAviso
+    .map(
+      (producto) => `
+        <li class="admin-item">
+          <span class="admin-item-nombre">${escapeHtml(producto.nombre)}</span>
+          <span class="admin-item-meta">${escapeHtml(producto.categoria)}</span>
+          <button
+            type="button"
+            class="admin-borrar"
+            data-accion="volver-a-avisar"
+            data-id="${escapeHtml(producto.id)}"
+            data-nombre="${escapeHtml(producto.nombre)}"
+            aria-label="Volver a avisar si ${escapeHtml(producto.nombre)} está en 0"
+          ><svg class="icono" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+        </li>
+      `,
+    )
+    .join("");
+
+  const opciones = conCategoria
+    .map((grupo) => {
+      const disponibles = grupo.productos.filter(
+        (producto) => producto.avisar_sin_stock !== false,
+      );
+
+      if (!disponibles.length) return "";
+
+      return `<optgroup label="${escapeHtml(grupo.nombre)}">${disponibles
+        .map(
+          (producto) =>
+            `<option value="${escapeHtml(producto.id)}">${escapeHtml(producto.nombre)}</option>`,
+        )
+        .join("")}</optgroup>`;
+    })
+    .join("");
+
+  return `
+    <div class="admin-bloque" data-bloque="sin-aviso">
+      <h3>No avisar si están en 0 <span class="admin-count">(${sinAviso.length})</span></h3>
+      <p class="admin-nota">No aparecen en «Sin stock» del mensaje de WhatsApp. Si tienen stock, se envían normal.</p>
+      <ul class="admin-lista">${items || '<li class="admin-vacio">Todos los productos avisan.</li>'}</ul>
+      <form class="admin-form" data-form="sin-aviso" autocomplete="off">
+        <select name="producto_id" aria-label="Producto que no avisa si está en 0" required>
+          <option value="" selected disabled>Elegí un producto…</option>
+          ${opciones}
+        </select>
+        <button type="submit">Agregar</button>
+      </form>
+    </div>
+  `;
+}
+
 export function renderAdminPanel(container, datos = {}) {
   if (!container) return;
 
@@ -222,6 +283,7 @@ export function renderAdminPanel(container, datos = {}) {
       ${renderEmpleados(Array.isArray(empleados) ? empleados : [])}
       ${renderCategorias(grupos)}
       ${renderProductos(grupos, stockPorProducto, abiertos)}
+      ${renderSinAviso(grupos)}
     </div>
   `;
 

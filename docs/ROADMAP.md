@@ -4,6 +4,9 @@ Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 
 ## Donde quedamos (2026-11-17)
 
+- PENDIENTE (Luciano): pegar `docs/sql/admin-v0.4.3.sql` (productos que no avisan si estan en 0;
+  probado en PGlite 14/14). Hasta entonces el bloque "No avisar si estan en 0" del admin da error al
+  agregar. Despues marcarlo como aplicado en `docs/DATABASE.md`.
 - `docs/sql/admin-v0.4.2.sql` (mover producto de categoria) aplicado en Supabase el 2026-11-17
   (verificacion: `sin_anon = true`). La prueba movio 4 duplicados sin categoria a Vinos; ya se
   revirtio (`docs/sql/revertir-prueba-mover-2026-11-17.sql`, verificado).

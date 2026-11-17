@@ -363,6 +363,14 @@ function buildAdminServiceMock() {
       return quitar(catalogo().productos, id);
     }
 
+    export async function cambiarAvisoSinStock(id, avisar) {
+      registrar("cambiarAvisoSinStock", { id, avisar });
+      const producto = catalogo().productos.find((item) => String(item.id) === String(id));
+      if (!producto) throw new Error("El producto ya no existe.");
+      producto.avisar_sin_stock = Boolean(avisar);
+      return { id: producto.id, nombre: producto.nombre, avisar_sin_stock: producto.avisar_sin_stock };
+    }
+
     export async function moverProducto(id, categoriaId) {
       registrar("moverProducto", { id, categoriaId });
       const producto = catalogo().productos.find((item) => String(item.id) === String(id));

@@ -111,4 +111,15 @@ Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos.
 - La prueba en produccion movio a Vinos los 4 productos sin categoria (duplicados: 19, 32, 33, 34).
   Se revirtio con `docs/sql/revertir-prueba-mover-2026-11-17.sql` (verificado: los 4 con
   `categoria_id` y `orden` en null). Siguen siendo los unicos productos sin categoria.
+
+## Productos sin aviso de stock en 0 (v0.4.3, PENDIENTE de aplicar)
+
+`docs/sql/admin-v0.4.3.sql`:
+
+- Columna `productos.avisar_sin_stock` (boolean, default true). En false, el producto en 0 no
+  aparece en "SIN STOCK" del mensaje de WhatsApp (con stock se envia normal).
+- RPC `admin_avisar_sin_stock(producto_id, avisar)`: `SECURITY DEFINER`, solo `authenticated`,
+  exige `is_supervisor()`. Solo cambia esa columna de ese producto.
+- La app lee `productos` con `select("*")`: sin la columna, trata a todos como "avisar".
+- Probado en PGlite imitando roles y esquema: 14 casos OK (incluye el rollback).
 - Probado en PGlite imitando roles y esquema (con v0.4.0 y v0.4.1 cargados): 14 casos OK.

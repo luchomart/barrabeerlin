@@ -10,6 +10,7 @@ import {
   agregarCategoria,
   agregarEmpleado,
   agregarProducto,
+  cambiarAvisoSinStock,
   eliminarCategoria,
   eliminarEmpleado,
   eliminarProducto,
@@ -197,6 +198,24 @@ export function initAdminPanel({ section, contenido, button } = {}) {
     const formData = new FormData(form);
     const nombre = String(formData.get("nombre") || "").trim();
 
+    if (form.dataset.form === "sin-aviso") {
+      const productoId = formData.get("producto_id");
+      const producto = (datos?.productos || []).find(
+        (item) => String(item.id) === String(productoId),
+      );
+
+      if (!productoId) {
+        renderAdminMensaje(contenido, { tipo: "error", texto: "Elegí un producto." });
+        return;
+      }
+
+      await ejecutar(
+        () => cambiarAvisoSinStock(productoId, false),
+        `"${producto?.nombre || "Producto"}" ya no se avisa cuando está en 0.`,
+      );
+      return;
+    }
+
     if (!nombre && form.dataset.form !== "mover") return;
 
     if (form.dataset.form === "empleado") {
@@ -249,6 +268,14 @@ export function initAdminPanel({ section, contenido, button } = {}) {
       const item = boton.closest(".admin-item");
       boton.closest(".admin-form-mover")?.remove();
       item?.querySelector('[data-accion="mover-producto"]')?.focus();
+      return;
+    }
+
+    if (accion === "volver-a-avisar") {
+      await ejecutar(
+        () => cambiarAvisoSinStock(id, true),
+        `"${nombre}" vuelve a avisarse cuando está en 0.`,
+      );
       return;
     }
 

@@ -24,6 +24,7 @@ const {
   eliminarEmpleado,
   eliminarProducto,
   moverProducto,
+  cambiarAvisoSinStock,
   obtenerMensajeErrorAdmin,
 } = await import("../../js/services/adminService.js");
 
@@ -42,6 +43,7 @@ describe("adminService", () => {
     await agregarProducto("Fanta", "2");
     await eliminarProducto(11);
     await moverProducto("11", 14);
+    await cambiarAvisoSinStock("11", false);
 
     expect(scenario.rpcCalls).toEqual([
       { name: "admin_agregar_empleado", params: { nombre: "Juan Pablo" } },
@@ -51,6 +53,7 @@ describe("adminService", () => {
       { name: "admin_agregar_producto", params: { nombre: "Fanta", categoria_id: 2 } },
       { name: "admin_eliminar_producto", params: { producto_id: 11 } },
       { name: "admin_mover_producto", params: { producto_id: 11, categoria_id: 14 } },
+      { name: "admin_avisar_sin_stock", params: { producto_id: 11, avisar: false } },
     ]);
   });
 

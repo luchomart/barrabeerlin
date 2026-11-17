@@ -33,6 +33,8 @@ Historial de cambios de Stock Barra.
   cargan con `<link>` (no `@import`).
 
 ### Added
+- Panel Admin: bloque "No avisar si estan en 0". Esos productos no aparecen en "Sin stock" del
+  mensaje de WhatsApp (con stock se envian normal). Requiere `docs/sql/admin-v0.4.3.sql`.
 - Panel Admin: boton "Mover" para cambiar un producto de categoria (tambien sirve para los
   productos sin categoria). Requiere `docs/sql/admin-v0.4.2.sql`.
 - Mensaje de WhatsApp:

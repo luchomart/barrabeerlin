@@ -290,7 +290,8 @@ export function formatWhatsappText(data, productos = [], fecha = new Date()) {
       if (cantidad > 0) {
         lineas.push(`${producto.nombre}: ${cantidad}`);
         total += cantidad;
-      } else {
+      } else if (producto.avisar_sin_stock !== false) {
+        // Los marcados en el admin como "no avisar si estan en 0" no se listan.
         sinStock.push(producto.nombre);
       }
     });

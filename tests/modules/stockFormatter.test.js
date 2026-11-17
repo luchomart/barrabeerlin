@@ -163,6 +163,31 @@ describe("stockFormatter", () => {
     expect(texto.endsWith("*SIN STOCK*\nSprite")).toBe(true);
   });
 
+  it("no lista en Sin stock los productos marcados para no avisar", () => {
+    const texto = formatWhatsappText(
+      {
+        categoriasOrdenadas: [{ id: 9, nombre: "Produccion" }],
+        stockPorProducto: { 1: 0, 2: 0, 3: 4 },
+      },
+      [
+        { id: 1, nombre: "Azucar KG", categoria_id: 9, avisar_sin_stock: false },
+        { id: 2, nombre: "Menta", categoria_id: 9 },
+        { id: 3, nombre: "Limones", categoria_id: 9, avisar_sin_stock: false },
+      ],
+    );
+
+    expect(texto).toContain("Limones: 4");
+    expect(texto).toContain("*SIN STOCK*\nMenta");
+    expect(texto).not.toContain("Azucar");
+
+    const sinSeccion = formatWhatsappText(
+      { categoriasOrdenadas: [{ id: 9, nombre: "Produccion" }], stockPorProducto: {} },
+      [{ id: 1, nombre: "Azucar KG", categoria_id: 9, avisar_sin_stock: false }],
+    );
+
+    expect(sinSeccion).not.toContain("SIN STOCK");
+  });
+
   it("arma el encabezado con fecha y hora en 24 h", () => {
     const texto = formatWhatsappText(
       { categoriasOrdenadas: [], stockPorProducto: {} },
