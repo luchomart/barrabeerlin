@@ -2,6 +2,23 @@
 
 Historial de cambios de Stock Barra.
 
+## v0.4.0 - 2026-11-16
+
+### Added
+- Panel `Admin` dentro de `supervisor.html`: agregar y eliminar empleados, categorias y productos.
+- Tabla `empleados` en Supabase y RPCs `admin_*` (solo supervisor) en `docs/sql/admin-v0.4.0.sql`.
+- Al borrar un producto se confirma con su stock actual; Supabase borra en cascada su inventario y snapshots.
+- Productos sin categoria visibles en el panel como `Sin categoria`.
+- SQL `docs/sql/hardening-v0.3.4.sql`: elimina las politicas "permitir todo" de `inventario` y `stock_snapshots`.
+- Smoke tests en Linux con `PLAYWRIGHT_CHROMIUM_PATH`.
+
+### Changed
+- El desplegable de empleados se carga desde Supabase (antes era una lista fija en `js/config.js`).
+- Los barriles se reconocen por la categoria `Barriles`, ademas de la lista fija de nombres.
+
+### Fixed
+- El orden de categorias del sector `Estante Cocina` (la clave en config decia `deposito cocina`).
+
 ## v0.3.3 - 2026-09-18
 
 ### Added

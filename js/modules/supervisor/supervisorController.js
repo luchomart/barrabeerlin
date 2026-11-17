@@ -32,6 +32,8 @@ import {
   renderSupervisorLoader,
 } from "../../ui/renderer.js";
 
+import { initAdminPanel } from "./adminController.js";
+
 const SUPERVISOR_EMAIL_STORAGE_KEY = "stock-barra:supervisor-email";
 
 function obtenerInicioDeHoy() {
@@ -105,9 +107,16 @@ export function initSupervisorApp() {
   const btnRecargar = document.getElementById("btn-recargar");
   const btnVolver = document.getElementById("btn-volver");
   const btnWhatsapp = document.getElementById("btn-whatsapp");
+  const btnAdmin = document.getElementById("btn-admin");
+  // La seccion de admin se abre aparte con su boton, no junto con el resto.
   const seccionesSupervisor = Array.from(
-    document.querySelectorAll(".supervisor-section"),
+    document.querySelectorAll(".supervisor-section:not(.admin-section)"),
   );
+  const adminPanel = initAdminPanel({
+    section: document.getElementById("seccion-admin"),
+    contenido: document.getElementById("admin-contenido"),
+    button: btnAdmin,
+  });
 
   const authShell =
     authShellExistente ||
@@ -132,7 +141,11 @@ export function initSupervisorApp() {
       section.hidden = !visible;
     });
 
-    [btnRecargar, btnWhatsapp].forEach((button) => {
+    if (!visible) {
+      adminPanel.ocultar();
+    }
+
+    [btnRecargar, btnWhatsapp, btnAdmin].forEach((button) => {
       if (!button) return;
 
       button.hidden = !visible;

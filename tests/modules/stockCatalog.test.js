@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   buildCatalogoRenderizable,
   esProductoBarril,
+  obtenerIdsCategoriasBarriles,
   obtenerProductosBarriles,
 } from "../../js/modules/stock/stockCatalog.js";
 import {
   CATEGORIA_VIRTUAL_BARRILES,
+  NOMBRE_CATEGORIA_BARRILES,
   ORDEN_CATEGORIAS_SECTOR,
   PRODUCTOS_BARRILES_CAMARA,
 } from "../../js/config.js";
@@ -130,5 +132,76 @@ describe("stockCatalog", () => {
 
     expect(resultado.esCamara).toBe(true);
     expect(resultado.sinBarrilesConfigurados).toBe(true);
+  });
+
+  it("reconoce la categoria real de barriles sin importar mayusculas ni acentos", () => {
+    expect(
+      obtenerIdsCategoriasBarriles(
+        [
+          { id: 7, nombre: "Vinos" },
+          { id: 26, nombre: " BARRILES " },
+        ],
+        NOMBRE_CATEGORIA_BARRILES,
+      ),
+    ).toEqual(["26"]);
+    expect(obtenerIdsCategoriasBarriles([{ id: 1, nombre: "Barriles" }], "")).toEqual([]);
+  });
+
+  it("un barril nuevo en la categoria Barriles va solo a Camara aunque no este en la lista fija", () => {
+    const categorias = [
+      { id: 1, nombre: "Gaseosas" },
+      { id: 26, nombre: "Barriles" },
+    ];
+    const productos = [
+      { id: 10, nombre: "Coca Cola", categoria_id: 1 },
+      { id: 100, nombre: "IPA", categoria_id: 26 },
+      { id: 109, nombre: "Pale Ale Nueva", categoria_id: 26 },
+    ];
+    const idsCategoriasBarriles = obtenerIdsCategoriasBarriles(
+      categorias,
+      NOMBRE_CATEGORIA_BARRILES,
+    );
+    const base = {
+      categorias,
+      productos,
+      ordenCategoriasSector: ORDEN_CATEGORIAS_SECTOR,
+      categoriaVirtualBarriles: CATEGORIA_VIRTUAL_BARRILES,
+      nombresBarrilesNormalizados,
+      idsCategoriasBarriles,
+    };
+
+    expect(esProductoBarril(productos[2], nombresBarrilesNormalizados)).toBe(false);
+    expect(
+      esProductoBarril(productos[2], nombresBarrilesNormalizados, idsCategoriasBarriles),
+    ).toBe(true);
+
+    const camara = buildCatalogoRenderizable({ ...base, sectorNombre: "Camara" });
+    expect(
+      camara.productos
+        .filter((producto) => producto.categoria_id === "barriles")
+        .map((producto) => producto.nombre),
+    ).toEqual(["IPA", "Pale Ale Nueva"]);
+
+    const barra = buildCatalogoRenderizable({ ...base, sectorNombre: "Estantes Barra" });
+    expect(barra.productos.map((producto) => producto.nombre)).toEqual(["Coca Cola"]);
+  });
+
+  it("el orden de categorias de Estante Cocina coincide con el sector real", () => {
+    const resultado = buildCatalogoRenderizable({
+      sectorNombre: "Estante Cocina",
+      categorias: [
+        { id: 1, nombre: "Gaseosas" },
+        { id: 2, nombre: "Aguas" },
+      ],
+      productos: [],
+      ordenCategoriasSector: ORDEN_CATEGORIAS_SECTOR,
+      categoriaVirtualBarriles: CATEGORIA_VIRTUAL_BARRILES,
+      nombresBarrilesNormalizados,
+    });
+
+    expect(resultado.categorias.map((categoria) => categoria.nombre)).toEqual([
+      "Aguas",
+      "Gaseosas",
+    ]);
   });
 });

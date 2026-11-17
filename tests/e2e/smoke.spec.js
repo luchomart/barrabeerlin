@@ -251,3 +251,122 @@ test("supervisor smoke: errores de servicios muestran fallbacks visuales", async
     "Error cargando cambios",
   );
 });
+
+test("stock smoke: el desplegable de empleados sale de Supabase e ignora un empleado borrado", async ({ page }) => {
+  await mockAppServices(page);
+  await page.addInitScript(() => {
+    localStorage.setItem("empleado", "Empleado Borrado");
+  });
+  await page.goto("/");
+
+  await expect(page.locator("#select-empleado option")).toHaveText([
+    "Seleccionar...",
+    "Karen",
+    "Eve",
+    "Nicolas",
+    "Luciano",
+    "Fiorella",
+  ]);
+  await expect(page.locator("#select-empleado")).toHaveValue("");
+});
+
+test("stock smoke: si fallan los empleados se muestra el fallback de carga", async ({ page }) => {
+  await mockAppServices(page, { failEmpleados: true });
+  await page.goto("/");
+
+  await expect(page.locator("#lista-productos")).toContainText("Error cargando la aplicacion");
+});
+
+test("supervisor smoke: admin agrega y elimina empleados, categorias y productos", async ({ page }) => {
+  await mockAppServices(page, { authenticatedSupervisor: true });
+  await page.goto("/supervisor.html");
+
+  const admin = page.locator("#seccion-admin");
+  const mensaje = page.locator("#admin-mensaje");
+
+  await expect(admin).toBeHidden();
+  await page.click("#btn-admin");
+  await expect(admin).toBeVisible();
+  await expect(page.locator("#btn-admin")).toHaveAttribute("aria-expanded", "true");
+
+  // Empleados
+  const bloqueEmpleados = admin.locator('[data-bloque="empleados"]');
+  await bloqueEmpleados.locator('input[name="nombre"]').fill("Juan");
+  await bloqueEmpleados.locator('button[type="submit"]').click();
+  await expect(mensaje).toHaveText('Empleado "Juan" agregado.');
+  await expect(bloqueEmpleados.locator(".admin-item")).toHaveCount(6);
+
+  await bloqueEmpleados.locator('input[name="nombre"]').fill("karen");
+  await bloqueEmpleados.locator('button[type="submit"]').click();
+  await expect(mensaje).toContainText("Ya existe");
+  await expect(mensaje).toHaveClass(/admin-mensaje-error/);
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await bloqueEmpleados.locator('[data-accion="eliminar-empleado"][data-nombre="Juan"]').click();
+  await expect(mensaje).toHaveText('Empleado "Juan" eliminado.');
+  await expect(bloqueEmpleados.locator(".admin-item")).toHaveCount(5);
+
+  // Categorias: con productos no se puede borrar; una nueva vacia si
+  const bloqueCategorias = admin.locator('[data-bloque="categorias"]');
+  await expect(
+    bloqueCategorias.locator('[data-accion="eliminar-categoria"][data-nombre="Cervezas"]'),
+  ).toBeDisabled();
+  await bloqueCategorias.locator('input[name="nombre"]').fill("Sidras");
+  await bloqueCategorias.locator('button[type="submit"]').click();
+  await expect(mensaje).toHaveText('Categoria "Sidras" agregada.');
+
+  // Productos
+  const bloqueProductos = admin.locator('[data-bloque="productos"]');
+  await bloqueProductos.locator('input[name="nombre"]').fill("Sidra Pera");
+  await bloqueProductos.locator('select[name="categoria_id"]').selectOption({ label: "Sidras" });
+  await bloqueProductos.locator('button[type="submit"]').click();
+  await expect(mensaje).toHaveText('Producto "Sidra Pera" agregado.');
+  await expect(
+    bloqueCategorias.locator('[data-accion="eliminar-categoria"][data-nombre="Sidras"]'),
+  ).toBeDisabled();
+
+  // Borrar producto con stock: la confirmacion avisa unidades y sectores
+  let textoConfirmacion = "";
+  page.once("dialog", (dialog) => {
+    textoConfirmacion = dialog.message();
+    dialog.accept();
+  });
+  await bloqueProductos.locator("summary", { hasText: "Gaseosas" }).click();
+  await bloqueProductos.locator('[data-accion="eliminar-producto"][data-nombre="Coca Cola"]').click();
+  await expect(mensaje).toHaveText('Producto "Coca Cola" eliminado.');
+  expect(textoConfirmacion).toContain("Tiene 8 unidad(es) en 1 sector(es).");
+  expect(textoConfirmacion).toContain("historial de snapshots");
+
+  // Cancelar la confirmacion no borra nada
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await bloqueProductos.locator("summary", { hasText: "Sidras" }).click();
+  await bloqueProductos.locator('[data-accion="eliminar-producto"][data-nombre="Sidra Pera"]').click();
+  await expect(bloqueProductos.locator('[data-nombre="Sidra Pera"]')).toHaveCount(1);
+
+  const llamadas = await page.evaluate(() => globalThis.__mockAdminLlamadas.map((l) => l.nombre));
+  expect(llamadas).toEqual([
+    "agregarEmpleado",
+    "agregarEmpleado",
+    "eliminarEmpleado",
+    "agregarCategoria",
+    "agregarProducto",
+    "eliminarProducto",
+  ]);
+});
+
+test("supervisor smoke: sin sesion no se ve el boton de admin y al cerrar sesion se oculta el panel", async ({ page }) => {
+  await mockAppServices(page);
+  await page.goto("/supervisor.html");
+
+  await expect(page.locator("#btn-admin")).toBeHidden();
+  await expect(page.locator("#seccion-admin")).toBeHidden();
+
+  await mockAppServices(page, { authenticatedSupervisor: true });
+  await page.goto("/supervisor.html");
+  await page.click("#btn-admin");
+  await expect(page.locator("#seccion-admin")).toBeVisible();
+
+  await page.click("#btn-cerrar-sesion-supervisor");
+  await expect(page.locator("#btn-admin")).toBeHidden();
+  await expect(page.locator("#seccion-admin")).toBeHidden();
+});
