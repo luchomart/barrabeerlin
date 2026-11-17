@@ -302,7 +302,8 @@ export function initSupervisorApp() {
       const catalogo = buildCatalogoStockTotal(categorias, productos);
       const data = await buildStockData(catalogo.productos, catalogo.categorias);
       const texto = formatWhatsappText(data, catalogo.productos);
-      const url = "https://wa.me/?text=" + encodeURIComponent(texto);
+      // api.whatsapp.com y no wa.me: la redireccion de wa.me rompe los emojis (salen como "?").
+      const url = "https://api.whatsapp.com/send?text=" + encodeURIComponent(texto);
 
       window.open(url, "_blank");
     } catch (error) {

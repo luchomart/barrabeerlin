@@ -298,6 +298,31 @@ test("supervisor smoke: carga resumen y cambios globales", async ({ page }) => {
   await expect(page.locator("#lista-cambios-stock")).toContainText("Coca Cola: +4");
 });
 
+test("supervisor smoke: Enviar stock manda el mismo mensaje con emojis sanos", async ({ page }) => {
+  await mockAppServices(page, { authenticatedSupervisor: true });
+  await page.addInitScript(() => {
+    globalThis.__openedUrls = [];
+    globalThis.open = (url) => {
+      globalThis.__openedUrls.push(url);
+      return null;
+    };
+  });
+  await page.goto("/supervisor.html");
+  await expect(page.locator("#estado-sectores")).toContainText("Contados");
+
+  await page.click("#btn-whatsapp");
+  await expect.poll(() => page.evaluate(() => globalThis.__openedUrls.length)).toBe(1);
+
+  const url = await page.evaluate(() => globalThis.__openedUrls[0]);
+  // wa.me redirige y cambia los emojis por "?": hay que usar api.whatsapp.com.
+  expect(url.startsWith("https://api.whatsapp.com/send?text=")).toBe(true);
+
+  const texto = decodeURIComponent(url.split("text=")[1]);
+  expect(texto.startsWith("\u{1F4CA} *STOCK TOTAL BARRA*")).toBe(true);
+  expect(texto).toContain("*BARRILES (SIN PINCHAR)*");
+  expect(texto).not.toContain("\uFFFD");
+});
+
 test("supervisor smoke: acceso directo sin sesion muestra login y bloquea contenido", async ({ page }) => {
   await mockAppServices(page);
   await page.goto("/supervisor.html");
