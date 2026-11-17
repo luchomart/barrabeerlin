@@ -15,8 +15,8 @@ Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
   Ver CHANGELOG.
 - Supabase: aplicados `admin-v0.4.2.sql` (mover producto) y `admin-v0.4.3.sql` (no avisar en 0).
   La prueba de "Mover" se revirtio con `revertir-prueba-mover-2026-11-17.sql`.
-- PENDIENTE (Luciano): pegar `docs/sql/admin-v0.4.1.sql` en Supabase (no borrar productos con ventas,
-  altas sin duplicados). Probado en PGlite 16/16. Despues marcarlo como aplicado en `docs/DATABASE.md`.
+- `docs/sql/admin-v0.4.1.sql` (no borrar productos con ventas, altas sin duplicados) aplicado en
+  Supabase el 2026-11-17 (verificacion OK). No queda SQL pendiente.
 - Proximo paso: QA en el celu con la checklist (`docs/QA_CHECKLIST.md`, secciones "Stock" y
   "Sin internet"), con el personal: cambia el flujo que conocian (sin `alert` al guardar).
 - Pendientes chicos:

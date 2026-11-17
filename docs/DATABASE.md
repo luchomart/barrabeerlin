@@ -89,7 +89,7 @@ Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos.
 - Verificado en produccion tras aplicarlo: 5 empleados cargados; las 6 RPCs solo con EXECUTE para
   `authenticated` (sin `anon`); los helpers `admin_exigir_supervisor` y `admin_nombre_limpio` sin acceso para `anon`/`authenticated`.
 
-## Ajustes de administracion (v0.4.1, PENDIENTE de aplicar)
+## Ajustes de administracion (v0.4.1, aplicado 2026-11-17)
 
 `docs/sql/admin-v0.4.1.sql` reemplaza 4 RPCs sin tocar tablas, datos ni permisos:
 
@@ -98,6 +98,8 @@ Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos.
 - `admin_agregar_empleado/categoria/producto` toman un candado sobre su tabla antes de chequear
   nombres repetidos (evita duplicados por altas simultaneas).
 - Probado en PGlite imitando roles y esquema: 16 casos OK (incluye el rollback).
+- Aplicado por Luciano el 2026-11-17. Verificacion: las 4 RPCs con `cambio_aplicado = true` y
+  `sin_anon = true`; permisos solo `postgres`, `authenticated` y `service_role`.
 
 ## Mover producto de categoria (v0.4.2, aplicado 2026-11-17)
 
