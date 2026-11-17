@@ -8,6 +8,7 @@ import {
   agruparProductosPorCategoria,
   renderAdminMensaje,
   renderAdminPanel,
+  renderFormMover,
   setAdminOcupado,
 } from "../../js/ui/adminRenderer.js";
 
@@ -46,7 +47,7 @@ describe("adminRenderer", () => {
     expect(grupos.map((grupo) => grupo.nombre)).toEqual([
       "Energizantes",
       "Gaseosas",
-      "Sin categoria",
+      "Sin categoría",
     ]);
     expect(grupos[1].productos.map((producto) => producto.nombre)).toEqual([
       "Coca Cola",
@@ -131,5 +132,61 @@ describe("adminController helpers", () => {
     expect(textoConfirmacionProducto("Fanta", undefined)).toContain(
       "No se pudo consultar su stock actual.",
     );
+  });
+
+  it("abre un solo selector para mover un producto, sin ofrecer su categoria actual", () => {
+    document.body.innerHTML = '<div id="admin-contenido"></div>';
+    const container = document.getElementById("admin-contenido");
+
+    renderAdminPanel(container, DATOS);
+
+    const moverSprite = container.querySelector('[data-accion="mover-producto"][data-nombre="Sprite"]');
+    const moverHuerfano = container.querySelector('[data-accion="mover-producto"][data-nombre="Huerfano"]');
+
+    expect(moverSprite.getAttribute("aria-label")).toBe("Mover Sprite a otra categoría");
+
+    const form = renderFormMover(moverSprite, DATOS.categorias);
+
+    expect(form.dataset.form).toBe("mover");
+    expect(form.dataset.id).toBe("11");
+    expect(moverSprite.closest(".admin-item").contains(form)).toBe(true);
+
+    const actual = form.querySelector('option[value="2"]');
+    expect(actual.disabled).toBe(true);
+    expect(actual.textContent).toBe("Gaseosas (actual)");
+    expect(form.querySelector('option[value="14"]').disabled).toBe(false);
+
+    // Abrir otro cierra el anterior; un producto sin categoria puede ir a cualquiera.
+    const otro = renderFormMover(moverHuerfano, DATOS.categorias);
+
+    expect(container.querySelectorAll(".admin-form-mover")).toHaveLength(1);
+    expect(otro.querySelectorAll("option:not([disabled])")).toHaveLength(2);
+  });
+
+  it("lista los productos que no avisan en 0 y no los ofrece de nuevo", () => {
+    document.body.innerHTML = '<div id="admin-contenido"></div>';
+    const container = document.getElementById("admin-contenido");
+
+    renderAdminPanel(container, {
+      ...DATOS,
+      productos: [
+        { id: 11, nombre: "Sprite", categoria_id: 2, orden: 11, avisar_sin_stock: false },
+        { id: 10, nombre: "Coca Cola", categoria_id: 2, orden: 10 },
+        { id: 50, nombre: "Huerfano", categoria_id: null, orden: null },
+      ],
+    });
+
+    const bloque = container.querySelector('[data-bloque="sin-aviso"]');
+
+    expect(bloque.querySelector("h3").textContent).toContain("(1)");
+    expect(bloque.querySelector('[data-accion="volver-a-avisar"]').dataset.nombre).toBe("Sprite");
+    expect(bloque.querySelector(".admin-item-meta").textContent).toBe("Gaseosas");
+
+    const opciones = Array.from(bloque.querySelectorAll("option[value]:not([value=''])")).map(
+      (opcion) => opcion.textContent,
+    );
+    // Ni Sprite (ya esta) ni el producto sin categoria (no aparece en el mensaje).
+    expect(opciones).toEqual(["Coca Cola"]);
+    expect(bloque.querySelector("optgroup").label).toBe("Gaseosas");
   });
 });

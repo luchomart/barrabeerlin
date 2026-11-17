@@ -1,3 +1,8 @@
+import {
+  CATEGORIA_VIRTUAL_BARRILES,
+  NOMBRE_CATEGORIA_BARRILES,
+  PRODUCTOS_BARRILES_CAMARA,
+} from "../../config.js";
 import { normalizarTexto } from "../../utils/format.js";
 
 function ordenarCategoriasPorSector(
@@ -128,4 +133,24 @@ export function buildCatalogoRenderizable({
         ),
     ),
   };
+}
+
+// Catalogo para el mensaje de stock total: todos los productos, con los barriles en su
+// propia categoria. No depende del sector elegido en pantalla.
+export function buildCatalogoStockTotal(categorias = [], productos = []) {
+  const catalogo = buildCatalogoRenderizable({
+    sectorNombre: "camara",
+    categorias,
+    productos,
+    categoriaVirtualBarriles: CATEGORIA_VIRTUAL_BARRILES,
+    nombresBarrilesNormalizados: PRODUCTOS_BARRILES_CAMARA.map((nombre) =>
+      normalizarTexto(nombre),
+    ),
+    idsCategoriasBarriles: obtenerIdsCategoriasBarriles(
+      categorias,
+      NOMBRE_CATEGORIA_BARRILES,
+    ),
+  });
+
+  return { categorias: catalogo.categorias, productos: catalogo.productos };
 }

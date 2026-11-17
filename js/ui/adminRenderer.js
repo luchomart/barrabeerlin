@@ -45,7 +45,7 @@ export function agruparProductosPorCategoria(categorias = [], productos = []) {
   if (sinCategoria.length) {
     grupos.push({
       id: SIN_CATEGORIA_ID,
-      nombre: "Sin categoria",
+      nombre: "Sin categoría",
       productos: sinCategoria,
       sinCategoria: true,
     });
@@ -65,7 +65,26 @@ function botonBorrar(accion, id, nombre, { disabled = false, title = "" } = {}) 
       aria-label="Eliminar ${escapeHtml(nombre)}"
       ${title ? `title="${escapeHtml(title)}"` : ""}
       ${disabled ? "disabled" : ""}
-    >&#x2715;</button>
+    ><svg class="icono" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  `;
+}
+
+const ICONO_MOVER =
+  '<svg class="icono" viewBox="0 0 16 16" aria-hidden="true" focusable="false">' +
+  '<path d="M2.5 5.5h10M10 3l2.5 2.5L10 8M13.5 10.5h-10M6 8l-2.5 2.5L6 13" fill="none" ' +
+  'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function botonMover(producto) {
+  return `
+    <button
+      type="button"
+      class="admin-mover"
+      data-accion="mover-producto"
+      data-id="${escapeHtml(producto.id)}"
+      data-nombre="${escapeHtml(producto.nombre)}"
+      aria-label="Mover ${escapeHtml(producto.nombre)} a otra categoría"
+      title="Mover a otra categoría"
+    >${ICONO_MOVER}</button>
   `;
 }
 
@@ -114,10 +133,10 @@ function renderCategorias(grupos = []) {
 
   return `
     <div class="admin-bloque" data-bloque="categorias">
-      <h3>Categorias</h3>
-      <ul class="admin-lista">${items || '<li class="admin-vacio">Sin categorias</li>'}</ul>
+      <h3>Categorías</h3>
+      <ul class="admin-lista">${items || '<li class="admin-vacio">Sin categorías</li>'}</ul>
       <form class="admin-form" data-form="categoria" autocomplete="off">
-        <input name="nombre" type="text" maxlength="60" placeholder="Nueva categoria" aria-label="Nombre de la categoria" required />
+        <input name="nombre" type="text" maxlength="60" placeholder="Nueva categoría" aria-label="Nombre de la categoría" required />
         <button type="submit">Agregar</button>
       </form>
     </div>
@@ -145,6 +164,7 @@ function renderProductos(grupos = [], stockPorProducto = {}, abiertos = new Set(
             <li class="admin-item">
               <span class="admin-item-nombre">${escapeHtml(producto.nombre)}</span>
               <span class="admin-item-meta">${meta}</span>
+              ${botonMover(producto)}
               ${botonBorrar("eliminar-producto", producto.id, producto.nombre)}
             </li>
           `;
@@ -154,7 +174,7 @@ function renderProductos(grupos = [], stockPorProducto = {}, abiertos = new Set(
       return `
         <details class="admin-grupo${grupo.sinCategoria ? " admin-grupo-alerta" : ""}" data-categoria="${escapeHtml(grupo.id)}" ${abiertos.has(grupo.id) ? "open" : ""}>
           <summary>${escapeHtml(grupo.nombre)} <span class="admin-count">(${grupo.productos.length})</span></summary>
-          ${grupo.sinCategoria ? '<p class="admin-nota">Estos productos no aparecen en ningun sector.</p>' : ""}
+          ${grupo.sinCategoria ? '<p class="admin-nota">Estos productos no aparecen en ningún sector.</p>' : ""}
           <ul class="admin-lista">${items}</ul>
         </details>
       `;
@@ -166,13 +186,74 @@ function renderProductos(grupos = [], stockPorProducto = {}, abiertos = new Set(
       <h3>Productos</h3>
       <form class="admin-form admin-form-producto" data-form="producto" autocomplete="off">
         <input name="nombre" type="text" maxlength="80" placeholder="Nombre del producto" aria-label="Nombre del producto" required />
-        <select name="categoria_id" aria-label="Categoria del producto" required>
-          <option value="" selected disabled>Categoria...</option>
+        <select name="categoria_id" aria-label="Categoría del producto" required>
+          <option value="" selected disabled>Categoría…</option>
           ${opciones}
         </select>
         <button type="submit">Agregar</button>
       </form>
       ${bloques}
+    </div>
+  `;
+}
+
+// Productos que no aparecen en "Sin stock" del mensaje cuando estan en 0.
+function renderSinAviso(grupos = []) {
+  const conCategoria = grupos.filter((grupo) => !grupo.sinCategoria);
+  const sinAviso = conCategoria.flatMap((grupo) =>
+    grupo.productos
+      .filter((producto) => producto.avisar_sin_stock === false)
+      .map((producto) => ({ ...producto, categoria: grupo.nombre })),
+  );
+
+  const items = sinAviso
+    .map(
+      (producto) => `
+        <li class="admin-item">
+          <span class="admin-item-nombre">${escapeHtml(producto.nombre)}</span>
+          <span class="admin-item-meta">${escapeHtml(producto.categoria)}</span>
+          <button
+            type="button"
+            class="admin-borrar"
+            data-accion="volver-a-avisar"
+            data-id="${escapeHtml(producto.id)}"
+            data-nombre="${escapeHtml(producto.nombre)}"
+            aria-label="Volver a avisar si ${escapeHtml(producto.nombre)} está en 0"
+          ><svg class="icono" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+        </li>
+      `,
+    )
+    .join("");
+
+  const opciones = conCategoria
+    .map((grupo) => {
+      const disponibles = grupo.productos.filter(
+        (producto) => producto.avisar_sin_stock !== false,
+      );
+
+      if (!disponibles.length) return "";
+
+      return `<optgroup label="${escapeHtml(grupo.nombre)}">${disponibles
+        .map(
+          (producto) =>
+            `<option value="${escapeHtml(producto.id)}">${escapeHtml(producto.nombre)}</option>`,
+        )
+        .join("")}</optgroup>`;
+    })
+    .join("");
+
+  return `
+    <div class="admin-bloque" data-bloque="sin-aviso">
+      <h3>No avisar si están en 0 <span class="admin-count">(${sinAviso.length})</span></h3>
+      <p class="admin-nota">No aparecen en «Sin stock» del mensaje de WhatsApp. Si tienen stock, se envían normal.</p>
+      <ul class="admin-lista">${items || '<li class="admin-vacio">Todos los productos avisan.</li>'}</ul>
+      <form class="admin-form" data-form="sin-aviso" autocomplete="off">
+        <select name="producto_id" aria-label="Producto que no avisa si está en 0" required>
+          <option value="" selected disabled>Elegí un producto…</option>
+          ${opciones}
+        </select>
+        <button type="submit">Agregar</button>
+      </form>
     </div>
   `;
 }
@@ -202,6 +283,7 @@ export function renderAdminPanel(container, datos = {}) {
       ${renderEmpleados(Array.isArray(empleados) ? empleados : [])}
       ${renderCategorias(grupos)}
       ${renderProductos(grupos, stockPorProducto, abiertos)}
+      ${renderSinAviso(grupos)}
     </div>
   `;
 
@@ -211,6 +293,48 @@ export function renderAdminPanel(container, datos = {}) {
     nuevo.className = mensajeAnterior.className;
     nuevo.hidden = false;
   }
+}
+
+// Abre, debajo del producto, el selector para elegir su nueva categoria.
+// Solo puede haber uno abierto a la vez.
+export function renderFormMover(boton, categorias = []) {
+  const item = boton?.closest(".admin-item");
+
+  if (!item) return null;
+
+  item.closest(".admin-panel")?.querySelectorAll(".admin-form-mover").forEach((form) => form.remove());
+
+  const { id, nombre } = boton.dataset;
+  const grupoActual = boton.closest("details.admin-grupo")?.dataset.categoria || "";
+  const opciones = ordenarPorNombre(Array.isArray(categorias) ? categorias : [])
+    .map((categoria) => {
+      const actual = String(categoria.id) === grupoActual;
+
+      return `<option value="${escapeHtml(categoria.id)}"${actual ? " disabled" : ""}>${escapeHtml(
+        categoria.nombre,
+      )}${actual ? " (actual)" : ""}</option>`;
+    })
+    .join("");
+
+  const form = document.createElement("form");
+  form.className = "admin-form admin-form-mover";
+  form.dataset.form = "mover";
+  form.dataset.id = id;
+  form.dataset.nombre = nombre;
+  form.setAttribute("autocomplete", "off");
+  form.innerHTML = `
+    <select name="categoria_id" aria-label="Nueva categoría de ${escapeHtml(nombre)}" required>
+      <option value="" selected disabled>Mover a…</option>
+      ${opciones}
+    </select>
+    <button type="submit">Mover</button>
+    <button type="button" class="admin-cancelar" data-accion="cancelar-mover">Cancelar</button>
+  `;
+
+  item.append(form);
+  form.querySelector("select").focus();
+
+  return form;
 }
 
 export function renderAdminMensaje(container, { tipo = "ok", texto = "" } = {}) {

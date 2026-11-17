@@ -88,3 +88,40 @@ Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos.
 - Probado en un Postgres local (PGlite) imitando roles y esquema de produccion: 23 casos OK.
 - Verificado en produccion tras aplicarlo: 5 empleados cargados; las 6 RPCs solo con EXECUTE para
   `authenticated` (sin `anon`); los helpers `admin_exigir_supervisor` y `admin_nombre_limpio` sin acceso para `anon`/`authenticated`.
+
+## Ajustes de administracion (v0.4.1, PENDIENTE de aplicar)
+
+`docs/sql/admin-v0.4.1.sql` reemplaza 4 RPCs sin tocar tablas, datos ni permisos:
+
+- `admin_eliminar_producto` rechaza el borrado si el producto tiene filas en `ventas_detalle` o
+  `ventas_descuentos` (no tienen FK a `productos`).
+- `admin_agregar_empleado/categoria/producto` toman un candado sobre su tabla antes de chequear
+  nombres repetidos (evita duplicados por altas simultaneas).
+- Probado en PGlite imitando roles y esquema: 16 casos OK (incluye el rollback).
+
+## Mover producto de categoria (v0.4.2, aplicado 2026-11-17)
+
+`docs/sql/admin-v0.4.2.sql` agrega la RPC `admin_mover_producto(producto_id, categoria_id)`:
+
+- `SECURITY DEFINER`, solo `authenticated` (se revoca `anon`) y exige `is_supervisor()`.
+- Modifica solo `productos.categoria_id` y `productos.orden` de ese producto (queda al final de la
+  categoria nueva). No toca inventario, snapshots ni ventas.
+- Sirve para darle categoria a los productos que hoy no tienen.
+- Aplicado por Luciano el 2026-11-17; la consulta de verificacion dio `sin_anon = true`.
+- La prueba en produccion movio a Vinos los 4 productos sin categoria (duplicados: 19, 32, 33, 34).
+  Se revirtio con `docs/sql/revertir-prueba-mover-2026-11-17.sql` (verificado: los 4 con
+  `categoria_id` y `orden` en null). Siguen siendo los unicos productos sin categoria.
+
+## Productos sin aviso de stock en 0 (v0.4.3, aplicado 2026-11-17)
+
+`docs/sql/admin-v0.4.3.sql`:
+
+- Columna `productos.avisar_sin_stock` (boolean, default true). En false, el producto en 0 no
+  aparece en "SIN STOCK" del mensaje de WhatsApp (con stock se envia normal).
+- RPC `admin_avisar_sin_stock(producto_id, avisar)`: `SECURITY DEFINER`, solo `authenticated`,
+  exige `is_supervisor()`. Solo cambia esa columna de ese producto.
+- La app lee `productos` con `select("*")`: sin la columna, trata a todos como "avisar".
+- Probado en PGlite imitando roles y esquema: 14 casos OK (incluye el rollback).
+- Aplicado por Luciano el 2026-11-17. Verificacion: `columna_ok = true`, `productos_sin_aviso = 0`,
+  `rpc_sin_anon = true`.
+- Probado en PGlite imitando roles y esquema (con v0.4.0 y v0.4.1 cargados): 14 casos OK.

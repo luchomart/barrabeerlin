@@ -8,10 +8,12 @@ El plan y "Dónde quedamos" están en `docs/ROADMAP.md`.
 
 ## Stack y comandos
 - HTML + CSS + JS vanilla, Supabase (`supabase-js`), GitHub Pages. Tests: Vitest + jsdom + Playwright.
-- `npm ci` · `npm test` (unitarios) · `npm run test:smoke` (Playwright; hoy fijado a `msedge`, que en Linux no está).
+- `npm ci` · `npm test` (unitarios) · smoke en Linux: `PLAYWRIGHT_CHROMIUM_PATH=/usr/bin/chromium npm run test:smoke`.
+- Probar SQL nuevo antes de pasarlo: PGlite (`npm i @electric-sql/pglite` en una carpeta temporal) imitando
+  roles `anon`/`authenticated` y el esquema real. En esta PC no hay Postgres ni Docker.
 
 ## Reglas extra (además de AGENTS.md)
-- Trabajar en `dev`. Nunca push/merge a `main` sin pedido explícito: `main` es producción.
+- Trabajar en `dev` (push permitido). Nunca push/merge a `main` sin pedido explícito: GitHub Pages publica `main` en beerlin.online.
 - Supabase de producción: no ejecutar SQL ni cambiar datos/políticas/Auth sin pedido explícito.
   **Todo cambio en Supabase se le pasa a Luciano como SQL listo para pegar en el SQL Editor**
   (completo, con verificación y rollback), y se versiona en `docs/sql/`.
@@ -19,3 +21,6 @@ El plan y "Dónde quedamos" están en `docs/ROADMAP.md`.
 - El repo es **público**: nada de secretos ni datos personales. Solo la clave `anon` va en el frontend.
 - Proyecto independiente de `distribuidora/`: no mezclar código ni arquitectura.
 - Al cerrar una tarea: actualizar `docs/ROADMAP.md` y proponer el commit.
+- Smoke: un `alert` bloquea `page.click`/`page.goto`; usar el helper `aceptarDialogos(page)` de smoke.spec.js.
+  Para simular sin red: `globalThis.__mockSinRed = true` (mockApp.js).
+- Playwright MCP solo guarda capturas en `.playwright-mcp/` (ignorada): sacarlas al terminar.

@@ -91,6 +91,21 @@ export async function agregarProducto(nombre, categoriaId) {
   });
 }
 
+export async function moverProducto(id, categoriaId) {
+  return llamarRpc("admin_mover_producto", {
+    producto_id: exigirId(id, "producto"),
+    categoria_id: exigirId(categoriaId, "categoria"),
+  });
+}
+
+// avisar = false: el producto en 0 no aparece en "Sin stock" del mensaje de WhatsApp.
+export async function cambiarAvisoSinStock(id, avisar) {
+  return llamarRpc("admin_avisar_sin_stock", {
+    producto_id: exigirId(id, "producto"),
+    avisar: Boolean(avisar),
+  });
+}
+
 export async function eliminarProducto(id) {
   return llamarRpc("admin_eliminar_producto", {
     producto_id: exigirId(id, "producto"),

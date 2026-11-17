@@ -1,61 +1,92 @@
 import { getInventarioTotal } from "../../services/inventarioService.js";
 
+import { normalizarTexto } from "../../utils/format.js";
+
+// Orden de las categorias en los mensajes (por palabra, sin tildes). Las que no estan
+// en la lista van antes de los barriles, por nombre.
 const ORDEN_CATEGORIAS = [
   "gaseosa",
   "agua",
   "energ",
   "sabor",
+  "cerveza",
+  "sidra",
   "vino",
   "espum",
   "destil",
+  "barril",
 ];
 
 const ICONOS = {
   agua: "\u{1F4A7}",
   aguaSaborizada: "\u{1F34B}",
   baja: "\u{1F4C9}",
+  barril: "\u{1F6E2}\uFE0F",
   brillos: "\u{1F37E}",
+  cafe: "\u2615",
   cerveza: "\u{1F37A}",
   destilados: "\u{1F378}",
   energia: "\u26A1",
   grafico: "\u{1F4CA}",
+  hielo: "\u{1F9CA}",
+  jugo: "\u{1F9C3}",
+  sidra: "\u{1F34F}",
+  sinStock: "\u26A0\uFE0F",
   suba: "\u{1F4C8}",
   vino: "\u{1F377}",
+  whisky: "\u{1F943}",
   gaseosa: "\u{1F964}",
-  default: "\u2022",
+  default: "\u{1F4E6}",
 };
 
-function obtenerEmojiCategoria(nombreCategoria = "") {
-  const nombre = String(nombreCategoria).toLowerCase();
+// El emoji sale del nombre de la categoria; si no se reconoce ninguna palabra, una caja.
+const EMOJIS_POR_PALABRA = [
+  [["barril"], ICONOS.barril],
+  [["gaseosa"], ICONOS.gaseosa],
+  [["sabor"], ICONOS.aguaSaborizada],
+  [["agua"], ICONOS.agua],
+  [["energ"], ICONOS.energia],
+  [["cerveza", "birra"], ICONOS.cerveza],
+  [["sidra"], ICONOS.sidra],
+  [["espum", "champ"], ICONOS.brillos],
+  [["vino"], ICONOS.vino],
+  [["whisk", "ron", "vodka", "tequila", "fernet"], ICONOS.whisky],
+  [["destil", "licor", "aperit", "gin"], ICONOS.destilados],
+  [["jugo"], ICONOS.jugo],
+  [["cafe"], ICONOS.cafe],
+  [["hielo"], ICONOS.hielo],
+];
 
-  if (nombre.includes("gaseosa")) return ICONOS.gaseosa;
-  if (nombre.includes("agua") && nombre.includes("sabor")) {
-    return ICONOS.aguaSaborizada;
-  }
-  if (nombre.includes("agua")) return ICONOS.agua;
-  if (nombre.includes("energ")) return ICONOS.energia;
-  if (nombre.includes("vino")) return ICONOS.vino;
-  if (nombre.includes("espum")) return ICONOS.brillos;
-  if (nombre.includes("destil") || nombre.includes("licor")) {
-    return ICONOS.destilados;
-  }
-  if (nombre.includes("cerveza")) return ICONOS.cerveza;
+export function obtenerEmojiCategoria(nombreCategoria = "") {
+  const nombre = normalizarTexto(String(nombreCategoria));
+  const palabras = nombre.split(/[^a-z0-9]+/).filter(Boolean);
+  const encontrado = EMOJIS_POR_PALABRA.find(([claves]) =>
+    claves.some((clave) =>
+      // Las claves cortas ("ron", "gin") tienen que ser palabra entera.
+      clave.length <= 3
+        ? palabras.includes(clave)
+        : palabras.some((palabra) => palabra.startsWith(clave) || palabra.includes(clave)),
+    ),
+  );
 
-  return ICONOS.default;
+  return encontrado ? encontrado[1] : ICONOS.default;
+}
+
+function posicionCategoria(nombre) {
+  const normalizado = normalizarTexto(nombre);
+  const posicion = ORDEN_CATEGORIAS.findIndex((orden) => normalizado.includes(orden));
+
+  // Las desconocidas van justo antes de los barriles.
+  return posicion === -1 ? ORDEN_CATEGORIAS.indexOf("barril") - 0.5 : posicion;
 }
 
 function ordenarCategorias(categorias = []) {
   return [...categorias].sort((a, b) => {
-    const nombreA = String(a?.nombre || "").toLowerCase();
-    const nombreB = String(b?.nombre || "").toLowerCase();
+    const diferencia = posicionCategoria(a?.nombre) - posicionCategoria(b?.nombre);
 
-    const posA = ORDEN_CATEGORIAS.findIndex((orden) => nombreA.includes(orden));
-    const posB = ORDEN_CATEGORIAS.findIndex((orden) => nombreB.includes(orden));
+    if (diferencia !== 0) return diferencia;
 
-    if (posA === -1) return 1;
-    if (posB === -1) return -1;
-
-    return posA - posB;
+    return String(a?.nombre || "").localeCompare(String(b?.nombre || ""), "es");
   });
 }
 
@@ -226,42 +257,60 @@ export function buildStockChanges(diferencias, productos, limit = 10) {
     .slice(0, limit);
 }
 
-export function formatWhatsappText(data, productos) {
-  const { categoriasOrdenadas = [], stockPorProducto = {} } = data || {};
-
-  const ahora = new Date();
-  const fecha = ahora.toLocaleDateString("es-AR");
-  const hora = ahora.toLocaleTimeString("es-AR", {
+function formatearFechaHora(fecha = new Date()) {
+  const dia = fecha.toLocaleDateString("es-AR");
+  const hora = fecha.toLocaleTimeString("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
 
-  let texto = `${ICONOS.grafico} *STOCK TOTAL BARRA*\n${ICONOS.default} ${fecha} - ${hora}\n\n`;
+  return `${dia} · ${hora}`;
+}
+
+// Mensaje del stock total para WhatsApp: categorias con su total, productos con stock
+// y al final los que estan en 0 (para reponer).
+export function formatWhatsappText(data, productos = [], fecha = new Date()) {
+  const { categoriasOrdenadas = [], stockPorProducto = {} } = data || {};
+  const listaProductos = Array.isArray(productos) ? productos : [];
+  const bloques = [];
+  const sinStock = [];
 
   categoriasOrdenadas.forEach((categoria) => {
-    const productosCategoria = productos.filter(
-      (producto) => perteneceACategoria(producto, categoria),
+    const productosCategoria = listaProductos.filter((producto) =>
+      perteneceACategoria(producto, categoria),
     );
 
-    let bloque = "";
+    const lineas = [];
+    let total = 0;
 
     productosCategoria.forEach((producto) => {
       const cantidad = Number(stockPorProducto[producto.id]) || 0;
 
       if (cantidad > 0) {
-        bloque += `- ${producto.nombre}: ${cantidad}\n`;
+        lineas.push(`${producto.nombre}: ${cantidad}`);
+        total += cantidad;
+      } else if (producto.avisar_sin_stock !== false) {
+        // Los marcados en el admin como "no avisar si estan en 0" no se listan.
+        sinStock.push(producto.nombre);
       }
     });
 
-    if (bloque) {
+    if (lineas.length) {
       const emoji = obtenerEmojiCategoria(categoria.nombre);
+      const titulo = String(categoria.nombre || "").toUpperCase();
 
-      texto += `${emoji} ${String(categoria.nombre || "").toUpperCase()}\n`;
-      texto += `${bloque}\n`;
+      bloques.push(`${emoji} *${titulo}* · ${total}\n${lineas.join("\n")}`);
     }
   });
 
-  return texto.trim();
+  if (sinStock.length) {
+    bloques.push(`${ICONOS.sinStock} *SIN STOCK*\n${sinStock.join("\n")}`);
+  }
+
+  const encabezado = `${ICONOS.grafico} *STOCK TOTAL BARRA*\n${formatearFechaHora(fecha)}`;
+
+  return [encabezado, ...bloques].join("\n\n");
 }
 
 export function formatPlainText(data, productos) {
@@ -298,11 +347,11 @@ export function formatStockChanges(diferencias, productos) {
   const bloques = [];
 
   if (!reporte.tieneComparacion) {
-    return `${ICONOS.grafico} CAMBIOS DE STOCK (GLOBAL)\n\nTodavia no hay dos snapshots para comparar`;
+    return `${ICONOS.grafico} CAMBIOS DE STOCK (GLOBAL)\n\nTodavía no hay dos capturas para comparar`;
   }
 
   if (!reporte.hayCambios) {
-    return `${ICONOS.grafico} CAMBIOS DE STOCK (GLOBAL)\n\nSin cambios desde el ultimo snapshot`;
+    return `${ICONOS.grafico} CAMBIOS DE STOCK (GLOBAL)\n\nSin cambios desde la última captura`;
   }
 
   if (reporte.salidas.length) {

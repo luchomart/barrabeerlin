@@ -10,14 +10,17 @@ import {
   agregarCategoria,
   agregarEmpleado,
   agregarProducto,
+  cambiarAvisoSinStock,
   eliminarCategoria,
   eliminarEmpleado,
   eliminarProducto,
+  moverProducto,
 } from "../../services/adminService.js";
 
 import {
   renderAdminMensaje,
   renderAdminPanel,
+  renderFormMover,
   setAdminOcupado,
 } from "../../ui/adminRenderer.js";
 
@@ -43,7 +46,7 @@ export function construirStockPorProducto(inventario = []) {
 }
 
 export function textoConfirmacionProducto(nombre, stock) {
-  const lineas = [`Eliminar "${nombre}"?`, ""];
+  const lineas = [`¿Eliminar "${nombre}"?`, ""];
 
   if (stock === undefined) {
     lineas.push("No se pudo consultar su stock actual.");
@@ -56,7 +59,8 @@ export function textoConfirmacionProducto(nombre, stock) {
   }
 
   lineas.push(
-    "Tambien se borra su stock y su historial de snapshots. No se puede deshacer.",
+    "También se borra su stock y su historial de capturas. No se puede deshacer.\n" +
+      "(Si ya tiene ventas registradas, no se puede borrar.)",
   );
 
   return lineas.join("\n");
@@ -70,38 +74,61 @@ export function initAdminPanel({ section, contenido, button } = {}) {
   let datos = null;
   let stockDisponible = false;
   let ocupado = false;
+  // Numero y promesa de la ultima carga pedida: las respuestas de cargas anteriores
+  // se descartan y quien las esperaba recibe el resultado de la mas nueva.
+  let ultimaCarga = 0;
+  let cargaActual = Promise.resolve(true);
 
-  async function cargar() {
+  // Devuelve false si la carga mas reciente fallo.
+  function cargar() {
+    const promesa = cargarDatos(++ultimaCarga);
+    cargaActual = promesa;
+    return promesa;
+  }
+
+  async function cargarDatos(numeroCarga) {
+
     if (!datos) {
-      renderSupervisorLoader(contenido, "Cargando administracion...");
+      renderSupervisorLoader(contenido, "Cargando administración…");
     }
 
+    // El stock solo se usa para avisar al borrar: si falla, el panel sigue andando.
+    const stockPromesa = getSupervisorInventarioConSectores().then(
+      (inventario) => construirStockPorProducto(inventario),
+      (error) => {
+        console.error(error);
+        return null;
+      },
+    );
+
     try {
-      const [empleados, categorias, productos] = await Promise.all([
+      const [empleados, categorias, productos, stockPorProducto] = await Promise.all([
         getEmpleados(),
         getCategorias(),
         getProductos(),
+        stockPromesa,
       ]);
 
-      // El stock solo se usa para avisar al borrar: si falla, el panel sigue andando.
-      let stockPorProducto = {};
-      stockDisponible = false;
+      if (numeroCarga !== ultimaCarga) return cargaActual;
 
-      try {
-        stockPorProducto = construirStockPorProducto(
-          await getSupervisorInventarioConSectores(),
-        );
-        stockDisponible = true;
-      } catch (error) {
-        console.error(error);
-      }
-
-      datos = { empleados, categorias, productos, stockPorProducto };
+      stockDisponible = stockPorProducto !== null;
+      datos = {
+        empleados,
+        categorias,
+        productos,
+        stockPorProducto: stockPorProducto || {},
+      };
       renderAdminPanel(contenido, datos);
+      return true;
     } catch (error) {
       console.error(error);
+
+      if (numeroCarga !== ultimaCarga) return cargaActual;
+
       datos = null;
-      renderSupervisorError(contenido, "Error cargando administracion");
+      stockDisponible = false;
+      renderSupervisorError(contenido, "Error cargando administración");
+      return false;
     }
   }
 
@@ -113,14 +140,26 @@ export function initAdminPanel({ section, contenido, button } = {}) {
 
     try {
       await accion();
-      await cargar();
-      renderAdminMensaje(contenido, { tipo: "ok", texto: mensajeOk });
+
+      // cargar() no lanza errores: devuelve false si fallo la recarga.
+      const recargado = await cargar();
+
+      if (recargado) {
+        renderAdminMensaje(contenido, { tipo: "ok", texto: mensajeOk });
+      } else {
+        // El cambio se guardo: solo fallo la recarga de la lista.
+        renderSupervisorError(
+          contenido,
+          `${mensajeOk} Pero no se pudo actualizar la lista`,
+        );
+      }
+
       return true;
     } catch (error) {
       console.error(error);
       renderAdminMensaje(contenido, {
         tipo: "error",
-        texto: error?.message || "No se pudo completar la operacion.",
+        texto: error?.message || "No se pudo completar la operación.",
       });
       return false;
     } finally {
@@ -159,17 +198,50 @@ export function initAdminPanel({ section, contenido, button } = {}) {
     const formData = new FormData(form);
     const nombre = String(formData.get("nombre") || "").trim();
 
-    if (!nombre) return;
+    if (form.dataset.form === "sin-aviso") {
+      const productoId = formData.get("producto_id");
+      const producto = (datos?.productos || []).find(
+        (item) => String(item.id) === String(productoId),
+      );
+
+      if (!productoId) {
+        renderAdminMensaje(contenido, { tipo: "error", texto: "Elegí un producto." });
+        return;
+      }
+
+      await ejecutar(
+        () => cambiarAvisoSinStock(productoId, false),
+        `"${producto?.nombre || "Producto"}" ya no se avisa cuando está en 0.`,
+      );
+      return;
+    }
+
+    if (!nombre && form.dataset.form !== "mover") return;
 
     if (form.dataset.form === "empleado") {
       await ejecutar(() => agregarEmpleado(nombre), `Empleado "${nombre}" agregado.`);
     } else if (form.dataset.form === "categoria") {
-      await ejecutar(() => agregarCategoria(nombre), `Categoria "${nombre}" agregada.`);
+      await ejecutar(() => agregarCategoria(nombre), `Categoría "${nombre}" agregada.`);
+    } else if (form.dataset.form === "mover") {
+      const categoriaId = formData.get("categoria_id");
+      const categoria = (datos?.categorias || []).find(
+        (item) => String(item.id) === String(categoriaId),
+      );
+
+      if (!categoriaId) {
+        renderAdminMensaje(contenido, { tipo: "error", texto: "Elegí una categoría." });
+        return;
+      }
+
+      await ejecutar(
+        () => moverProducto(form.dataset.id, categoriaId),
+        `Producto "${form.dataset.nombre}" movido a ${categoria?.nombre || "la categoría elegida"}.`,
+      );
     } else if (form.dataset.form === "producto") {
       const categoriaId = formData.get("categoria_id");
 
       if (!categoriaId) {
-        renderAdminMensaje(contenido, { tipo: "error", texto: "Elegi una categoria." });
+        renderAdminMensaje(contenido, { tipo: "error", texto: "Elegí una categoría." });
         return;
       }
 
@@ -187,18 +259,38 @@ export function initAdminPanel({ section, contenido, button } = {}) {
 
     const { accion, id, nombre } = boton.dataset;
 
+    if (accion === "mover-producto") {
+      renderFormMover(boton, datos?.categorias || []);
+      return;
+    }
+
+    if (accion === "cancelar-mover") {
+      const item = boton.closest(".admin-item");
+      boton.closest(".admin-form-mover")?.remove();
+      item?.querySelector('[data-accion="mover-producto"]')?.focus();
+      return;
+    }
+
+    if (accion === "volver-a-avisar") {
+      await ejecutar(
+        () => cambiarAvisoSinStock(id, true),
+        `"${nombre}" vuelve a avisarse cuando está en 0.`,
+      );
+      return;
+    }
+
     if (accion === "eliminar-empleado") {
       const confirmar = confirm(
-        `Eliminar a "${nombre}" de la lista de empleados?\n\nSus conteos anteriores no se borran.`,
+        `¿Eliminar a "${nombre}" de la lista de empleados?\n\nSus conteos anteriores no se borran.`,
       );
 
       if (!confirmar) return;
 
       await ejecutar(() => eliminarEmpleado(id), `Empleado "${nombre}" eliminado.`);
     } else if (accion === "eliminar-categoria") {
-      if (!confirm(`Eliminar la categoria "${nombre}"?`)) return;
+      if (!confirm(`¿Eliminar la categoría "${nombre}"?`)) return;
 
-      await ejecutar(() => eliminarCategoria(id), `Categoria "${nombre}" eliminada.`);
+      await ejecutar(() => eliminarCategoria(id), `Categoría "${nombre}" eliminada.`);
     } else if (accion === "eliminar-producto") {
       const stock = stockDisponible
         ? datos?.stockPorProducto?.[String(id)] || null

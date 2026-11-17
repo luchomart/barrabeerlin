@@ -1,11 +1,7 @@
+import { normalizarTexto } from "../utils/format.js";
+
 const ICONOS = {
-  advertencia: "\u26A0",
-  cambioBaja: "\u{1F4C9}",
-  cambioSuba: "\u{1F4C8}",
   cambioNeutral: "\u2696\uFE0F",
-  empleado: "\u{1F464}",
-  hora: "\u{1F552}",
-  sector: "\u{1F4E6}",
 };
 
 export function escapeHtml(texto) {
@@ -35,20 +31,21 @@ function formatearDiferencia(valor) {
 
 function crearFilaCambio(item) {
   const div = document.createElement("div");
-  let texto = item.nombre;
+  const nombre = escapeHtml(item.nombre);
+  let texto = nombre;
   let claseExtra = "supervisor-change-neutral";
 
   if (item.tipo === "entrada") {
-    texto = `${item.nombre}: +${item.diferencia}`;
+    texto = `${nombre}: +${escapeHtml(item.diferencia)}`;
     claseExtra = "supervisor-change-up";
   } else if (item.tipo === "salida") {
-    texto = `${item.nombre}: ${item.diferencia}`;
+    texto = `${nombre}: ${escapeHtml(item.diferencia)}`;
     claseExtra = "supervisor-change-down";
   }
 
   div.className = `supervisor-change-row ${claseExtra}`;
   div.innerHTML = `
-    <span class="supervisor-change-icon">${item.icono}</span>
+    <span class="supervisor-change-icon" aria-hidden="true">${item.icono}</span>
     <span class="supervisor-change-text">${texto}</span>
   `;
 
@@ -85,7 +82,7 @@ export function renderSectores(selectSector, sectores) {
 
   const optionInicial = document.createElement("option");
   optionInicial.value = "";
-  optionInicial.textContent = "Seleccionar...";
+  optionInicial.textContent = "Elegí…";
   optionInicial.disabled = true;
   optionInicial.selected = true;
 
@@ -101,11 +98,45 @@ export function renderSectores(selectSector, sectores) {
   });
 }
 
+const ICONO_CHECK =
+  '<svg class="icono" viewBox="0 0 16 16" aria-hidden="true" focusable="false">' +
+  '<path d="M3 8.5l3 3 7-7" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+const CANTIDAD_MAXIMA = 1000;
+
+const ICONO_MENOS =
+  '<svg class="icono" viewBox="0 0 16 16" aria-hidden="true" focusable="false">' +
+  '<path d="M3.5 8h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
+const ICONO_MAS =
+  '<svg class="icono" viewBox="0 0 16 16" aria-hidden="true" focusable="false">' +
+  '<path d="M3.5 8h9M8 3.5v9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
+const ICONO_FLECHA =
+  '<svg class="icono categoria-arrow" viewBox="0 0 16 16" aria-hidden="true" focusable="false">' +
+  '<path d="M6 3.5l4.5 4.5L6 12.5" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+// Una categoria queda "revisada" cuando se abre o se toca alguno de sus productos.
+export function marcarCategoriaRevisada(bloque) {
+  if (!bloque || bloque.classList.contains("categoria-revisada")) return;
+
+  bloque.classList.add("categoria-revisada");
+
+  const estado = bloque.querySelector(".categoria-estado");
+
+  if (estado) {
+    estado.hidden = false;
+  }
+}
+
 export function renderProductos(
   listaProductos,
   categorias,
   productos,
   onInput,
+  onCategoriaAbierta = () => {},
 ) {
   listaProductos.innerHTML = "";
 
@@ -119,14 +150,17 @@ export function renderProductos(
     const contenedor = document.createElement("div");
     contenedor.className = "categoria-bloque";
 
-    const titulo = document.createElement("div");
+    const titulo = document.createElement("button");
+    titulo.type = "button";
     titulo.className = "categoria-titulo";
+    titulo.setAttribute("aria-expanded", "false");
     titulo.innerHTML = `
-      <div class="categoria-left">
-        <span class="categoria-arrow">&#9656;</span>
-        <span>${categoria.nombre}</span>
-        <span class="categoria-count">(${productosCategoria.length})</span>
-      </div>
+      <span class="categoria-left">
+        ${ICONO_FLECHA}
+        <span class="categoria-nombre">${escapeHtml(categoria.nombre)}</span>
+        <span class="categoria-count" aria-label="${productosCategoria.length} productos">${productosCategoria.length}</span>
+      </span>
+      <span class="categoria-estado" hidden>${ICONO_CHECK}<span>Revisada</span></span>
     `;
 
     const productosDiv = document.createElement("div");
@@ -135,31 +169,49 @@ export function renderProductos(
     titulo.addEventListener("click", () => {
       const abierta = titulo.classList.contains("categoria-abierta");
 
-      document.querySelectorAll(".categoria-productos").forEach((elemento) => {
-        elemento.classList.add("categoria-cerrada");
-      });
-
-      document.querySelectorAll(".categoria-titulo").forEach((elemento) => {
-        elemento.classList.remove("categoria-abierta");
-      });
+      productosDiv.classList.toggle("categoria-cerrada", abierta);
+      titulo.classList.toggle("categoria-abierta", !abierta);
+      titulo.setAttribute("aria-expanded", String(!abierta));
 
       if (!abierta) {
-        productosDiv.classList.remove("categoria-cerrada");
-        titulo.classList.add("categoria-abierta");
+        marcarCategoriaRevisada(contenedor);
+        onCategoriaAbierta(contenedor);
       }
     });
 
     productosCategoria.forEach((producto) => {
+      const nombre = escapeHtml(producto.nombre);
       const fila = document.createElement("div");
       fila.className = "producto-fila";
-      fila.dataset.nombre = String(producto.nombre || "").toLowerCase();
+      // Sin mayusculas ni tildes: "levite" encuentra "Levité".
+      fila.dataset.nombre = normalizarTexto(String(producto.nombre || ""));
       fila.innerHTML = `
-        <span class="producto-nombre">${producto.nombre}</span>
-        <input type="number" min="0" value="0" data-id="${producto.id}">
+        <span class="producto-nombre">${nombre}</span>
+        <span class="cantidad-control">
+          <button type="button" class="btn-cantidad" data-paso="-1" aria-label="Restar uno a ${nombre}">${ICONO_MENOS}</button>
+          <input type="number" inputmode="numeric" min="0" max="${CANTIDAD_MAXIMA}" value="0"
+            data-id="${escapeHtml(producto.id)}" aria-label="Cantidad de ${nombre}">
+          <button type="button" class="btn-cantidad" data-paso="1" aria-label="Sumar uno a ${nombre}">${ICONO_MAS}</button>
+        </span>
       `;
 
       const input = fila.querySelector("input");
       let valorAnterior = input.value;
+
+      fila.querySelectorAll(".btn-cantidad").forEach((boton) => {
+        boton.addEventListener("click", () => {
+          const actual = parseInt(input.value || "0", 10) || 0;
+          const siguiente = Math.min(
+            CANTIDAD_MAXIMA,
+            Math.max(0, actual + Number(boton.dataset.paso)),
+          );
+
+          if (siguiente === actual) return;
+
+          input.value = siguiente;
+          onInput(input);
+        });
+      });
 
       input.addEventListener("focus", () => {
         valorAnterior = input.value;
@@ -231,11 +283,110 @@ export function actualizarInputsStock(data) {
   });
 }
 
+// Aviso de la pantalla de conteo. tipo: "ok" | "info" | "pendiente" | "error". Sin texto, se oculta.
+export function renderAvisoStock(elemento, { tipo = "info", texto = "" } = {}) {
+  if (!elemento) return;
+
+  elemento.textContent = texto;
+  elemento.className = `aviso-stock aviso-stock-${tipo}`;
+  elemento.hidden = !texto;
+}
+
+// Indicador del header: "cargando" | "en-linea" | "sin-conexion" | "pendiente" | "error".
+export function renderEstadoConexion(elemento, estado, texto) {
+  if (!elemento) return;
+
+  elemento.dataset.estado = estado;
+  elemento.textContent = texto;
+}
+
+// Aviso junto a Guardar. acciones: [{ accion, texto, principal }] (botones con data-accion).
+// Sin texto, se oculta.
+export function renderAvisoGuardar(
+  elemento,
+  { tipo = "atencion", texto = "", acciones = [] } = {},
+) {
+  if (!elemento) return;
+
+  elemento.hidden = !texto;
+  elemento.className = `aviso-guardar aviso-guardar-${tipo}`;
+
+  if (!texto) {
+    elemento.innerHTML = "";
+    return;
+  }
+
+  const botones = acciones
+    .map(
+      ({ accion, texto: etiqueta, principal }) =>
+        `<button type="button" data-accion="${escapeHtml(accion)}"${
+          principal ? ' class="aviso-guardar-principal"' : ""
+        }>${escapeHtml(etiqueta)}</button>`,
+    )
+    .join("");
+
+  elemento.innerHTML = `
+    <p>${escapeHtml(texto)}</p>
+    ${botones ? `<div class="aviso-guardar-acciones">${botones}</div>` : ""}
+  `;
+}
+
+// Comprobante que queda en pantalla despues de guardar. tipo: "ok" | "pendiente". Sin datos, se oculta.
+export function renderComprobante(elemento, datos = null) {
+  if (!elemento) return;
+
+  if (!datos) {
+    elemento.hidden = true;
+    elemento.innerHTML = "";
+    return;
+  }
+
+  const { tipo = "ok", sector = "", hora = "", empleado = "", productos = 0 } = datos;
+  const pendiente = tipo === "pendiente";
+  const detalle = [hora, empleado, `${productos} ${productos === 1 ? "producto" : "productos"}`]
+    .filter(Boolean)
+    .map(escapeHtml)
+    .join(" · ");
+
+  elemento.className = `comprobante comprobante-${pendiente ? "pendiente" : "ok"}`;
+  elemento.hidden = false;
+  elemento.innerHTML = `
+    <div class="comprobante-cabecera">
+      <span class="comprobante-icono">${ICONO_CHECK}</span>
+      <div>
+        <strong>${escapeHtml(sector)} ${pendiente ? "quedó guardado en este celular" : "guardado"}</strong>
+        <span class="comprobante-detalle">${detalle}</span>
+      </div>
+    </div>
+    ${
+      pendiente
+        ? '<p class="comprobante-nota">Se envía solo cuando vuelva internet. No hace falta volver a contar.</p>'
+        : ""
+    }
+    <div class="comprobante-acciones">
+      <button type="button" data-accion="whatsapp">Enviar stock por WhatsApp</button>
+      <span class="comprobante-siguiente">Para seguir, elegí otro sector.</span>
+    </div>
+  `;
+}
+
+export function renderErrorCarga(elemento, texto) {
+  if (!elemento) return;
+
+  elemento.innerHTML = `
+    <div class="error-carga" role="alert">
+      <strong>${escapeHtml(texto)}</strong>
+      <p>Revisá la conexión del celular y volvé a intentar.</p>
+      <button type="button" id="btn-reintentar-carga">Reintentar</button>
+    </div>
+  `;
+}
+
 export function renderSupervisorLoader(container, texto) {
   container.innerHTML = `
     <div class="supervisor-loader">
       <span class="supervisor-loader-spinner"></span>
-      <span>${texto}</span>
+      <span>${escapeHtml(texto)}</span>
     </div>
   `;
 }
@@ -243,8 +394,8 @@ export function renderSupervisorLoader(container, texto) {
 export function renderSupervisorError(container, texto) {
   container.innerHTML = `
     <div class="supervisor-empty supervisor-empty-error">
-      <strong>${ICONOS.advertencia} ${texto}</strong>
-      <p>Reintenta con Actualizar o vuelve a cargar la pagina.</p>
+      <strong>${escapeHtml(texto)}</strong>
+      <p>Reintentá con Actualizar o volvé a cargar la página.</p>
     </div>
   `;
 }
@@ -273,9 +424,10 @@ export function renderSupervisorAuthPanel(container, state = {}) {
   if (mode === "error") {
     container.innerHTML = `
       <div class="supervisor-auth-card supervisor-auth-card-error">
-        <span class="supervisor-auth-kicker">Acceso supervisor</span>
-        <h2>No se pudo validar la sesion</h2>
-        <p>${escapeHtml(message || "Reintenta en unos segundos.")}</p>
+        <div class="supervisor-auth-copy">
+          <h2>No se pudo validar la sesión</h2>
+          <p>${escapeHtml(message || "Reintentá en unos segundos.")}</p>
+        </div>
         <div class="supervisor-auth-actions">
           <button id="btn-reintentar-auth" type="button">Reintentar</button>
         </div>
@@ -288,13 +440,12 @@ export function renderSupervisorAuthPanel(container, state = {}) {
     container.innerHTML = `
       <div class="supervisor-auth-card supervisor-auth-card-session">
         <div class="supervisor-auth-copy">
-          <span class="supervisor-auth-kicker">Sesion activa</span>
-          <h2>Supervisor autenticado</h2>
+          <h2>Sesión de supervisor</h2>
           <p>${escapeHtml(userEmail || "Cuenta de supervisor activa")}</p>
         </div>
         <div class="supervisor-auth-actions">
           <button id="btn-cerrar-sesion-supervisor" type="button">
-            Cerrar sesion
+            Cerrar sesión
           </button>
         </div>
       </div>
@@ -305,9 +456,8 @@ export function renderSupervisorAuthPanel(container, state = {}) {
   container.innerHTML = `
     <div class="supervisor-auth-card">
       <div class="supervisor-auth-copy">
-        <span class="supervisor-auth-kicker">Acceso supervisor</span>
         <h2>Ingresar al panel</h2>
-        <p>Usa la cuenta de supervisor de Supabase para abrir esta vista.</p>
+        <p>Entrá con la cuenta de supervisor.</p>
       </div>
       <form id="supervisor-login-form" class="supervisor-auth-form" autocomplete="on">
         <label class="supervisor-auth-field" for="supervisor-login-email">
@@ -325,13 +475,12 @@ export function renderSupervisorAuthPanel(container, state = {}) {
           />
         </label>
         <label class="supervisor-auth-field" for="supervisor-login-password">
-          <span>Contrasena</span>
+          <span>Contraseña</span>
           <input
             id="supervisor-login-password"
             name="password"
             type="password"
             autocomplete="current-password"
-            placeholder="Ingresar contrasena"
             ${loading ? "disabled" : ""}
             required
           />
@@ -354,7 +503,7 @@ export function renderSupervisorConteos(listaConteos, conteos) {
     listaConteos.innerHTML = `
       <div class="supervisor-empty">
         <strong>Sin conteos hoy</strong>
-        <p>Todavia no se registraron conteos en esta jornada.</p>
+        <p>Todavía no se registraron conteos en esta jornada.</p>
       </div>
     `;
     return;
@@ -369,16 +518,15 @@ export function renderSupervisorConteos(listaConteos, conteos) {
     div.className = "supervisor-card supervisor-conteo-card";
     div.innerHTML = `
       <div class="supervisor-card-header">
-        <span class="supervisor-tag supervisor-tag-user">${ICONOS.empleado} Empleado</span>
-        <span class="supervisor-time">${ICONOS.hora} ${fecha.toLocaleTimeString("es-AR", {
+        <h3>${escapeHtml(conteo.empleado || "Sin empleado")}</h3>
+        <span class="supervisor-time">${fecha.toLocaleTimeString("es-AR", {
           hour: "2-digit",
           minute: "2-digit",
+          hour12: false,
         })}</span>
       </div>
-      <h3>${conteo.empleado || "Sin empleado"}</h3>
       <div class="supervisor-card-meta">
-        <span class="supervisor-chip">${ICONOS.sector} ${conteo.sectores?.nombre || "Sector"}</span>
-        <span class="supervisor-chip supervisor-chip-muted">Conteo mas reciente</span>
+        <span class="supervisor-chip">${escapeHtml(conteo.sectores?.nombre || "Sector")}</span>
       </div>
     `;
 
@@ -420,8 +568,8 @@ export function renderSupervisorEstadoSectores(
     }`;
     div.innerHTML = `
       <div class="supervisor-status-main">
-        <span class="supervisor-status-icon">${contado ? "&#x2705;" : "&#x274C;"}</span>
-        <strong>${sector.nombre}</strong>
+        <span class="supervisor-status-icon" aria-hidden="true"></span>
+        <strong>${escapeHtml(sector.nombre)}</strong>
       </div>
       <span class="supervisor-status-label">${contado ? "Contado" : "Pendiente"}</span>
     `;
@@ -437,7 +585,7 @@ export function renderSupervisorCambios(listaCambios, reporte) {
     listaCambios.innerHTML = `
       <div class="supervisor-empty">
         <strong>Sin datos de cambios</strong>
-        <p>No se pudo preparar el analisis global del stock.</p>
+        <p>No se pudo preparar el análisis del stock total.</p>
       </div>
     `;
     return;
@@ -456,8 +604,8 @@ export function renderSupervisorCambios(listaCambios, reporte) {
   if (!tieneComparacion) {
     listaCambios.innerHTML = `
       <div class="supervisor-empty">
-        <strong>Sin snapshots suficientes</strong>
-        <p>Todavia hacen falta dos snapshots globales para comparar cambios.</p>
+        <strong>Todavía no hay con qué comparar</strong>
+        <p>Hacen falta dos capturas del stock total. Se guarda una cada vez que se envía el stock por WhatsApp desde la pantalla de conteo.</p>
       </div>
     `;
     return;
@@ -480,8 +628,8 @@ export function renderSupervisorCambios(listaCambios, reporte) {
     const empty = document.createElement("div");
     empty.className = "supervisor-empty";
     empty.innerHTML = `
-      <strong>Sin cambios desde el ultimo snapshot</strong>
-      <p>El stock total se mantuvo igual entre las dos ultimas capturas.</p>
+      <strong>Sin cambios desde la última captura</strong>
+      <p>El stock total se mantuvo igual entre las dos últimas capturas.</p>
     `;
 
     listaCambios.appendChild(empty);
@@ -493,13 +641,13 @@ export function renderSupervisorCambios(listaCambios, reporte) {
 
   if (salidas.length) {
     grupos.appendChild(
-      crearGrupoCambios("\u2B07\uFE0F SALIDAS", "supervisor-change-group-title-down", salidas),
+      crearGrupoCambios("SALIDAS", "supervisor-change-group-title-down", salidas),
     );
   }
 
   if (entradas.length) {
     grupos.appendChild(
-      crearGrupoCambios("\u2B06\uFE0F ENTRADAS", "supervisor-change-group-title-up", entradas),
+      crearGrupoCambios("ENTRADAS", "supervisor-change-group-title-up", entradas),
     );
   }
 
@@ -512,7 +660,7 @@ export function renderSupervisorCambios(listaCambios, reporte) {
 
     grupos.appendChild(
       crearGrupoCambios(
-        "\u2696\uFE0F SIN CAMBIOS",
+        "SIN CAMBIOS",
         "supervisor-change-group-title-neutral",
         itemsSinCambios,
       ),
@@ -542,6 +690,7 @@ export function renderAppVersionBadge(version) {
   badge.textContent = versionLabel;
 
   const target =
+    document.querySelector("[data-version-slot]") ||
     document.querySelector("footer") ||
     document.querySelector(".container") ||
     document.body;

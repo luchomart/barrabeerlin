@@ -53,5 +53,10 @@ export async function getEmpleados() {
 
   if (error) throw error;
 
-  return data;
+  // Orden alfabetico sin distinguir mayusculas ni acentos ("bruno" junto a "Karen").
+  return [...(data || [])].sort((a, b) =>
+    String(a?.nombre || "").localeCompare(String(b?.nombre || ""), "es", {
+      sensitivity: "base",
+    }),
+  );
 }

@@ -2,6 +2,68 @@
 
 Historial de cambios de Stock Barra.
 
+## v0.5.0 - 2026-11-17
+
+### Changed (critica de diseño, 2026-11-17)
+- Pantalla de conteo:
+  - cada categoria muestra "Revisada" al abrirla o tocarla, y junto a `Guardar` se ve
+    "N de M categorias revisadas";
+  - si hay categorias sin abrir, `Guardar` avisa en pantalla (`Revisar` / `Guardar igual`);
+    se sigue guardando todo el sector.
+- `Guardar` muestra "Guardando…" y, en vez del `alert`, deja un comprobante en pantalla (sector,
+  hora, empleado, productos) con `Enviar stock por WhatsApp`. Sin internet, el comprobante es amarillo.
+- El badge fijo "OPERATIVO" paso a ser un indicador real: En linea / Sin conexion / N sin enviar / Sin datos.
+- Si falla la carga de la app: tarjeta de error con `Reintentar` y `Guardar` deshabilitado.
+- Cambiar de sector con cambios sin guardar ya no pregunta ni borra: lo contado queda como borrador.
+- Botones − / + de 44px en cada producto (antes solo con teclado fisico), varias categorias abiertas
+  a la vez y nombres largos en dos lineas en vez de cortados.
+- Pie mas chico (Guardar + una fila "Stock total: Copiar / WhatsApp"); el buscador queda fijo arriba
+  y el header se va al scrollear.
+- Accesibilidad:
+  - las categorias son botones con `aria-expanded` y cada cantidad tiene etiqueta;
+  - hay foco visible con teclado;
+  - todo el texto pasa 4.5:1 de contraste;
+  - los toques miden al menos 44px y se respeta `prefers-reduced-motion`.
+- Textos con tildes y ñ. Se sacan "Supabase" y "snapshots" de la interfaz, y la hora va en 24 h.
+- Supervisor:
+  - acciones en una fila neutra, "Volver al conteo" arriba y la sesion compacta;
+  - las tarjetas de conteo sin etiquetas repetidas;
+  - sin emojis decorativos.
+- Se sacan adornos: linea de acento, circulos, ripple, brillo verde y entrada escalonada. Las fuentes
+  cargan con `<link>` (no `@import`).
+
+### Added
+- Panel Admin: bloque "No avisar si estan en 0". Esos productos no aparecen en "Sin stock" del
+  mensaje de WhatsApp (con stock se envian normal). Requiere `docs/sql/admin-v0.4.3.sql`.
+- Panel Admin: boton "Mover" para cambiar un producto de categoria (tambien sirve para los
+  productos sin categoria). Requiere `docs/sql/admin-v0.4.2.sql`.
+- Mensaje de WhatsApp:
+  - categorias en negrita con su total y emoji por palabra (📦 si no reconoce ninguna);
+  - seccion "Sin stock" al final y hora en 24 h;
+  - siempre incluye los barriles, elijas el sector que elijas;
+  - el supervisor manda el mismo mensaje.
+- El buscador ignora tildes y mayusculas ("levite" encuentra "Levité").
+- Al buscar, la lista sube hasta el primer resultado. En el celu, mientras se escribe (buscador o
+  cantidad), el pie fijo se oculta para que el teclado no tape los productos.
+- Conteo a prueba de cortes de internet: lo tipeado en cada sector se guarda en el celular y se
+  recupera si se cierra o recarga la pagina. Si `Guardar` falla por falta de red, el conteo queda
+  en una cola local y se envia solo al volver la conexion (aviso amarillo en pantalla). Un pendiente
+  no se envia si el sector ya tiene un conteo mas nuevo, y se avisa.
+- Si falla la carga de empleados se usa la ultima lista guardada en el celular.
+- Favicon.
+- SQL `docs/sql/admin-v0.4.1.sql`: no se puede borrar un producto con ventas; altas sin duplicados
+  por concurrencia.
+
+### Fixed
+- Seguridad: los nombres (empleado del conteo, sectores, categorias, productos) se escapan antes de
+  mostrarse. `inventario.empleado` lo puede escribir `anon` y se mostraba como HTML en el supervisor.
+- Si se elegia el sector antes que el empleado, los productos nunca cargaban.
+- Cambiando rapido de sector, la carga del sector anterior podia pisar las cantidades del nuevo.
+- `Guardar` sin productos cargados ya no avisa "Conteo guardado".
+- Panel Admin: una carga vieja ya no pisa a la nueva, y si el cambio se guarda pero falla la recarga
+  se avisa que el cambio si se hizo.
+- Empleados ordenados alfabeticamente (antes por id).
+
 ## v0.4.0 - 2026-11-16
 
 ### Added

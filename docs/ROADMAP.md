@@ -2,19 +2,34 @@
 
 Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 
-## Donde quedamos (2026-11-16)
+## Donde quedamos (2026-11-17)
 
-- Estado real de Supabase revisado (ver `docs/DATABASE.md`): los SQL de supervisor, snapshots y ventas estan aplicados.
-- v0.4.0 Administracion publicada en produccion: panel `Admin` en supervisor, tabla `empleados`,
-  barriles por categoria y fix del orden de `Estante Cocina`. 69 tests unitarios y 16 smoke OK.
-- Para publicar, en este orden:
-  1. ~~Aplicar `docs/sql/hardening-v0.3.4.sql`~~ aplicado y verificado el 2026-11-16.
-  2. ~~Aplicar `docs/sql/admin-v0.4.0.sql`~~ aplicado y verificado el 2026-11-16.
-  3. ~~Push de `dev`, QA y merge a `main`~~ QA manual OK y publicada el 2026-11-16.
-- Decisiones: borrar producto = borrado real con cascada de inventario y snapshots; categoria con productos no se borra;
-  empleados no inician sesion (solo la lista del desplegable).
-- Sigue abierto: `anon` puede modificar cantidades de `inventario` (requiere login de empleados).
-- Proximo: UI de ventas automaticas (SQL ya aplicado).
+- **v0.5.0 publicada en `main` (beerlin.online) el 2026-11-17.** Incluye:
+  - la revision de v0.4.0 con el arreglo de seguridad XSS en el supervisor;
+  - conteo a prueba de cortes de internet;
+  - los arreglos de la critica de diseño (`/impeccable critique`, 23/40): progreso por categoria,
+    comprobante, indicador de conexion, botones − / + y accesibilidad;
+  - el buscador sin tildes y que lleva al resultado;
+  - el mensaje de WhatsApp nuevo;
+  - en el admin: "Mover" y "No avisar si estan en 0".
+  Ver CHANGELOG.
+- Supabase: aplicados `admin-v0.4.2.sql` (mover producto) y `admin-v0.4.3.sql` (no avisar en 0).
+  La prueba de "Mover" se revirtio con `revertir-prueba-mover-2026-11-17.sql`.
+- PENDIENTE (Luciano): pegar `docs/sql/admin-v0.4.1.sql` en Supabase (no borrar productos con ventas,
+  altas sin duplicados). Probado en PGlite 16/16. Despues marcarlo como aplicado en `docs/DATABASE.md`.
+- Proximo paso: QA en el celu con la checklist (`docs/QA_CHECKLIST.md`, secciones "Stock" y
+  "Sin internet"), con el personal: cambia el flujo que conocian (sin `alert` al guardar).
+- Pendientes chicos:
+  - poder **empezar** un conteo sin internet (guardar en el celu el ultimo stock de cada sector);
+  - borrar los 4 productos duplicados sin categoria (ids 19, 32, 33, 34) despues de revisar si
+    tienen stock.
+- Despues: UI de ventas automaticas. Antes, decidir quien puede cargar ventas (hoy `registrar_venta`
+  la ejecuta `anon`).
+- Decisiones 2026-11-17: barriles se cuentan solo en Camara; un producto con ventas no se borra;
+  si falla la lista de empleados se usa la ultima guardada en el celu; un pendiente offline no pisa
+  un conteo mas nuevo del mismo sector (se descarta y se avisa).
+- Riesgos abiertos: `anon` puede modificar `inventario`; la app no abre sin internet (solo aguanta
+  cortes durante el conteo).
 
 Este documento es la guia de decision para futuras implementaciones. La regla general es simple: mejorar estabilidad, velocidad operativa y seguridad sin romper el flujo actual de uso real.
 
