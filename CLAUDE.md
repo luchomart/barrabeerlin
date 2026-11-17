@@ -24,3 +24,9 @@ El plan y "Dónde quedamos" están en `docs/ROADMAP.md`.
 - Smoke: un `alert` bloquea `page.click`/`page.goto`; usar el helper `aceptarDialogos(page)` de smoke.spec.js.
   Para simular sin red: `globalThis.__mockSinRed = true` (mockApp.js).
 - Playwright MCP solo guarda capturas en `.playwright-mcp/` (ignorada): sacarlas al terminar.
+- WhatsApp: abrir con `https://api.whatsapp.com/send?text=`. `wa.me` redirige y cambia los emojis por "�".
+- Smoke: para guardar usar el helper `guardarConteo(page)` (confirma "Guardar igual" si aparece el aviso).
+- Mock: `globalThis.__mockCatalogo` reemplaza el catalogo entero: pasar `productos`, `categorias` y `empleados`.
+- Ver la app en el celu: Luciano corre `python3 -m http.server 8080 --bind 0.0.0.0` (a Claude se lo
+  bloquea el permiso) y abre `http://192.168.1.8:8080`. Usa Supabase real: no guardar conteos de prueba.
+- Catalogo real (solo lectura): `curl` a `<SUPABASE_URL>/rest/v1/productos?select=...` con la clave anon de `js/config.js`.

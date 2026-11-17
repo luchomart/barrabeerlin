@@ -28,6 +28,13 @@ Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 - Decisiones 2026-11-17: barriles se cuentan solo en Camara; un producto con ventas no se borra;
   si falla la lista de empleados se usa la ultima guardada en el celu; un pendiente offline no pisa
   un conteo mas nuevo del mismo sector (se descarta y se avisa).
+- Decisiones 2026-11-17 (v0.5.0):
+  - `Guardar` sigue mandando todo el sector, pero avisa las categorias sin abrir;
+  - cambiar de sector no borra lo contado (queda como borrador);
+  - el emoji del mensaje sale del nombre de la categoria (📦 si no reconoce ninguno);
+  - "no avisar si esta en 0" es por producto, en un bloque propio del admin;
+  - WhatsApp se abre con `api.whatsapp.com/send` (`wa.me` rompe los emojis).
+- Opcional: volver a correr `/impeccable critique` para comparar con el 23/40 del 2026-11-17.
 - Riesgos abiertos: `anon` puede modificar `inventario`; la app no abre sin internet (solo aguanta
   cortes durante el conteo).
 
