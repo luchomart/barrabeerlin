@@ -6,6 +6,7 @@
 
     <title>Stock Barra</title>
 
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%F0%9F%8D%BA%3C/text%3E%3C/svg%3E" />
     <link rel="stylesheet" href="style.css" />
   </head>
 
@@ -15,6 +16,14 @@
         <h1 id="titulo-app">&#x1F37A; Stock Barra</h1>
         <p>Selecciona el sector y carga las unidades</p>
       </header>
+
+      <div
+        id="aviso-stock"
+        class="aviso-stock"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></div>
 
       <section class="config">
         <label for="select-empleado">Empleado:</label>

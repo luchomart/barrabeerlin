@@ -210,6 +210,36 @@ describe("renderer", () => {
     expect(container.textContent).toContain("Conteo mas reciente");
   });
 
+  it("escapa nombres de empleados, sectores, categorias y productos", () => {
+    const ataque = '<img src=x onerror="window.__xss=1">';
+    const container = document.getElementById("lista-cambios-stock");
+    const lista = document.getElementById("lista-productos");
+
+    renderSupervisorConteos(container, [
+      {
+        empleado: ataque,
+        ultima_actualizacion: "2026-04-16T19:30:00.000Z",
+        sectores: { nombre: ataque },
+      },
+    ]);
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector("h3").textContent).toBe(ataque);
+
+    renderSupervisorEstadoSectores(container, [{ id: "1", nombre: ataque }], new Set());
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.textContent).toContain(ataque);
+
+    renderProductos(
+      lista,
+      [{ id: 2, nombre: ataque }],
+      [{ id: 1, nombre: "Gin <Bombay>", categoria_id: 2 }],
+      vi.fn(),
+    );
+    expect(lista.querySelector("img")).toBeNull();
+    expect(lista.querySelector(".producto-nombre").textContent).toBe("Gin <Bombay>");
+    expect(lista.querySelector(".categoria-titulo").textContent).toContain(ataque);
+  });
+
   it("renderiza estado de sectores con contados y pendientes", () => {
     const container = document.getElementById("lista-cambios-stock");
 

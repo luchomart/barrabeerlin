@@ -21,3 +21,6 @@ El plan y "Dónde quedamos" están en `docs/ROADMAP.md`.
 - El repo es **público**: nada de secretos ni datos personales. Solo la clave `anon` va en el frontend.
 - Proyecto independiente de `distribuidora/`: no mezclar código ni arquitectura.
 - Al cerrar una tarea: actualizar `docs/ROADMAP.md` y proponer el commit.
+- Smoke: un `alert` bloquea `page.click`/`page.goto`; usar el helper `aceptarDialogos(page)` de smoke.spec.js.
+  Para simular sin red: `globalThis.__mockSinRed = true` (mockApp.js).
+- Playwright MCP solo guarda capturas en `.playwright-mcp/` (ignorada): sacarlas al terminar.

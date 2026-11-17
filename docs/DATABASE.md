@@ -88,3 +88,13 @@ Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos.
 - Probado en un Postgres local (PGlite) imitando roles y esquema de produccion: 23 casos OK.
 - Verificado en produccion tras aplicarlo: 5 empleados cargados; las 6 RPCs solo con EXECUTE para
   `authenticated` (sin `anon`); los helpers `admin_exigir_supervisor` y `admin_nombre_limpio` sin acceso para `anon`/`authenticated`.
+
+## Ajustes de administracion (v0.4.1, PENDIENTE de aplicar)
+
+`docs/sql/admin-v0.4.1.sql` reemplaza 4 RPCs sin tocar tablas, datos ni permisos:
+
+- `admin_eliminar_producto` rechaza el borrado si el producto tiene filas en `ventas_detalle` o
+  `ventas_descuentos` (no tienen FK a `productos`).
+- `admin_agregar_empleado/categoria/producto` toman un candado sobre su tabla antes de chequear
+  nombres repetidos (evita duplicados por altas simultaneas).
+- Probado en PGlite imitando roles y esquema: 16 casos OK (incluye el rollback).

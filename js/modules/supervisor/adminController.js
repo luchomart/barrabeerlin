@@ -56,7 +56,8 @@ export function textoConfirmacionProducto(nombre, stock) {
   }
 
   lineas.push(
-    "Tambien se borra su stock y su historial de snapshots. No se puede deshacer.",
+    "Tambien se borra su stock y su historial de snapshots. No se puede deshacer.\n" +
+      "(Si ya tiene ventas registradas, no se puede borrar.)",
   );
 
   return lineas.join("\n");
@@ -70,38 +71,61 @@ export function initAdminPanel({ section, contenido, button } = {}) {
   let datos = null;
   let stockDisponible = false;
   let ocupado = false;
+  // Numero y promesa de la ultima carga pedida: las respuestas de cargas anteriores
+  // se descartan y quien las esperaba recibe el resultado de la mas nueva.
+  let ultimaCarga = 0;
+  let cargaActual = Promise.resolve(true);
 
-  async function cargar() {
+  // Devuelve false si la carga mas reciente fallo.
+  function cargar() {
+    const promesa = cargarDatos(++ultimaCarga);
+    cargaActual = promesa;
+    return promesa;
+  }
+
+  async function cargarDatos(numeroCarga) {
+
     if (!datos) {
       renderSupervisorLoader(contenido, "Cargando administracion...");
     }
 
+    // El stock solo se usa para avisar al borrar: si falla, el panel sigue andando.
+    const stockPromesa = getSupervisorInventarioConSectores().then(
+      (inventario) => construirStockPorProducto(inventario),
+      (error) => {
+        console.error(error);
+        return null;
+      },
+    );
+
     try {
-      const [empleados, categorias, productos] = await Promise.all([
+      const [empleados, categorias, productos, stockPorProducto] = await Promise.all([
         getEmpleados(),
         getCategorias(),
         getProductos(),
+        stockPromesa,
       ]);
 
-      // El stock solo se usa para avisar al borrar: si falla, el panel sigue andando.
-      let stockPorProducto = {};
-      stockDisponible = false;
+      if (numeroCarga !== ultimaCarga) return cargaActual;
 
-      try {
-        stockPorProducto = construirStockPorProducto(
-          await getSupervisorInventarioConSectores(),
-        );
-        stockDisponible = true;
-      } catch (error) {
-        console.error(error);
-      }
-
-      datos = { empleados, categorias, productos, stockPorProducto };
+      stockDisponible = stockPorProducto !== null;
+      datos = {
+        empleados,
+        categorias,
+        productos,
+        stockPorProducto: stockPorProducto || {},
+      };
       renderAdminPanel(contenido, datos);
+      return true;
     } catch (error) {
       console.error(error);
+
+      if (numeroCarga !== ultimaCarga) return cargaActual;
+
       datos = null;
+      stockDisponible = false;
       renderSupervisorError(contenido, "Error cargando administracion");
+      return false;
     }
   }
 
@@ -113,8 +137,20 @@ export function initAdminPanel({ section, contenido, button } = {}) {
 
     try {
       await accion();
-      await cargar();
-      renderAdminMensaje(contenido, { tipo: "ok", texto: mensajeOk });
+
+      // cargar() no lanza errores: devuelve false si fallo la recarga.
+      const recargado = await cargar();
+
+      if (recargado) {
+        renderAdminMensaje(contenido, { tipo: "ok", texto: mensajeOk });
+      } else {
+        // El cambio se guardo: solo fallo la recarga de la lista.
+        renderSupervisorError(
+          contenido,
+          `${mensajeOk} Pero no se pudo actualizar la lista`,
+        );
+      }
+
       return true;
     } catch (error) {
       console.error(error);

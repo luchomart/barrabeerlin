@@ -21,6 +21,7 @@ import {
 } from "../../services/inventarioService.js";
 
 import {
+  renderAvisoStock,
   renderSectores,
   renderProductos,
   actualizarInputsStock,
@@ -30,6 +31,18 @@ import {
   buildCatalogoRenderizable,
   obtenerIdsCategoriasBarriles,
 } from "./stockCatalog.js";
+import {
+  agregarPendiente,
+  borrarBorrador,
+  enviarPendientes,
+  esErrorDeRed,
+  guardarBorrador,
+  guardarEmpleadosCache,
+  leerBorrador,
+  leerEmpleadosCache,
+  leerUltimoBorrador,
+  leerPendientes,
+} from "./stockBorrador.js";
 
 import { buildStockData, formatWhatsappText } from "./stockFormatter.js";
 
@@ -43,6 +56,7 @@ export function initStockApp() {
   const listaProductos = document.getElementById("lista-productos");
   const buscador = document.getElementById("buscar-producto");
   const tituloApp = document.getElementById("titulo-app");
+  const avisoStock = document.getElementById("aviso-stock");
 
   const btnGuardar = document.getElementById("btn-guardar");
   const btnCopiarStock = document.getElementById("btn-copiar-stock");
@@ -51,6 +65,46 @@ export function initStockApp() {
   let contadorToques = 0;
   let snapshotGuardado = false;
   let ultimoEnvioWhatsapp = 0;
+  // Sector cuyos productos y stock ya estan en pantalla (null si no hay ninguno).
+  let sectorRenderizado = null;
+  let guardando = false;
+  let enviandoPendientes = false;
+  let timerAviso = null;
+
+  function formatearHora(fechaIso) {
+    const fecha = new Date(fechaIso);
+
+    return Number.isNaN(fecha.getTime())
+      ? ""
+      : fecha.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  // Los avisos temporales desaparecen solos y vuelve a verse el de pendientes (si hay).
+  function mostrarAviso(tipo, texto) {
+    clearTimeout(timerAviso);
+    renderAvisoStock(avisoStock, { tipo, texto });
+    timerAviso = setTimeout(actualizarAvisoPendientes, 8000);
+  }
+
+  function actualizarAvisoPendientes() {
+    clearTimeout(timerAviso);
+
+    const cantidad = leerPendientes().length;
+
+    if (!cantidad) {
+      renderAvisoStock(avisoStock);
+      return;
+    }
+
+    renderAvisoStock(avisoStock, {
+      tipo: "pendiente",
+      texto:
+        (cantidad === 1
+          ? "\u{1F4E4} 1 conteo sin enviar por falta de conexion."
+          : `\u{1F4E4} ${cantidad} conteos sin enviar por falta de conexion.`) +
+        " Se envia solo cuando vuelva internet: no hace falta volver a contar.",
+    });
+  }
 
   function obtenerEmpleadoSeleccionado() {
     return selectEmpleado.value;
@@ -109,12 +163,24 @@ export function initStockApp() {
     });
   }
 
+  function leerEmpleadoGuardado() {
+    try {
+      return localStorage.getItem("empleado") || "";
+    } catch {
+      return "";
+    }
+  }
+
   function guardarEmpleadoLocal() {
-    localStorage.setItem("empleado", appState.empleado);
+    try {
+      localStorage.setItem("empleado", appState.empleado);
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   function cargarEmpleadoLocal() {
-    const empleadoGuardado = localStorage.getItem("empleado");
+    const empleadoGuardado = leerEmpleadoGuardado();
 
     if (!empleadoGuardado) return;
 
@@ -124,7 +190,11 @@ export function initStockApp() {
     );
 
     if (!existe) {
-      localStorage.removeItem("empleado");
+      try {
+        localStorage.removeItem("empleado");
+      } catch (error) {
+        console.error(error);
+      }
       return;
     }
 
@@ -159,6 +229,53 @@ export function initStockApp() {
   function manejarCambioInput(input) {
     input.classList.add("input-modificado");
     appState.setCambiosPendientes(true);
+    actualizarBorrador();
+  }
+
+  // Guarda en el celular lo tipeado en el sector actual (sobrevive a cierres y recargas).
+  function actualizarBorrador() {
+    if (!sectorRenderizado || sectorRenderizado !== appState.sector) return;
+
+    const cantidades = {};
+
+    listaProductos.querySelectorAll("input.input-modificado").forEach((input) => {
+      cantidades[input.dataset.id] = input.value;
+    });
+
+    guardarBorrador({
+      sector_id: appState.sector,
+      sector_nombre: obtenerNombreSectorSeleccionado(),
+      empleado: appState.empleado,
+      cantidades,
+    });
+  }
+
+  // Pone encima del stock de Supabase lo que habia quedado sin guardar en este sector.
+  function aplicarBorrador() {
+    const borrador = leerBorrador(appState.sector);
+
+    // El borrador de otro empleado no se mezcla: queda guardado para cuando vuelva.
+    if (!borrador || (borrador.empleado && borrador.empleado !== appState.empleado)) {
+      return null;
+    }
+
+    let aplicados = 0;
+
+    listaProductos.querySelectorAll("input[data-id]").forEach((input) => {
+      const valor = borrador.cantidades[input.dataset.id];
+
+      if (valor === undefined || valor === "") return;
+
+      input.value = valor;
+      input.classList.add("input-modificado");
+      aplicados += 1;
+    });
+
+    if (!aplicados) return null;
+
+    appState.setCambiosPendientes(true);
+
+    return borrador;
   }
 
   function resetSnapshotGuardado() {
@@ -226,16 +343,23 @@ export function initStockApp() {
     return cantidad;
   }
 
-  async function cargarStockSector() {
-    const data = await getInventarioSector(appState.sector);
+  // Devuelve false si mientras cargaba se eligio otro sector (la respuesta se descarta).
+  async function cargarStockSector(sector) {
+    const data = await getInventarioSector(sector);
+
+    if (sector !== appState.sector) return false;
 
     actualizarInputsStock(data);
     appState.setCambiosPendientes(false);
     resetSnapshotGuardado();
+
+    return true;
   }
 
   async function renderizarYCargar() {
     if (!validarSeleccion()) return;
+
+    sectorRenderizado = null;
 
     const { categorias, productos } = obtenerCatalogoRenderizable();
 
@@ -246,14 +370,48 @@ export function initStockApp() {
       manejarCambioInput,
     );
 
-    await cargarStockSector();
+    const sector = appState.sector;
+
+    if (!(await cargarStockSector(sector))) return;
+
+    sectorRenderizado = sector;
+
+    const recuperado = aplicarBorrador();
+
+    if (recuperado) {
+      mostrarAviso(
+        "info",
+        `Se recupero el conteo sin guardar de ${recuperado.sector_nombre || "este sector"}` +
+          ` (${formatearHora(recuperado.actualizado)}). Revisalo y toca Guardar.`,
+      );
+    }
+  }
+
+  // Deja la pantalla lista para el proximo conteo.
+  function finalizarConteo() {
+    resetSnapshotGuardado();
+    sectorRenderizado = null;
+    appState.resetSector();
+    reflejarSectorActual();
+    listaProductos.style.display = "none";
+    validarSeleccion();
   }
 
   async function guardar() {
+    if (guardando) return;
+
+    const registros = [];
+    const ultimaActualizacion = new Date().toISOString();
+
+    guardando = true;
+
     try {
       const inputs = document.querySelectorAll("#lista-productos input");
-      const registros = [];
-      const ultimaActualizacion = new Date().toISOString();
+
+      if (!inputs.length || sectorRenderizado !== appState.sector) {
+        alert("Todavia no se cargaron los productos del sector.");
+        return;
+      }
 
       inputs.forEach((input) => {
         const cantidad = normalizarCantidad(input.value);
@@ -271,16 +429,91 @@ export function initStockApp() {
 
       await guardarInventario(registros);
 
+      borrarBorrador(appState.sector);
       alert(`Conteo guardado\nEmpleado: ${appState.empleado}\nSector: ${obtenerNombreSectorSeleccionado()}`);
-
-      resetSnapshotGuardado();
-      appState.resetSector();
-      reflejarSectorActual();
-      listaProductos.style.display = "none";
-      validarSeleccion();
+      finalizarConteo();
     } catch (error) {
       console.error(error);
-      alert("Error guardando el conteo");
+
+      // Sin conexion: el conteo pasa a la cola local y se reenvia solo.
+      const pendiente =
+        registros.length && esErrorDeRed(error)
+          ? agregarPendiente({
+              registros,
+              sector_id: appState.sector,
+              sector_nombre: obtenerNombreSectorSeleccionado(),
+              empleado: appState.empleado,
+              creado: ultimaActualizacion,
+            })
+          : null;
+
+      if (pendiente) {
+        borrarBorrador(appState.sector);
+        alert(
+          `Sin conexion: el conteo de ${pendiente.sector_nombre} quedo guardado en este celular.\n` +
+            "Se envia solo cuando vuelva internet. No hace falta volver a contar.",
+        );
+        finalizarConteo();
+        actualizarAvisoPendientes();
+        return;
+      }
+
+      // Lo tipeado sigue en pantalla y en el borrador: se puede reintentar.
+      alert("Error guardando el conteo. Lo cargado no se perdio: reintenta Guardar.");
+    } finally {
+      guardando = false;
+    }
+  }
+
+  async function procesarPendientes() {
+    if (enviandoPendientes || !leerPendientes().length) return;
+
+    enviandoPendientes = true;
+
+    try {
+      const { enviados, descartados, fallidos, error } = await enviarPendientes({
+        getInventarioSector,
+        guardarInventario,
+      });
+
+      if (error) console.error(error);
+
+      actualizarAvisoPendientes();
+
+      if (descartados.length) {
+        alert(
+          descartados
+            .map(
+              (item) =>
+                `No se envio el conteo de ${item.sector_nombre} (${item.empleado}, ${formatearHora(item.creado)}): ` +
+                "ese sector ya tiene un conteo mas nuevo.",
+            )
+            .join("\n"),
+        );
+      }
+
+      if (fallidos.length) {
+        alert(
+          fallidos
+            .map(
+              (item) =>
+                `No se pudo enviar el conteo de ${item.sector_nombre} (${item.empleado}, ${formatearHora(item.creado)}): ` +
+                `${item.motivo}. Hay que volver a contarlo.`,
+            )
+            .join("\n"),
+        );
+      }
+
+      if (enviados.length && !leerPendientes().length) {
+        mostrarAviso(
+          "ok",
+          enviados.length === 1
+            ? `✅ Se envio el conteo pendiente de ${enviados[0].sector_nombre}.`
+            : `✅ Se enviaron ${enviados.length} conteos pendientes.`,
+        );
+      }
+    } finally {
+      enviandoPendientes = false;
     }
   }
 
@@ -291,7 +524,8 @@ export function initStockApp() {
 
       if (!validarSeleccion()) return;
 
-      if (listaProductos.style.display === "block") {
+      // Cambiar de empleado con el sector ya cargado no recarga (no se pierden cambios).
+      if (sectorRenderizado === appState.sector) {
         return;
       }
 
@@ -317,6 +551,8 @@ export function initStockApp() {
         reflejarSectorActual();
         return;
       }
+
+      borrarBorrador(appState.sectorAnterior);
     }
 
     if (!validarSeleccion()) return;
@@ -406,29 +642,118 @@ export function initStockApp() {
     });
   }
 
+  // Si fallan los empleados se usa la ultima lista guardada en el celular
+  // (mas el empleado que ya estaba elegido), asi se puede contar igual.
+  function empleadosDeRespaldo() {
+    const empleados = leerEmpleadosCache();
+    const guardado = leerEmpleadoGuardado();
+
+    if (guardado && !empleados.some(({ nombre }) => nombre === guardado)) {
+      empleados.push({ nombre: guardado });
+    }
+
+    return empleados;
+  }
+
+  // Al abrir la app, vuelve al sector que quedo con un conteo sin guardar.
+  async function restaurarBorrador() {
+    const borrador = leerUltimoBorrador();
+
+    if (!borrador) return;
+
+    const existeSector = (appState.sectores || []).some(
+      (sector) => String(sector.id) === borrador.sector_id,
+    );
+
+    if (!existeSector) {
+      borrarBorrador(borrador.sector_id);
+      return;
+    }
+
+    const existeEmpleado = Array.from(selectEmpleado.options).some(
+      (option) => option.value && option.value === borrador.empleado,
+    );
+
+    // Se retoma con el empleado que lo estaba contando.
+    if (existeEmpleado && appState.empleado !== borrador.empleado) {
+      appState.setEmpleado(borrador.empleado);
+      selectEmpleado.value = borrador.empleado;
+      guardarEmpleadoLocal();
+    }
+
+    appState.setSector(borrador.sector_id);
+    reflejarSectorActual();
+
+    // Sin empleado elegido, el borrador se aplica cuando lo elijan.
+    if (!validarSeleccion()) return;
+
+    try {
+      await renderizarYCargar();
+    } catch (error) {
+      // El borrador queda guardado para el proximo intento.
+      console.error(error);
+      sectorRenderizado = null;
+      appState.resetSector();
+      reflejarSectorActual();
+      validarSeleccion();
+    }
+  }
+
   async function init() {
     try {
       listaProductos.style.display = "none";
 
-      const [sectores, productos, categorias, empleados] = await Promise.all([
+      const empleadosPromesa = getEmpleados().then(
+        (lista) => {
+          guardarEmpleadosCache(lista);
+          return lista;
+        },
+        (error) => {
+          console.error(error);
+          return null;
+        },
+      );
+
+      const [sectores, productos, categorias] = await Promise.all([
         getSectores(),
         getProductos(),
         getCategorias(),
-        getEmpleados(),
       ]);
 
-      cargarEmpleados(empleados);
+      const empleados = await empleadosPromesa;
+
+      cargarEmpleados(empleados ?? empleadosDeRespaldo());
       cargarEmpleadoLocal();
 
       appState.setCatalogo({ sectores, productos, categorias });
 
       renderSectores(selectSector, appState.sectores);
       validarSeleccion();
+
+      if (!empleados) {
+        mostrarAviso(
+          "info",
+          "No se pudo actualizar la lista de empleados: se muestra la ultima guardada.",
+        );
+      }
+
+      await restaurarBorrador();
     } catch (error) {
       console.error(error);
+      listaProductos.style.display = "block";
       listaProductos.innerHTML = "Error cargando la aplicacion";
     }
+
+    // Si ya hay un aviso temporal, el de pendientes aparece cuando ese se va.
+    if (!avisoStock || avisoStock.hidden) {
+      actualizarAvisoPendientes();
+    }
+
+    procesarPendientes();
   }
+
+  window.addEventListener("online", procesarPendientes);
+  setInterval(procesarPendientes, 30000);
 
   btnGuardar.addEventListener("click", guardar);
 

@@ -2,6 +2,18 @@ import { expect, test } from "@playwright/test";
 
 import { mockAppServices } from "./support/mockApp.js";
 
+// Acepta todos los alert/confirm y devuelve sus mensajes.
+function aceptarDialogos(page) {
+  const mensajes = [];
+
+  page.on("dialog", async (dialog) => {
+    mensajes.push(dialog.message());
+    await dialog.accept();
+  });
+
+  return mensajes;
+}
+
 function filaProducto(page, productoId) {
   return page.locator(`.producto-fila:has(input[data-id="${productoId}"])`);
 }
@@ -28,6 +40,25 @@ test("stock smoke: Camara muestra barriles y otros sectores no", async ({ page }
 
   await expect(page.locator(".categoria-bloque", { hasText: "Barriles (sin pinchar)" })).toHaveCount(0);
   await expect(page.locator(".producto-fila", { hasText: "Coca Cola" })).toHaveCount(1);
+});
+
+test("stock smoke: elegir el sector antes que el empleado igual carga los productos", async ({ page }) => {
+  await mockAppServices(page);
+  await page.goto("/");
+
+  await page.selectOption("#select-sector", { label: "Camara" });
+  await page.selectOption("#select-empleado", { label: "Karen" });
+
+  await expect(page.locator(".categoria-bloque", { hasText: "Barriles (sin pinchar)" })).toHaveCount(1);
+  await expect(page.locator('input[data-id="101"]')).toHaveValue("4");
+
+  // Cambiar de empleado con el sector cargado no borra lo que se estaba contando.
+  await page
+    .locator(".categoria-titulo", { hasText: "Barriles (sin pinchar)" })
+    .click();
+  await page.locator('input[data-id="101"]').fill("7");
+  await page.selectOption("#select-empleado", { label: "Luciano" });
+  await expect(page.locator('input[data-id="101"]')).toHaveValue("7");
 });
 
 test("stock smoke: buscador sigue funcionando sobre el render actual", async ({ page }) => {
@@ -270,11 +301,153 @@ test("stock smoke: el desplegable de empleados sale de Supabase e ignora un empl
   await expect(page.locator("#select-empleado")).toHaveValue("");
 });
 
-test("stock smoke: si fallan los empleados se muestra el fallback de carga", async ({ page }) => {
+test("stock smoke: si fallan los empleados se usa la ultima lista guardada y se puede contar", async ({ page }) => {
   await mockAppServices(page, { failEmpleados: true });
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "stock-empleados",
+      JSON.stringify([{ id: 1, nombre: "Karen" }, { id: 2, nombre: "Eve" }]),
+    );
+    localStorage.setItem("empleado", "Nuevo");
+  });
   await page.goto("/");
 
-  await expect(page.locator("#lista-productos")).toContainText("Error cargando la aplicacion");
+  await expect(page.locator("#select-empleado option")).toHaveText([
+    "Seleccionar...",
+    "Karen",
+    "Eve",
+    "Nuevo",
+  ]);
+  await expect(page.locator("#select-empleado")).toHaveValue("Nuevo");
+  await expect(page.locator("#aviso-stock")).toContainText("lista de empleados");
+
+  await page.selectOption("#select-sector", { label: "Camara" });
+  await expect(page.locator(".categoria-bloque").first()).toBeVisible();
+});
+
+test("stock smoke: sin internet el conteo queda pendiente y se envia al volver la conexion", async ({ page }) => {
+  await mockAppServices(page);
+  await page.goto("/");
+
+  await page.selectOption("#select-empleado", { label: "Karen" });
+  await page.selectOption("#select-sector", { label: "Camara" });
+  await page
+    .locator(".categoria-titulo", { hasText: "Barriles (sin pinchar)" })
+    .click();
+  await page.locator('input[data-id="101"]').fill("6");
+
+  await page.evaluate(() => {
+    globalThis.__mockSinRed = true;
+  });
+
+  const mensajes = aceptarDialogos(page);
+  await page.click("#btn-guardar");
+  await expect.poll(() => mensajes.join("\n")).toContain("quedo guardado en este celular");
+
+  await expect(page.locator("#aviso-stock")).toContainText("1 conteo sin enviar");
+  await expect(page.locator("#select-sector")).toHaveValue("");
+
+  // Vuelve internet: se envia solo.
+  await page.evaluate(() => {
+    globalThis.__mockSinRed = false;
+    window.dispatchEvent(new Event("online"));
+  });
+
+  await expect(page.locator("#aviso-stock")).toContainText("Se envio el conteo pendiente de Camara");
+
+  const guardado = await page.evaluate(() => globalThis.__mockUltimoGuardado);
+  const ipa = guardado.find((item) => String(item.producto_id) === "101");
+  expect(ipa.cantidad).toBe(6);
+  expect(ipa.empleado).toBe("Karen");
+
+  const pendientes = await page.evaluate(() => localStorage.getItem("stock-pendientes"));
+  expect(pendientes).toBeNull();
+});
+
+test("stock smoke: un pendiente no pisa un conteo mas nuevo del mismo sector", async ({ page }) => {
+  await mockAppServices(page);
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem("preparado")) return;
+    sessionStorage.setItem("preparado", "1");
+    localStorage.setItem(
+      "stock-pendientes",
+      JSON.stringify([
+        {
+          id: "p1",
+          sector_id: "1",
+          sector_nombre: "Camara",
+          empleado: "Karen",
+          creado: "2026-11-17T10:00:00.000Z",
+          registros: [{ producto_id: 101, sector_id: "1", cantidad: 3 }],
+        },
+      ]),
+    );
+    globalThis.__mockInventarioSector = {
+      1: [{ producto_id: 101, cantidad: 9, ultima_actualizacion: "2026-11-17T11:00:00+00:00" }],
+    };
+  });
+
+  const mensajes = aceptarDialogos(page);
+  await page.goto("/");
+  await expect.poll(() => mensajes.join("\n")).toContain("ya tiene un conteo mas nuevo");
+
+  expect(await page.evaluate(() => globalThis.__mockUltimoGuardado)).toBeUndefined();
+  expect(await page.evaluate(() => localStorage.getItem("stock-pendientes"))).toBeNull();
+});
+
+test("stock smoke: lo tipeado se recupera si se recarga la pagina", async ({ page }) => {
+  await mockAppServices(page);
+  await page.goto("/");
+
+  await page.selectOption("#select-empleado", { label: "Karen" });
+  await page.selectOption("#select-sector", { label: "Camara" });
+  await page
+    .locator(".categoria-titulo", { hasText: "Barriles (sin pinchar)" })
+    .click();
+  await page.locator('input[data-id="101"]').fill("12");
+
+  // Aunque el celu quede con otro empleado elegido, se retoma con quien lo contaba.
+  await page.evaluate(() => localStorage.setItem("empleado", "Luciano"));
+  await page.reload();
+
+  await expect(page.locator("#select-sector")).toHaveValue("1");
+  await expect(page.locator("#select-empleado")).toHaveValue("Karen");
+  await expect(page.locator('input[data-id="101"]')).toHaveValue("12");
+  await expect(page.locator('input[data-id="101"]')).toHaveClass(/input-modificado/);
+  await expect(page.locator("#aviso-stock")).toContainText("Se recupero el conteo sin guardar de Camara");
+
+  // Guardar bien borra el borrador.
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.click("#btn-guardar");
+  await expect(page.locator("#select-sector")).toHaveValue("");
+  expect(await page.evaluate(() => localStorage.getItem("stock-borradores"))).toBeNull();
+});
+
+test("stock smoke: si se cambia rapido de sector, la carga vieja no pisa al sector nuevo", async ({ page }) => {
+  await mockAppServices(page);
+  await page.addInitScript(() => {
+    globalThis.__mockDemoraSector = { 1: 600 };
+  });
+  await page.goto("/");
+
+  await page.selectOption("#select-empleado", { label: "Karen" });
+  await page.selectOption("#select-sector", { label: "Camara" });
+  await page.selectOption("#select-sector", { label: "Estantes Barra" });
+
+  await page.waitForTimeout(900);
+
+  await expect(page.locator("#select-sector")).not.toHaveValue("1");
+  await expect(page.locator(".categoria-bloque", { hasText: "Barriles (sin pinchar)" })).toHaveCount(0);
+
+  const mensajes = aceptarDialogos(page);
+  await page.click("#btn-guardar");
+  await expect.poll(() => mensajes.join("\n")).toContain("Conteo guardado");
+
+  const guardado = await page.evaluate(() => globalThis.__mockUltimoGuardado);
+  // El producto 201 tiene 6 en Camara y 8 en Estantes Barra.
+  const fila201 = guardado.find((fila) => String(fila.producto_id) === "201");
+  expect(fila201.sector_id).toBe("2");
+  expect(fila201.cantidad).toBe(8);
 });
 
 test("supervisor smoke: admin agrega y elimina empleados, categorias y productos", async ({ page }) => {

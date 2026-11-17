@@ -2,16 +2,22 @@
 
 Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 
-## Donde quedamos (2026-11-16)
+## Donde quedamos (2026-11-17)
 
-- v0.4.0 publicada en beerlin.online (panel Admin: empleados, categorias, productos). QA manual OK.
-- Supabase al dia: aplicados hardening-v0.3.4 y admin-v0.4.0 (estado real en `docs/DATABASE.md`).
-- Decisiones v0.4.0: borrar producto = borrado real con cascada de inventario y snapshots;
-  categoria con productos no se borra; empleados no inician sesion (solo la lista del desplegable).
-- Riesgo abierto: `anon` puede modificar cantidades de `inventario` (cerrarlo requiere login de empleados).
-- Proximo paso: v0.4.1 UI de ventas automaticas. Ya existen el SQL aplicado (`registrar_venta`),
-  `js/services/ventasService.js` y sus tests. Antes de la UI, decidir quien puede cargar ventas
-  (hoy `registrar_venta` la puede ejecutar `anon`). Los nombres de sectores reales coinciden con la prioridad del SQL.
+- En `dev`, sin publicar: revision de v0.4.0 + conteo a prueba de cortes de internet (ver CHANGELOG
+  "Sin publicar"). Incluye un arreglo de seguridad: nombres sin escapar en el supervisor (XSS via
+  `inventario.empleado`, que `anon` puede escribir). beerlin.online sigue expuesto hasta publicar.
+- PENDIENTE (Luciano): pegar `docs/sql/admin-v0.4.1.sql` en Supabase (no borrar productos con ventas,
+  altas sin duplicados). Probado en PGlite 16/16. Despues marcarlo como aplicado en `docs/DATABASE.md`.
+- Proximo paso: QA en el celu con modo avion (`docs/QA_CHECKLIST.md`, seccion "Sin internet"),
+  decidir el numero de version (este paquete como v0.4.1 y ventas pasa a v0.4.2?) y publicar a `main`.
+- Despues: UI de ventas automaticas. Antes, decidir quien puede cargar ventas (hoy `registrar_venta`
+  la ejecuta `anon`).
+- Decisiones 2026-11-17: barriles se cuentan solo en Camara; un producto con ventas no se borra;
+  si falla la lista de empleados se usa la ultima guardada en el celu; un pendiente offline no pisa
+  un conteo mas nuevo del mismo sector (se descarta y se avisa).
+- Riesgos abiertos: `anon` puede modificar `inventario`; la app no abre sin internet (solo aguanta
+  cortes durante el conteo).
 
 Este documento es la guia de decision para futuras implementaciones. La regla general es simple: mejorar estabilidad, velocidad operativa y seguridad sin romper el flujo actual de uso real.
 

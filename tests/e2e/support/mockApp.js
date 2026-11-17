@@ -197,7 +197,23 @@ function buildInventarioServiceMock(options = {}) {
       { producto_id: 306, cantidad: 1 },
     ];
 
+    // Simula un corte de internet como lo reporta supabase-js.
+    function fallarSiSinRed() {
+      if (globalThis.__mockSinRed) {
+        throw { message: "TypeError: Failed to fetch" };
+      }
+    }
+
     export async function getInventarioSector(sectorId) {
+      fallarSiSinRed();
+
+      const demora = globalThis.__mockDemoraSector?.[String(sectorId)];
+      if (demora) await new Promise((resolve) => setTimeout(resolve, demora));
+
+      if (globalThis.__mockInventarioSector?.[String(sectorId)]) {
+        return globalThis.__mockInventarioSector[String(sectorId)];
+      }
+
       if (${JSON.stringify(failInventarioSector)}) {
         throw new Error("mock getInventarioSector error");
       }
@@ -206,6 +222,8 @@ function buildInventarioServiceMock(options = {}) {
     }
 
     export async function guardarInventario(registros) {
+      fallarSiSinRed();
+
       if (${JSON.stringify(failGuardar)}) {
         throw new Error("mock guardarInventario error");
       }

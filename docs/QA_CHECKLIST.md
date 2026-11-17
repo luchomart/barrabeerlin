@@ -18,6 +18,15 @@ Usar esta lista corta antes de publicar cambios a produccion.
 5. Cambiar de sector con cambios sin guardar y confirmar que aparezca la confirmacion.
 6. Guardar un conteo y verificar que no falle el flujo.
 7. Probar `Copiar` y `WhatsApp`.
+8. Elegir primero el sector y despues el empleado: tienen que aparecer los productos.
+
+## Sin internet (en el celular)
+
+1. Elegir empleado + sector, cambiar una cantidad y recargar la pagina: se recupera lo tipeado
+   (aviso azul "Se recupero el conteo sin guardar").
+2. Activar modo avion, tocar `Guardar`: aviso "quedo guardado en este celular" y aviso amarillo de pendiente.
+3. Desactivar modo avion con la pagina abierta: en segundos aparece "Se envio el conteo pendiente" y
+   el supervisor ve el conteo con la hora original.
 
 ## Barriles
 

@@ -1730,3 +1730,30 @@ footer::before {
   border: 1px solid var(--red-border);
   color: var(--red);
 }
+
+/* Aviso de conexion / conteos pendientes (pantalla de conteo) */
+.aviso-stock {
+  margin: var(--sp-3) var(--sp-4) 0;
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.aviso-stock-ok {
+  background: var(--green-bg);
+  border: 1px solid var(--green-border);
+  color: var(--green);
+}
+
+.aviso-stock-info {
+  background: var(--blue-bg);
+  border: 1px solid var(--blue-border);
+  color: var(--blue);
+}
+
+.aviso-stock-pendiente {
+  background: var(--yellow-bg);
+  border: 1px solid var(--yellow-border);
+  color: var(--yellow);
+}

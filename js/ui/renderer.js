@@ -35,14 +35,15 @@ function formatearDiferencia(valor) {
 
 function crearFilaCambio(item) {
   const div = document.createElement("div");
-  let texto = item.nombre;
+  const nombre = escapeHtml(item.nombre);
+  let texto = nombre;
   let claseExtra = "supervisor-change-neutral";
 
   if (item.tipo === "entrada") {
-    texto = `${item.nombre}: +${item.diferencia}`;
+    texto = `${nombre}: +${escapeHtml(item.diferencia)}`;
     claseExtra = "supervisor-change-up";
   } else if (item.tipo === "salida") {
-    texto = `${item.nombre}: ${item.diferencia}`;
+    texto = `${nombre}: ${escapeHtml(item.diferencia)}`;
     claseExtra = "supervisor-change-down";
   }
 
@@ -124,7 +125,7 @@ export function renderProductos(
     titulo.innerHTML = `
       <div class="categoria-left">
         <span class="categoria-arrow">&#9656;</span>
-        <span>${categoria.nombre}</span>
+        <span>${escapeHtml(categoria.nombre)}</span>
         <span class="categoria-count">(${productosCategoria.length})</span>
       </div>
     `;
@@ -154,8 +155,8 @@ export function renderProductos(
       fila.className = "producto-fila";
       fila.dataset.nombre = String(producto.nombre || "").toLowerCase();
       fila.innerHTML = `
-        <span class="producto-nombre">${producto.nombre}</span>
-        <input type="number" min="0" value="0" data-id="${producto.id}">
+        <span class="producto-nombre">${escapeHtml(producto.nombre)}</span>
+        <input type="number" min="0" value="0" data-id="${escapeHtml(producto.id)}">
       `;
 
       const input = fila.querySelector("input");
@@ -231,11 +232,20 @@ export function actualizarInputsStock(data) {
   });
 }
 
+// Aviso de la pantalla de conteo. tipo: "ok" | "info" | "pendiente". Sin texto, se oculta.
+export function renderAvisoStock(elemento, { tipo = "info", texto = "" } = {}) {
+  if (!elemento) return;
+
+  elemento.textContent = texto;
+  elemento.className = `aviso-stock aviso-stock-${tipo}`;
+  elemento.hidden = !texto;
+}
+
 export function renderSupervisorLoader(container, texto) {
   container.innerHTML = `
     <div class="supervisor-loader">
       <span class="supervisor-loader-spinner"></span>
-      <span>${texto}</span>
+      <span>${escapeHtml(texto)}</span>
     </div>
   `;
 }
@@ -243,7 +253,7 @@ export function renderSupervisorLoader(container, texto) {
 export function renderSupervisorError(container, texto) {
   container.innerHTML = `
     <div class="supervisor-empty supervisor-empty-error">
-      <strong>${ICONOS.advertencia} ${texto}</strong>
+      <strong>${ICONOS.advertencia} ${escapeHtml(texto)}</strong>
       <p>Reintenta con Actualizar o vuelve a cargar la pagina.</p>
     </div>
   `;
@@ -375,9 +385,9 @@ export function renderSupervisorConteos(listaConteos, conteos) {
           minute: "2-digit",
         })}</span>
       </div>
-      <h3>${conteo.empleado || "Sin empleado"}</h3>
+      <h3>${escapeHtml(conteo.empleado || "Sin empleado")}</h3>
       <div class="supervisor-card-meta">
-        <span class="supervisor-chip">${ICONOS.sector} ${conteo.sectores?.nombre || "Sector"}</span>
+        <span class="supervisor-chip">${ICONOS.sector} ${escapeHtml(conteo.sectores?.nombre || "Sector")}</span>
         <span class="supervisor-chip supervisor-chip-muted">Conteo mas reciente</span>
       </div>
     `;
@@ -421,7 +431,7 @@ export function renderSupervisorEstadoSectores(
     div.innerHTML = `
       <div class="supervisor-status-main">
         <span class="supervisor-status-icon">${contado ? "&#x2705;" : "&#x274C;"}</span>
-        <strong>${sector.nombre}</strong>
+        <strong>${escapeHtml(sector.nombre)}</strong>
       </div>
       <span class="supervisor-status-label">${contado ? "Contado" : "Pendiente"}</span>
     `;

@@ -2,6 +2,28 @@
 
 Historial de cambios de Stock Barra.
 
+## Sin publicar (revision 2026-11-17)
+
+### Added
+- Conteo a prueba de cortes de internet: lo tipeado en cada sector se guarda en el celular y se
+  recupera si se cierra o recarga la pagina. Si `Guardar` falla por falta de red, el conteo queda
+  en una cola local y se envia solo al volver la conexion (aviso amarillo en pantalla). Un pendiente
+  no se envia si el sector ya tiene un conteo mas nuevo, y se avisa.
+- Si falla la carga de empleados se usa la ultima lista guardada en el celular.
+- Favicon.
+- SQL `docs/sql/admin-v0.4.1.sql`: no se puede borrar un producto con ventas; altas sin duplicados
+  por concurrencia.
+
+### Fixed
+- Seguridad: los nombres (empleado del conteo, sectores, categorias, productos) se escapan antes de
+  mostrarse. `inventario.empleado` lo puede escribir `anon` y se mostraba como HTML en el supervisor.
+- Si se elegia el sector antes que el empleado, los productos nunca cargaban.
+- Cambiando rapido de sector, la carga del sector anterior podia pisar las cantidades del nuevo.
+- `Guardar` sin productos cargados ya no avisa "Conteo guardado".
+- Panel Admin: una carga vieja ya no pisa a la nueva, y si el cambio se guarda pero falla la recarga
+  se avisa que el cambio si se hizo.
+- Empleados ordenados alfabeticamente (antes por id).
+
 ## v0.4.0 - 2026-11-16
 
 ### Added
