@@ -2,6 +2,10 @@
 
 App web de control de stock para barra, pensada para uso mobile-first y operacion rapida en contexto real.
 
+## Contexto para asistentes de IA
+
+Antes de trabajar, consulta AGENTS.md y docs/AI_CONTEXT.md. El segundo resume el producto, la arquitectura y los límites de la documentación de Supabase.
+
 ## Funcionalidades
 
 - Carga de stock por sector.
