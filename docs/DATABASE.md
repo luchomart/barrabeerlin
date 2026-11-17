@@ -26,6 +26,14 @@
 - `ultima_actualizacion`
 - `empleado`
 
+## Tabla empleados (v0.4.0)
+
+- `id`
+- `nombre` (unico)
+- `created_at`
+
+Lectura para `anon`/`authenticated`. Escritura solo via RPCs `admin_*`.
+
 ## Tabla stock_snapshots
 
 - `producto_id`
@@ -67,3 +75,14 @@ Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos.
 - `inventario` y `stock_snapshots` tenian politicas "permitir todo" creadas a mano (`inventario libre`, `allow all`).
   Se cierran con `docs/sql/hardening-v0.3.4.sql` (pendiente de aplicar).
 - Hay politicas duplicadas de etapas anteriores (`app select …`, `public read …`, `lectura …`).
+- FKs: `inventario.producto_id` y `stock_snapshots.producto_id` -> `productos` con `ON DELETE CASCADE`;
+  `productos.categoria_id` -> `categorias` sin cascade. Hay 4 productos sin categoria (no aparecen en ningun sector).
+
+## Administracion (v0.4.0, pendiente de aplicar)
+
+`docs/sql/admin-v0.4.0.sql` crea `empleados` y las RPCs `admin_agregar/eliminar_empleado`,
+`admin_agregar/eliminar_categoria` y `admin_agregar/eliminar_producto`.
+
+- `SECURITY DEFINER`, ejecutables solo por `authenticated` (se revoca `anon`) y cada una exige `is_supervisor()`.
+- Borrar un producto borra en cascada su inventario y sus snapshots. Borrar una categoria con productos se rechaza.
+- Probado en un Postgres local (PGlite) imitando roles y esquema de produccion: 23 casos OK.

@@ -8,7 +8,7 @@ const ICONOS = {
   sector: "\u{1F4E6}",
 };
 
-function escapeHtml(texto) {
+export function escapeHtml(texto) {
   return String(texto ?? "").replace(/[&<>"']/g, (char) => {
     switch (char) {
       case "&":

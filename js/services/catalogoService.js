@@ -40,3 +40,18 @@ export async function getCategorias() {
 
   return data;
 }
+
+// =============================
+// EMPLEADOS
+// =============================
+
+export async function getEmpleados() {
+  const { data, error } = await db
+    .from("empleados")
+    .select("id, nombre")
+    .order("id");
+
+  if (error) throw error;
+
+  return data;
+}

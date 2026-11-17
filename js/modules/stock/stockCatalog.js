@@ -26,19 +26,46 @@ function ordenarCategoriasPorSector(
   });
 }
 
+export function obtenerIdsCategoriasBarriles(
+  categorias = [],
+  nombreCategoriaBarriles = "",
+) {
+  const nombreNormalizado = normalizarTexto(nombreCategoriaBarriles);
+
+  if (!nombreNormalizado) {
+    return [];
+  }
+
+  return (Array.isArray(categorias) ? categorias : [])
+    .filter((categoria) => normalizarTexto(categoria?.nombre) === nombreNormalizado)
+    .map((categoria) => String(categoria.id));
+}
+
+// Un producto es barril si esta en la categoria de barriles o, como respaldo,
+// si su nombre esta en la lista fija de config.js.
 export function esProductoBarril(
   producto,
   nombresBarrilesNormalizados = [],
+  idsCategoriasBarriles = [],
 ) {
+  if (
+    producto?.categoria_id !== null &&
+    producto?.categoria_id !== undefined &&
+    idsCategoriasBarriles.includes(String(producto.categoria_id))
+  ) {
+    return true;
+  }
+
   return nombresBarrilesNormalizados.includes(normalizarTexto(producto?.nombre));
 }
 
 export function obtenerProductosBarriles(
   productos = [],
   nombresBarrilesNormalizados = [],
+  idsCategoriasBarriles = [],
 ) {
   return (Array.isArray(productos) ? productos : []).filter((producto) =>
-    esProductoBarril(producto, nombresBarrilesNormalizados),
+    esProductoBarril(producto, nombresBarrilesNormalizados, idsCategoriasBarriles),
   );
 }
 
@@ -49,6 +76,7 @@ export function buildCatalogoRenderizable({
   ordenCategoriasSector = {},
   categoriaVirtualBarriles = null,
   nombresBarrilesNormalizados = [],
+  idsCategoriasBarriles = [],
 } = {}) {
   const sectorNormalizado = normalizarTexto(sectorNombre);
   const esCamara = sectorNormalizado === "camara";
@@ -60,6 +88,7 @@ export function buildCatalogoRenderizable({
   const barriles = obtenerProductosBarriles(
     productos,
     nombresBarrilesNormalizados,
+    idsCategoriasBarriles,
   );
 
   if (esCamara) {
@@ -91,7 +120,12 @@ export function buildCatalogoRenderizable({
     sinBarrilesConfigurados: false,
     categorias: categoriasOrdenadas,
     productos: (Array.isArray(productos) ? productos : []).filter(
-      (producto) => !esProductoBarril(producto, nombresBarrilesNormalizados),
+      (producto) =>
+        !esProductoBarril(
+          producto,
+          nombresBarrilesNormalizados,
+          idsCategoriasBarriles,
+        ),
     ),
   };
 }

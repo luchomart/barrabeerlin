@@ -30,6 +30,14 @@ const MOCK_PRODUCTOS = [
   { id: 306, nombre: "Jameson", categoria_id: 4, orden: 16 },
 ];
 
+const MOCK_EMPLEADOS = [
+  { id: 1, nombre: "Karen" },
+  { id: 2, nombre: "Eve" },
+  { id: 3, nombre: "Nicolas" },
+  { id: 4, nombre: "Luciano" },
+  { id: 5, nombre: "Fiorella" },
+];
+
 const INVENTARIO_POR_SECTOR = {
   "1": [
     { producto_id: 101, cantidad: 4 },
@@ -112,13 +120,19 @@ const DIFERENCIAS_STOCK = [
 function buildCatalogoServiceMock(options = {}) {
   const {
     failCategorias = false,
+    failEmpleados = false,
     failProductos = false,
     failSectores = false,
   } = options;
+  // El catalogo vive en globalThis para que el mock de adminService lo modifique.
   const body = `
     const sectores = ${JSON.stringify(MOCK_SECTORES)};
-    const productos = ${JSON.stringify(MOCK_PRODUCTOS)};
-    const categorias = ${JSON.stringify(MOCK_CATEGORIAS)};
+    globalThis.__mockCatalogo ??= {
+      productos: ${JSON.stringify(MOCK_PRODUCTOS)},
+      categorias: ${JSON.stringify(MOCK_CATEGORIAS)},
+      empleados: ${JSON.stringify(MOCK_EMPLEADOS)},
+    };
+    const catalogo = globalThis.__mockCatalogo;
 
     export async function getSectores() {
       if (${JSON.stringify(failSectores)}) {
@@ -133,7 +147,7 @@ function buildCatalogoServiceMock(options = {}) {
         throw new Error("mock getProductos error");
       }
 
-      return productos;
+      return structuredClone(catalogo.productos);
     }
 
     export async function getCategorias() {
@@ -141,7 +155,15 @@ function buildCatalogoServiceMock(options = {}) {
         throw new Error("mock getCategorias error");
       }
 
-      return categorias;
+      return structuredClone(catalogo.categorias);
+    }
+
+    export async function getEmpleados() {
+      if (${JSON.stringify(failEmpleados)}) {
+        throw new Error("mock getEmpleados error");
+      }
+
+      return structuredClone(catalogo.empleados);
     }
   `;
 
@@ -255,6 +277,76 @@ function buildInventarioServiceMock(options = {}) {
   return body;
 }
 
+function buildAdminServiceMock() {
+  // Imita las validaciones de las RPCs admin_* sobre el catalogo en memoria.
+  return `
+    const catalogo = () => globalThis.__mockCatalogo;
+    const norm = (texto) => String(texto || "").toLowerCase().trim()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const siguienteId = (lista) => Math.max(0, ...lista.map((item) => item.id)) + 1;
+    globalThis.__mockAdminLlamadas = [];
+
+    function registrar(nombre, params) {
+      globalThis.__mockAdminLlamadas.push({ nombre, params });
+    }
+
+    function agregar(lista, nombre, etiqueta, extra = {}) {
+      const limpio = String(nombre).trim();
+      if (lista.some((item) => norm(item.nombre) === norm(limpio))) {
+        throw new Error("Ya existe " + etiqueta + " llamado " + limpio + ".");
+      }
+      const nuevo = { id: siguienteId(lista), nombre: limpio, ...extra };
+      lista.push(nuevo);
+      return nuevo;
+    }
+
+    function quitar(lista, id) {
+      const index = lista.findIndex((item) => String(item.id) === String(id));
+      if (index === -1) throw new Error("Ya no existe.");
+      return lista.splice(index, 1)[0];
+    }
+
+    export async function agregarEmpleado(nombre) {
+      registrar("agregarEmpleado", { nombre });
+      return agregar(catalogo().empleados, nombre, "un empleado");
+    }
+
+    export async function eliminarEmpleado(id) {
+      registrar("eliminarEmpleado", { id });
+      return quitar(catalogo().empleados, id);
+    }
+
+    export async function agregarCategoria(nombre) {
+      registrar("agregarCategoria", { nombre });
+      return agregar(catalogo().categorias, nombre, "una categoria");
+    }
+
+    export async function eliminarCategoria(id) {
+      registrar("eliminarCategoria", { id });
+      const cantidad = catalogo().productos.filter(
+        (producto) => String(producto.categoria_id) === String(id),
+      ).length;
+      if (cantidad) {
+        throw new Error("La categoria tiene " + cantidad + " producto(s). Borralos primero.");
+      }
+      return quitar(catalogo().categorias, id);
+    }
+
+    export async function agregarProducto(nombre, categoriaId) {
+      registrar("agregarProducto", { nombre, categoriaId });
+      return agregar(catalogo().productos, nombre, "un producto", {
+        categoria_id: Number(categoriaId),
+        orden: 999,
+      });
+    }
+
+    export async function eliminarProducto(id) {
+      registrar("eliminarProducto", { id });
+      return quitar(catalogo().productos, id);
+    }
+  `;
+}
+
 function buildAuthServiceMock(options = {}) {
   const {
     authenticatedSupervisor = false,
@@ -360,6 +452,14 @@ export async function mockAppServices(page, options = {}) {
       status: 200,
       contentType: "application/javascript; charset=utf-8",
       body: buildInventarioServiceMock(options),
+    });
+  });
+
+  await page.route("**/js/services/adminService.js", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/javascript; charset=utf-8",
+      body: buildAdminServiceMock(options),
     });
   });
 

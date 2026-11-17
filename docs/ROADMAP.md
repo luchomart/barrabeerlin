@@ -4,11 +4,17 @@ Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 
 ## Donde quedamos (2026-11-16)
 
-- Se reviso el estado real de Supabase (ver `docs/DATABASE.md`): los SQL v0.3.2, v0.3.3 y v0.4.0 estan aplicados.
-- Pendiente de aplicar: `docs/sql/hardening-v0.3.4.sql` (cierra borrado libre de inventario y snapshots).
-- Bug menor: `ORDEN_CATEGORIAS_SECTOR` en `js/config.js` usa `deposito cocina`, pero el sector real es `Estante Cocina`.
-- Smoke tests fijados a `msedge`: no corren en Linux sin ajustar.
-- Proximo: funciones de admin (usuarios, productos, categorias), en definicion.
+- Estado real de Supabase revisado (ver `docs/DATABASE.md`): los SQL de supervisor, snapshots y ventas estan aplicados.
+- v0.4.0 Administracion implementada en `dev` (sin push): panel `Admin` en supervisor, tabla `empleados`,
+  barriles por categoria y fix del orden de `Estante Cocina`. 69 tests unitarios y 16 smoke OK.
+- Para publicar, en este orden:
+  1. Aplicar `docs/sql/hardening-v0.3.4.sql` en Supabase.
+  2. Aplicar `docs/sql/admin-v0.4.0.sql` (sin esto el desplegable de empleados queda vacio).
+  3. Push de `dev`, QA (`docs/QA_CHECKLIST.md`, seccion Administracion) y merge a `main`.
+- Decisiones: borrar producto = borrado real con cascada de inventario y snapshots; categoria con productos no se borra;
+  empleados no inician sesion (solo la lista del desplegable).
+- Sigue abierto: `anon` puede modificar cantidades de `inventario` (requiere login de empleados).
+- Proximo: UI de ventas automaticas (SQL ya aplicado).
 
 Este documento es la guia de decision para futuras implementaciones. La regla general es simple: mejorar estabilidad, velocidad operativa y seguridad sin romper el flujo actual de uso real.
 
@@ -181,7 +187,20 @@ Criterio de salida:
 - El supervisor puede mostrar estado "sin datos suficientes" de forma confiable.
 - SQL versionado en `docs/sql/snapshot-rpc-v0.3.3.sql` aplicado en Supabase.
 
-## v0.4.0 - Velocidad de conteo
+## v0.4.0 - Administracion (implementada en dev)
+
+Tipo:
+
+- `MINOR`
+
+Incluye:
+
+- Panel `Admin` en supervisor: empleados, categorias y productos (alta y baja).
+- Tabla `empleados` y RPCs `admin_*` protegidas por `is_supervisor()`.
+- Barriles reconocidos por categoria `Barriles`.
+- Resuelve la decision pendiente de v0.5.1: se eligio una UI chica de administracion.
+
+## v0.4.1 - Ventas automaticas
 
 Tipo:
 
@@ -374,7 +393,7 @@ Ideas utiles, pero no comprometidas a version todavia:
 
 ## Orden recomendado de ejecucion
 
-1. Avanzar a `v0.4.0` para ventas automaticas con descuento por prioridad.
+1. Publicar `v0.4.0` (administracion) y avanzar a `v0.4.1` para la UI de ventas automaticas.
 2. Luego trabajar `v0.5.0` para mejorar velocidad de conteo.
 3. Recien despues construir `v0.6.0` con supervisor inteligente.
 

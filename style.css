@@ -851,7 +851,7 @@ footer::before {
 
 .acciones-supervisor {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: var(--sp-2);
   padding: var(--sp-4) var(--sp-4);
   border-bottom: 1px solid var(--border-subtle);
@@ -905,6 +905,16 @@ footer::before {
 
 #btn-whatsapp:hover {
   background: var(--green-bg);
+}
+
+#btn-admin {
+  border-color: var(--yellow-border);
+  color: var(--yellow);
+}
+
+#btn-admin:hover,
+#btn-admin[aria-expanded="true"] {
+  background: var(--yellow-bg);
 }
 
 .supervisor-section {
@@ -1546,4 +1556,177 @@ footer::before {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--border-strong);
+}
+
+/* =====================================================
+   SUPERVISOR — ADMINISTRACION
+===================================================== */
+
+.admin-section {
+  padding-bottom: var(--sp-6);
+}
+
+.admin-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.admin-bloque {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-base);
+  border-radius: var(--r-lg);
+  padding: var(--sp-4);
+}
+
+.admin-bloque h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--sp-3);
+}
+
+.admin-count,
+.admin-item-meta {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+.admin-lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-3);
+}
+
+.admin-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 40px;
+  padding: var(--sp-1) var(--sp-1) var(--sp-1) var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--bg-surface);
+}
+
+.admin-item-nombre {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-vacio,
+.admin-nota {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  padding: var(--sp-2) 0;
+}
+
+.admin-borrar {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--red);
+  font-size: 0.9rem;
+  transition: background var(--ease-fast);
+}
+
+.admin-borrar:hover:not(:disabled) {
+  background: var(--red-bg);
+}
+
+.admin-borrar:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
+.admin-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.admin-form input,
+.admin-form select {
+  flex: 1 1 140px;
+  min-width: 0;
+  padding: 10px var(--sp-3);
+  border: 1px solid var(--border-base);
+  border-radius: var(--r-md);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 16px; /* evita el zoom automatico en iOS */
+}
+
+.admin-form input:focus,
+.admin-form select:focus {
+  outline: none;
+  border-color: var(--yellow-border);
+}
+
+.admin-form button {
+  flex: none;
+  padding: 10px var(--sp-4);
+  border: 1px solid var(--yellow-border);
+  border-radius: var(--r-md);
+  background: var(--yellow-bg);
+  color: var(--yellow);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.admin-form button:disabled,
+.admin-form input:disabled,
+.admin-form select:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.admin-form-producto {
+  margin-bottom: var(--sp-3);
+}
+
+.admin-grupo {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.admin-grupo summary {
+  padding: var(--sp-3) 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.admin-grupo[open] summary {
+  color: var(--text-primary);
+}
+
+.admin-grupo-alerta summary {
+  color: var(--yellow);
+}
+
+.admin-mensaje {
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  font-size: 0.85rem;
+  white-space: pre-line;
+}
+
+.admin-mensaje-ok {
+  background: var(--green-bg);
+  border: 1px solid var(--green-border);
+  color: var(--green);
+}
+
+.admin-mensaje-error {
+  background: var(--red-bg);
+  border: 1px solid var(--red-border);
+  color: var(--red);
 }

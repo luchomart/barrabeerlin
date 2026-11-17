@@ -12,6 +12,7 @@ Producción: https://beerlin.online
 - Los productos se presentan por categoría y tienen buscador. El buscador es una parte estable y no debe cambiarse sin un motivo concreto.
 - En `Camara` hay un flujo especial para contar barriles; esos productos no deben filtrarse a otros sectores.
 - `supervisor.html`: requiere sesión de Supabase Auth. Presenta el estado de carga por sector, quién cargó, el inventario general y cambios de stock.
+- `supervisor.html` tiene un panel `Admin` (v0.4.0) para agregar/eliminar empleados, categorias y productos via RPCs `admin_*`.
 - Los snapshots guardan stock global consolidado para comparar conteos; no representan movimientos por sector.
 
 ## Tecnologías y estructura

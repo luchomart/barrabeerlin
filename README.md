@@ -17,6 +17,7 @@ Antes de trabajar, consulta AGENTS.md y docs/AI_CONTEXT.md. El segundo resume el
 - Copiar stock total o enviarlo por WhatsApp.
 - Supervisor con inicio de sesion, estado de sectores, ultimos conteos y cambios de stock.
 - Snapshots de stock total para comparaciones futuras.
+- Panel de administracion del supervisor: empleados, categorias y productos.
 
 ## Produccion
 
@@ -77,15 +78,16 @@ Cobertura inicial:
 - smoke tests ampliados para guardado, copiar, cambio de sector, acceso supervisor y estados de error
 - smoke tests sobre login, bloqueo directo y cierre de sesion del supervisor
 
-Estado actual de validacion:
+Estado actual de validacion (2026-11-16):
 
-- `50` tests unitarios
-- `12` smoke tests de navegador
+- `69` tests unitarios
+- `16` smoke tests de navegador
 - cobertura unitaria sobre `90%` de statements y `93%` de lines
 
 Notas para smoke tests:
 
 - usan `Microsoft Edge` del sistema en modo headless
+- en Linux, apuntar a Chromium: `PLAYWRIGHT_CHROMIUM_PATH=/usr/bin/chromium npm run test:smoke`
 - levantan un server local y mockean `catalogoService` / `inventarioService`
 - no leen ni escriben stock real
 - si aparece un timeout aislado de navegador, repetir con `npm run test:smoke:stable`

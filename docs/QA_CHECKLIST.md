@@ -5,7 +5,7 @@ Usar esta lista corta antes de publicar cambios a produccion.
 ## Validacion automatizada
 
 1. Ejecutar `npm test`.
-2. Ejecutar `npm run test:smoke`.
+2. Ejecutar `npm run test:smoke` (en Linux: `PLAYWRIGHT_CHROMIUM_PATH=/usr/bin/chromium npm run test:smoke`).
 3. Si hay un timeout aislado del navegador, repetir con `npm run test:smoke:stable`.
 4. Confirmar que los smoke tests no tocaron Supabase real ni stock productivo.
 
@@ -35,6 +35,16 @@ Usar esta lista corta antes de publicar cambios a produccion.
    estado de sectores, ultimos conteos y cambios de stock.
 4. Probar `Actualizar`, `Enviar stock`, `Cerrar sesion` y `Volver`.
 5. Revisar estados vacios y de error sin layout roto.
+
+## Administracion (supervisor)
+
+1. Con sesion de supervisor, tocar `Admin` y confirmar que cargan empleados, categorias y productos.
+2. Agregar un empleado de prueba y verificar que aparece en el desplegable de `index.html`.
+3. Intentar agregar un nombre repetido (con otras mayusculas o acentos) y confirmar el error.
+4. Confirmar que el boton de borrar de una categoria con productos esta deshabilitado.
+5. Agregar una categoria y un producto de prueba; verificar que el producto aparece al contar en un sector.
+6. Borrar el producto de prueba: la confirmacion muestra su stock. Luego borrar la categoria y el empleado de prueba.
+7. Cerrar sesion y confirmar que el panel y el boton `Admin` desaparecen.
 
 ## Snapshots y cambios globales
 

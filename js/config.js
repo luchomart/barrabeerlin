@@ -1,17 +1,19 @@
-export const APP_VERSION = "0.3.3";
+export const APP_VERSION = "0.4.0";
 
 export const SUPABASE_URL = "https://bcfnqbhrfjaqjdcwynqw.supabase.co";
 
 export const SUPABASE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjZm5xYmhyZmphcWpkY3d5bnF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwOTQ5OTksImV4cCI6MjA4ODY3MDk5OX0.wR7mM5FMCgOvQqqmBu4FAbSKU6luu_sQ4NTbRhaD58U";
 
-export const EMPLEADOS = ["", "Karen", "Eve", "Nicolas", "Luciano", "Fiorella"];
-
 export const CATEGORIA_VIRTUAL_BARRILES = {
   id: "barriles",
   nombre: "Barriles (sin pinchar)",
 };
 
+// Nombre de la categoria real cuyos productos se cuentan como barriles en Camara.
+export const NOMBRE_CATEGORIA_BARRILES = "Barriles";
+
+// Respaldo: barriles reconocidos por nombre aunque no esten en esa categoria.
 export const PRODUCTOS_BARRILES_CAMARA = [
   "IPA",
   "Session IPA",
@@ -41,7 +43,7 @@ export const ORDEN_CATEGORIAS_SECTOR = {
     "Destilados, licores y aperitivos",
   ],
 
-  "deposito cocina": ["Aguas", "Cervezas", "Gaseosas", "Aguas saborizadas"],
+  "estante cocina": ["Aguas", "Cervezas", "Gaseosas", "Aguas saborizadas"],
 
   "estantes barra": [
     "Destilados, licores y aperitivos",

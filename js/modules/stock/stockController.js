@@ -2,7 +2,7 @@ import { appState } from "../../core/appState.js";
 
 import {
   CATEGORIA_VIRTUAL_BARRILES,
-  EMPLEADOS,
+  NOMBRE_CATEGORIA_BARRILES,
   ORDEN_CATEGORIAS_SECTOR,
   PRODUCTOS_BARRILES_CAMARA,
 } from "../../config.js";
@@ -11,6 +11,7 @@ import {
   getSectores,
   getProductos,
   getCategorias,
+  getEmpleados,
 } from "../../services/catalogoService.js";
 
 import {
@@ -25,7 +26,10 @@ import {
   actualizarInputsStock,
 } from "../../ui/renderer.js";
 import { normalizarTexto } from "../../utils/format.js";
-import { buildCatalogoRenderizable } from "./stockCatalog.js";
+import {
+  buildCatalogoRenderizable,
+  obtenerIdsCategoriasBarriles,
+} from "./stockCatalog.js";
 
 import { buildStockData, formatWhatsappText } from "./stockFormatter.js";
 
@@ -85,7 +89,7 @@ export function initStockApp() {
     return true;
   }
 
-  function cargarEmpleados() {
+  function cargarEmpleados(empleados = []) {
     selectEmpleado.innerHTML = "";
 
     const optionInicial = document.createElement("option");
@@ -94,12 +98,12 @@ export function initStockApp() {
 
     selectEmpleado.appendChild(optionInicial);
 
-    EMPLEADOS.forEach((empleado) => {
-      if (!empleado) return;
+    (Array.isArray(empleados) ? empleados : []).forEach(({ nombre }) => {
+      if (!nombre) return;
 
       const option = document.createElement("option");
-      option.value = empleado;
-      option.textContent = empleado;
+      option.value = nombre;
+      option.textContent = nombre;
 
       selectEmpleado.appendChild(option);
     });
@@ -114,6 +118,16 @@ export function initStockApp() {
 
     if (!empleadoGuardado) return;
 
+    // Si el empleado guardado fue eliminado por el admin, se ignora.
+    const existe = Array.from(selectEmpleado.options).some(
+      (option) => option.value && option.value === empleadoGuardado,
+    );
+
+    if (!existe) {
+      localStorage.removeItem("empleado");
+      return;
+    }
+
     appState.setEmpleado(empleadoGuardado);
     selectEmpleado.value = empleadoGuardado;
   }
@@ -126,6 +140,10 @@ export function initStockApp() {
       ordenCategoriasSector: ORDEN_CATEGORIAS_SECTOR,
       categoriaVirtualBarriles: CATEGORIA_VIRTUAL_BARRILES,
       nombresBarrilesNormalizados: BARRILES,
+      idsCategoriasBarriles: obtenerIdsCategoriasBarriles(
+        appState.categorias,
+        NOMBRE_CATEGORIA_BARRILES,
+      ),
     });
 
     if (catalogo.sinBarrilesConfigurados) {
@@ -392,14 +410,15 @@ export function initStockApp() {
     try {
       listaProductos.style.display = "none";
 
-      cargarEmpleados();
-      cargarEmpleadoLocal();
-
-      const [sectores, productos, categorias] = await Promise.all([
+      const [sectores, productos, categorias, empleados] = await Promise.all([
         getSectores(),
         getProductos(),
         getCategorias(),
+        getEmpleados(),
       ]);
+
+      cargarEmpleados(empleados);
+      cargarEmpleadoLocal();
 
       appState.setCatalogo({ sectores, productos, categorias });
 
