@@ -39,3 +39,15 @@ Notas:
 - Las filas de un mismo snapshot comparten `snapshot_id`.
 - Los snapshots historicos sin `snapshot_id` se pueden agrupar por `fecha`.
 - El guardado nuevo queda preparado para usar la RPC `save_stock_snapshot(...)`.
+
+## Tablas de ventas automaticas
+
+Aplicadas en Supabase:
+
+- `ventas`
+- `ventas_detalle`
+- `ventas_descuentos`
+
+SQL aplicado:
+
+- `docs/sql/ventas-automaticas-v0.4.0.sql`

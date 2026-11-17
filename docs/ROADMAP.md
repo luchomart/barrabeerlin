@@ -181,6 +181,33 @@ Tipo:
 
 Objetivo:
 
+- Reducir trabajo manual diario incorporando carga secundaria de ventas con descuento automatico por prioridad de sectores.
+
+Incluye:
+
+- Documento de contrato para ventas automaticas.
+- SQL aplicado para tablas de ventas, detalle y auditoria de descuentos.
+- SQL aplicado para RPC transaccional que descuenta de `inventario`.
+- Registro de faltantes sin permitir stock negativo.
+- UI minima para cargar ventas del dia.
+- Tests del service y smoke tests del flujo basico.
+
+Criterio de salida:
+
+- Se puede cargar una venta sin usar el flujo principal de conteo.
+- El descuento respeta prioridades de sectores.
+- Si no alcanza stock, se registra faltante.
+- El conteo manual sigue funcionando igual.
+- Hay auditoria de que sectores fueron descontados.
+
+## v0.5.0 - Velocidad de conteo
+
+Tipo:
+
+- `MINOR`
+
+Objetivo:
+
 - Reducir tiempo y friccion durante carga real de stock en mobile.
 
 Incluye:
@@ -199,7 +226,7 @@ Criterio de salida:
 - El buscador sigue funcionando igual.
 - Los usuarios pueden seguir usando inputs normales.
 
-## v0.4.1 - Gestion controlada de catalogo
+## v0.5.1 - Gestion controlada de catalogo
 
 Tipo:
 
@@ -226,7 +253,7 @@ Decision pendiente:
 
 - Elegir entre mantener SQL guiado o construir una UI chica de administracion.
 
-## v0.5.0 - Supervisor inteligente
+## v0.6.0 - Supervisor inteligente
 
 Tipo:
 
@@ -252,7 +279,7 @@ Criterio de salida:
 - No requiere entrenamiento para leer lo importante.
 - Los calculos vienen de datos consolidados y no duplican logica de UI.
 
-## v0.6.0 - Calidad y release workflow
+## v0.7.0 - Calidad y release workflow
 
 Tipo:
 
@@ -278,7 +305,7 @@ Criterio de salida:
 - Publicar deja de depender de memoria.
 - Volver atras esta documentado.
 
-## v0.7.0 - Resiliencia operativa
+## v0.8.0 - Resiliencia operativa
 
 Tipo:
 
@@ -339,8 +366,9 @@ Ideas utiles, pero no comprometidas a version todavia:
 
 ## Orden recomendado de ejecucion
 
-1. Avanzar a `v0.4.0` para mejorar velocidad de conteo.
-2. Recien despues construir `v0.5.0` con supervisor inteligente.
+1. Avanzar a `v0.4.0` para ventas automaticas con descuento por prioridad.
+2. Luego trabajar `v0.5.0` para mejorar velocidad de conteo.
+3. Recien despues construir `v0.6.0` con supervisor inteligente.
 
 ## Preguntas de producto abiertas
 
@@ -349,6 +377,7 @@ Ideas utiles, pero no comprometidas a version todavia:
 - Quien puede ver supervisor en el futuro: una sola cuenta o varios roles?
 - Que productos necesitan umbrales de alerta y cuales no?
 - Que tan importante es offline/PWA para el uso real en barra?
+- La carga de ventas debe estar disponible para todos los empleados o solo para supervisor?
 
 ## Historial cerrado
 
