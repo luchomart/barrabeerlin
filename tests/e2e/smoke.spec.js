@@ -595,7 +595,29 @@ test("supervisor smoke: admin agrega y elimina empleados, categorias y productos
   page.once("dialog", (dialog) => dialog.dismiss());
   await bloqueProductos.locator("summary", { hasText: "Sidras" }).click();
   await bloqueProductos.locator('[data-accion="eliminar-producto"][data-nombre="Sidra Pera"]').click();
-  await expect(bloqueProductos.locator('[data-nombre="Sidra Pera"]')).toHaveCount(1);
+  await expect(
+    bloqueProductos.locator('[data-accion="eliminar-producto"][data-nombre="Sidra Pera"]'),
+  ).toHaveCount(1);
+
+  // Mover un producto a otra categoria
+  await bloqueProductos.locator("summary", { hasText: "Aguas" }).click();
+  await bloqueProductos.locator('[data-accion="mover-producto"][data-nombre="Agua"]').click();
+  const formMover = bloqueProductos.locator(".admin-form-mover");
+  await expect(formMover).toHaveCount(1);
+  await expect(formMover.locator("option", { hasText: "Aguas (actual)" })).toBeDisabled();
+
+  // Cancelar cierra el selector sin llamar a nada
+  await formMover.locator('[data-accion="cancelar-mover"]').click();
+  await expect(formMover).toHaveCount(0);
+
+  await bloqueProductos.locator('[data-accion="mover-producto"][data-nombre="Agua"]').click();
+  await formMover.locator("select").selectOption({ label: "Gaseosas" });
+  await formMover.locator('button[type="submit"]').click();
+  await expect(mensaje).toHaveText('Producto "Agua" movido a Gaseosas.');
+  await bloqueProductos.locator("summary", { hasText: "Gaseosas" }).click();
+  await expect(
+    bloqueProductos.locator('details[data-categoria="2"] [data-nombre="Agua"]').first(),
+  ).toBeVisible();
 
   const llamadas = await page.evaluate(() => globalThis.__mockAdminLlamadas.map((l) => l.nombre));
   expect(llamadas).toEqual([
@@ -605,6 +627,7 @@ test("supervisor smoke: admin agrega y elimina empleados, categorias y productos
     "agregarCategoria",
     "agregarProducto",
     "eliminarProducto",
+    "moverProducto",
   ]);
 });
 

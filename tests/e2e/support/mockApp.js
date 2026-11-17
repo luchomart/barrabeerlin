@@ -362,6 +362,14 @@ function buildAdminServiceMock() {
       registrar("eliminarProducto", { id });
       return quitar(catalogo().productos, id);
     }
+
+    export async function moverProducto(id, categoriaId) {
+      registrar("moverProducto", { id, categoriaId });
+      const producto = catalogo().productos.find((item) => String(item.id) === String(id));
+      if (!producto) throw new Error("El producto ya no existe.");
+      producto.categoria_id = Number(categoriaId);
+      return { ...producto, movido: true };
+    }
   `;
 }
 

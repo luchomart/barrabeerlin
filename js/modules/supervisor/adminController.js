@@ -13,11 +13,13 @@ import {
   eliminarCategoria,
   eliminarEmpleado,
   eliminarProducto,
+  moverProducto,
 } from "../../services/adminService.js";
 
 import {
   renderAdminMensaje,
   renderAdminPanel,
+  renderFormMover,
   setAdminOcupado,
 } from "../../ui/adminRenderer.js";
 
@@ -195,12 +197,27 @@ export function initAdminPanel({ section, contenido, button } = {}) {
     const formData = new FormData(form);
     const nombre = String(formData.get("nombre") || "").trim();
 
-    if (!nombre) return;
+    if (!nombre && form.dataset.form !== "mover") return;
 
     if (form.dataset.form === "empleado") {
       await ejecutar(() => agregarEmpleado(nombre), `Empleado "${nombre}" agregado.`);
     } else if (form.dataset.form === "categoria") {
       await ejecutar(() => agregarCategoria(nombre), `Categoría "${nombre}" agregada.`);
+    } else if (form.dataset.form === "mover") {
+      const categoriaId = formData.get("categoria_id");
+      const categoria = (datos?.categorias || []).find(
+        (item) => String(item.id) === String(categoriaId),
+      );
+
+      if (!categoriaId) {
+        renderAdminMensaje(contenido, { tipo: "error", texto: "Elegí una categoría." });
+        return;
+      }
+
+      await ejecutar(
+        () => moverProducto(form.dataset.id, categoriaId),
+        `Producto "${form.dataset.nombre}" movido a ${categoria?.nombre || "la categoría elegida"}.`,
+      );
     } else if (form.dataset.form === "producto") {
       const categoriaId = formData.get("categoria_id");
 
@@ -222,6 +239,18 @@ export function initAdminPanel({ section, contenido, button } = {}) {
     if (!boton || boton.disabled) return;
 
     const { accion, id, nombre } = boton.dataset;
+
+    if (accion === "mover-producto") {
+      renderFormMover(boton, datos?.categorias || []);
+      return;
+    }
+
+    if (accion === "cancelar-mover") {
+      const item = boton.closest(".admin-item");
+      boton.closest(".admin-form-mover")?.remove();
+      item?.querySelector('[data-accion="mover-producto"]')?.focus();
+      return;
+    }
 
     if (accion === "eliminar-empleado") {
       const confirmar = confirm(

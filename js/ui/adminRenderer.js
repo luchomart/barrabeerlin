@@ -69,6 +69,25 @@ function botonBorrar(accion, id, nombre, { disabled = false, title = "" } = {}) 
   `;
 }
 
+const ICONO_MOVER =
+  '<svg class="icono" viewBox="0 0 16 16" aria-hidden="true" focusable="false">' +
+  '<path d="M2.5 5.5h10M10 3l2.5 2.5L10 8M13.5 10.5h-10M6 8l-2.5 2.5L6 13" fill="none" ' +
+  'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function botonMover(producto) {
+  return `
+    <button
+      type="button"
+      class="admin-mover"
+      data-accion="mover-producto"
+      data-id="${escapeHtml(producto.id)}"
+      data-nombre="${escapeHtml(producto.nombre)}"
+      aria-label="Mover ${escapeHtml(producto.nombre)} a otra categoría"
+      title="Mover a otra categoría"
+    >${ICONO_MOVER}</button>
+  `;
+}
+
 function renderEmpleados(empleados = []) {
   const items = empleados
     .map(
@@ -145,6 +164,7 @@ function renderProductos(grupos = [], stockPorProducto = {}, abiertos = new Set(
             <li class="admin-item">
               <span class="admin-item-nombre">${escapeHtml(producto.nombre)}</span>
               <span class="admin-item-meta">${meta}</span>
+              ${botonMover(producto)}
               ${botonBorrar("eliminar-producto", producto.id, producto.nombre)}
             </li>
           `;
@@ -211,6 +231,48 @@ export function renderAdminPanel(container, datos = {}) {
     nuevo.className = mensajeAnterior.className;
     nuevo.hidden = false;
   }
+}
+
+// Abre, debajo del producto, el selector para elegir su nueva categoria.
+// Solo puede haber uno abierto a la vez.
+export function renderFormMover(boton, categorias = []) {
+  const item = boton?.closest(".admin-item");
+
+  if (!item) return null;
+
+  item.closest(".admin-panel")?.querySelectorAll(".admin-form-mover").forEach((form) => form.remove());
+
+  const { id, nombre } = boton.dataset;
+  const grupoActual = boton.closest("details.admin-grupo")?.dataset.categoria || "";
+  const opciones = ordenarPorNombre(Array.isArray(categorias) ? categorias : [])
+    .map((categoria) => {
+      const actual = String(categoria.id) === grupoActual;
+
+      return `<option value="${escapeHtml(categoria.id)}"${actual ? " disabled" : ""}>${escapeHtml(
+        categoria.nombre,
+      )}${actual ? " (actual)" : ""}</option>`;
+    })
+    .join("");
+
+  const form = document.createElement("form");
+  form.className = "admin-form admin-form-mover";
+  form.dataset.form = "mover";
+  form.dataset.id = id;
+  form.dataset.nombre = nombre;
+  form.setAttribute("autocomplete", "off");
+  form.innerHTML = `
+    <select name="categoria_id" aria-label="Nueva categoría de ${escapeHtml(nombre)}" required>
+      <option value="" selected disabled>Mover a…</option>
+      ${opciones}
+    </select>
+    <button type="submit">Mover</button>
+    <button type="button" class="admin-cancelar" data-accion="cancelar-mover">Cancelar</button>
+  `;
+
+  item.append(form);
+  form.querySelector("select").focus();
+
+  return form;
 }
 
 export function renderAdminMensaje(container, { tipo = "ok", texto = "" } = {}) {

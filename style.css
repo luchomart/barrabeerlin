@@ -1723,6 +1723,48 @@ footer::before {
   transition: background var(--ease-fast);
 }
 
+.admin-mover {
+  flex: none;
+  width: var(--toque);
+  height: var(--toque);
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 16px;
+  transition: background var(--ease-fast);
+}
+
+/* Selector "Mover a…" abierto debajo del producto */
+.admin-item:has(.admin-form-mover) {
+  flex-wrap: wrap;
+  padding-bottom: var(--sp-3);
+  outline: 1px solid var(--border-strong);
+}
+
+.admin-form-mover {
+  flex-basis: 100%;
+  min-width: 0;
+  padding-right: var(--sp-2);
+}
+
+.admin-form.admin-form-mover select {
+  flex: 1 1 100%;
+  width: 100%;
+}
+
+.admin-form.admin-form-mover button {
+  flex: 1;
+}
+
+.admin-form-mover .admin-cancelar {
+  border-color: var(--border-base);
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
 .admin-borrar:disabled {
   color: var(--text-disabled);
   cursor: not-allowed;
@@ -1902,6 +1944,11 @@ footer::before {
 
   ::-webkit-scrollbar-thumb:hover {
     background: var(--border-strong);
+  }
+
+  .admin-mover:hover {
+    background: var(--bg-overlay);
+    color: var(--text-primary);
   }
 
   .admin-borrar:hover:not(:disabled) {

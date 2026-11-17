@@ -33,6 +33,14 @@ Historial de cambios de Stock Barra.
   cargan con `<link>` (no `@import`).
 
 ### Added
+- Panel Admin: boton "Mover" para cambiar un producto de categoria (tambien sirve para los
+  productos sin categoria). Requiere `docs/sql/admin-v0.4.2.sql`.
+- Mensaje de WhatsApp:
+  - categorias en negrita con su total y emoji por palabra (📦 si no reconoce ninguna);
+  - seccion "Sin stock" al final y hora en 24 h;
+  - siempre incluye los barriles, elijas el sector que elijas;
+  - el supervisor manda el mismo mensaje.
+- El buscador ignora tildes y mayusculas ("levite" encuentra "Levité").
 - Conteo a prueba de cortes de internet: lo tipeado en cada sector se guarda en el celular y se
   recupera si se cierra o recarga la pagina. Si `Guardar` falla por falta de red, el conteo queda
   en una cola local y se envia solo al volver la conexion (aviso amarillo en pantalla). Un pendiente

@@ -23,6 +23,7 @@ const {
   eliminarCategoria,
   eliminarEmpleado,
   eliminarProducto,
+  moverProducto,
   obtenerMensajeErrorAdmin,
 } = await import("../../js/services/adminService.js");
 
@@ -40,6 +41,7 @@ describe("adminService", () => {
     await eliminarCategoria(14);
     await agregarProducto("Fanta", "2");
     await eliminarProducto(11);
+    await moverProducto("11", 14);
 
     expect(scenario.rpcCalls).toEqual([
       { name: "admin_agregar_empleado", params: { nombre: "Juan Pablo" } },
@@ -48,6 +50,7 @@ describe("adminService", () => {
       { name: "admin_eliminar_categoria", params: { categoria_id: 14 } },
       { name: "admin_agregar_producto", params: { nombre: "Fanta", categoria_id: 2 } },
       { name: "admin_eliminar_producto", params: { producto_id: 11 } },
+      { name: "admin_mover_producto", params: { producto_id: 11, categoria_id: 14 } },
     ]);
   });
 
@@ -55,6 +58,7 @@ describe("adminService", () => {
     await expect(agregarEmpleado("   ")).rejects.toThrow("vacio");
     await expect(eliminarProducto("abc")).rejects.toThrow("invalido");
     await expect(agregarProducto("Fanta", "")).rejects.toThrow("invalido");
+    await expect(moverProducto(11, "")).rejects.toThrow("invalido");
     expect(scenario.rpcCalls).toEqual([]);
   });
 

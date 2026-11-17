@@ -8,6 +8,7 @@ import {
   agruparProductosPorCategoria,
   renderAdminMensaje,
   renderAdminPanel,
+  renderFormMover,
   setAdminOcupado,
 } from "../../js/ui/adminRenderer.js";
 
@@ -131,5 +132,34 @@ describe("adminController helpers", () => {
     expect(textoConfirmacionProducto("Fanta", undefined)).toContain(
       "No se pudo consultar su stock actual.",
     );
+  });
+
+  it("abre un solo selector para mover un producto, sin ofrecer su categoria actual", () => {
+    document.body.innerHTML = '<div id="admin-contenido"></div>';
+    const container = document.getElementById("admin-contenido");
+
+    renderAdminPanel(container, DATOS);
+
+    const moverSprite = container.querySelector('[data-accion="mover-producto"][data-nombre="Sprite"]');
+    const moverHuerfano = container.querySelector('[data-accion="mover-producto"][data-nombre="Huerfano"]');
+
+    expect(moverSprite.getAttribute("aria-label")).toBe("Mover Sprite a otra categoría");
+
+    const form = renderFormMover(moverSprite, DATOS.categorias);
+
+    expect(form.dataset.form).toBe("mover");
+    expect(form.dataset.id).toBe("11");
+    expect(moverSprite.closest(".admin-item").contains(form)).toBe(true);
+
+    const actual = form.querySelector('option[value="2"]');
+    expect(actual.disabled).toBe(true);
+    expect(actual.textContent).toBe("Gaseosas (actual)");
+    expect(form.querySelector('option[value="14"]').disabled).toBe(false);
+
+    // Abrir otro cierra el anterior; un producto sin categoria puede ir a cualquiera.
+    const otro = renderFormMover(moverHuerfano, DATOS.categorias);
+
+    expect(container.querySelectorAll(".admin-form-mover")).toHaveLength(1);
+    expect(otro.querySelectorAll("option:not([disabled])")).toHaveLength(2);
   });
 });

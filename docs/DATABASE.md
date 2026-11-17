@@ -98,3 +98,14 @@ Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos.
 - `admin_agregar_empleado/categoria/producto` toman un candado sobre su tabla antes de chequear
   nombres repetidos (evita duplicados por altas simultaneas).
 - Probado en PGlite imitando roles y esquema: 16 casos OK (incluye el rollback).
+
+## Mover producto de categoria (v0.4.2, PENDIENTE de aplicar)
+
+`docs/sql/admin-v0.4.2.sql` agrega la RPC `admin_mover_producto(producto_id, categoria_id)`:
+
+- `SECURITY DEFINER`, solo `authenticated` (se revoca `anon`) y exige `is_supervisor()`.
+- Modifica solo `productos.categoria_id` y `productos.orden` de ese producto (queda al final de la
+  categoria nueva). No toca inventario, snapshots ni ventas.
+- Sirve para darle categoria a los productos que hoy no tienen.
+- Sin esta RPC el boton "Mover" del panel Admin da error (el resto del panel sigue andando).
+- Probado en PGlite imitando roles y esquema (con v0.4.0 y v0.4.1 cargados): 14 casos OK.

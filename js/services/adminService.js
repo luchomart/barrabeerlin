@@ -91,6 +91,13 @@ export async function agregarProducto(nombre, categoriaId) {
   });
 }
 
+export async function moverProducto(id, categoriaId) {
+  return llamarRpc("admin_mover_producto", {
+    producto_id: exigirId(id, "producto"),
+    categoria_id: exigirId(categoriaId, "categoria"),
+  });
+}
+
 export async function eliminarProducto(id) {
   return llamarRpc("admin_eliminar_producto", {
     producto_id: exigirId(id, "producto"),
