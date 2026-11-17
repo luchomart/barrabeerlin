@@ -4,17 +4,14 @@ Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 
 ## Donde quedamos (2026-11-16)
 
-- Estado real de Supabase revisado (ver `docs/DATABASE.md`): los SQL de supervisor, snapshots y ventas estan aplicados.
-- v0.4.0 Administracion publicada en produccion: panel `Admin` en supervisor, tabla `empleados`,
-  barriles por categoria y fix del orden de `Estante Cocina`. 69 tests unitarios y 16 smoke OK.
-- Para publicar, en este orden:
-  1. ~~Aplicar `docs/sql/hardening-v0.3.4.sql`~~ aplicado y verificado el 2026-11-16.
-  2. ~~Aplicar `docs/sql/admin-v0.4.0.sql`~~ aplicado y verificado el 2026-11-16.
-  3. ~~Push de `dev`, QA y merge a `main`~~ QA manual OK y publicada el 2026-11-16.
-- Decisiones: borrar producto = borrado real con cascada de inventario y snapshots; categoria con productos no se borra;
-  empleados no inician sesion (solo la lista del desplegable).
-- Sigue abierto: `anon` puede modificar cantidades de `inventario` (requiere login de empleados).
-- Proximo: UI de ventas automaticas (SQL ya aplicado).
+- v0.4.0 publicada en beerlin.online (panel Admin: empleados, categorias, productos). QA manual OK.
+- Supabase al dia: aplicados hardening-v0.3.4 y admin-v0.4.0 (estado real en `docs/DATABASE.md`).
+- Decisiones v0.4.0: borrar producto = borrado real con cascada de inventario y snapshots;
+  categoria con productos no se borra; empleados no inician sesion (solo la lista del desplegable).
+- Riesgo abierto: `anon` puede modificar cantidades de `inventario` (cerrarlo requiere login de empleados).
+- Proximo paso: v0.4.1 UI de ventas automaticas. Ya existen el SQL aplicado (`registrar_venta`),
+  `js/services/ventasService.js` y sus tests. Antes de la UI, decidir quien puede cargar ventas
+  (hoy `registrar_venta` la puede ejecutar `anon`). Los nombres de sectores reales coinciden con la prioridad del SQL.
 
 Este documento es la guia de decision para futuras implementaciones. La regla general es simple: mejorar estabilidad, velocidad operativa y seguridad sin romper el flujo actual de uso real.
 
