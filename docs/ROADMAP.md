@@ -4,30 +4,25 @@ Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 
 ## Donde quedamos (2026-11-17)
 
-- `docs/sql/admin-v0.4.3.sql` (productos que no avisan si estan en 0) aplicado en Supabase el
-  2026-11-17 (verificacion OK).
-- `docs/sql/admin-v0.4.2.sql` (mover producto de categoria) aplicado en Supabase el 2026-11-17
-  (verificacion: `sin_anon = true`). La prueba movio 4 duplicados sin categoria a Vinos; ya se
-  revirtio (`docs/sql/revertir-prueba-mover-2026-11-17.sql`, verificado).
-- Idea: borrar esos 4 duplicados (ids 19, 32, 33, 34) despues de revisar si tienen stock cargado.
-- Buscador: al escribir, la lista sube hasta el primer resultado y en el celu el pie se oculta
-  mientras el teclado esta abierto.
-- Hechos en `dev`: buscador sin tildes, mensaje de WhatsApp renovado (totales, "Sin stock",
-  barriles siempre, mismo mensaje desde el supervisor) y boton "Mover" en el admin.
-- Critica de diseño (`/impeccable critique`, 23/40) y arreglos aplicados en `dev`: progreso por
-  categoria, aviso antes de guardar sin revisar todo, comprobante en vez de `alert`, indicador real de
-  conexion, error con `Reintentar`, botones − / +, pie mas chico, contraste y accesibilidad (ver
-  CHANGELOG "Changed"). Falta probarlo en el Moto G9 antes de publicar: cambia el flujo que el
-  personal ya conoce (ya no hay `alert` al guardar).
-- Pendiente de la critica: poder **empezar** un conteo sin internet (guardar en el celu el ultimo
-  stock de cada sector). Se decidio dejarlo para despues.
-- En `dev`, sin publicar: revision de v0.4.0 + conteo a prueba de cortes de internet (ver CHANGELOG
-  "Sin publicar"). Incluye un arreglo de seguridad: nombres sin escapar en el supervisor (XSS via
-  `inventario.empleado`, que `anon` puede escribir). beerlin.online sigue expuesto hasta publicar.
+- **v0.5.0 publicada en `main` (beerlin.online) el 2026-11-17.** Incluye:
+  - la revision de v0.4.0 con el arreglo de seguridad XSS en el supervisor;
+  - conteo a prueba de cortes de internet;
+  - los arreglos de la critica de diseño (`/impeccable critique`, 23/40): progreso por categoria,
+    comprobante, indicador de conexion, botones − / + y accesibilidad;
+  - el buscador sin tildes y que lleva al resultado;
+  - el mensaje de WhatsApp nuevo;
+  - en el admin: "Mover" y "No avisar si estan en 0".
+  Ver CHANGELOG.
+- Supabase: aplicados `admin-v0.4.2.sql` (mover producto) y `admin-v0.4.3.sql` (no avisar en 0).
+  La prueba de "Mover" se revirtio con `revertir-prueba-mover-2026-11-17.sql`.
 - PENDIENTE (Luciano): pegar `docs/sql/admin-v0.4.1.sql` en Supabase (no borrar productos con ventas,
   altas sin duplicados). Probado en PGlite 16/16. Despues marcarlo como aplicado en `docs/DATABASE.md`.
-- Proximo paso: QA en el celu con modo avion (`docs/QA_CHECKLIST.md`, seccion "Sin internet"),
-  decidir el numero de version (este paquete como v0.4.1 y ventas pasa a v0.4.2?) y publicar a `main`.
+- Proximo paso: QA en el celu con la checklist (`docs/QA_CHECKLIST.md`, secciones "Stock" y
+  "Sin internet"), con el personal: cambia el flujo que conocian (sin `alert` al guardar).
+- Pendientes chicos:
+  - poder **empezar** un conteo sin internet (guardar en el celu el ultimo stock de cada sector);
+  - borrar los 4 productos duplicados sin categoria (ids 19, 32, 33, 34) despues de revisar si
+    tienen stock.
 - Despues: UI de ventas automaticas. Antes, decidir quien puede cargar ventas (hoy `registrar_venta`
   la ejecuta `anon`).
 - Decisiones 2026-11-17: barriles se cuentan solo en Camara; un producto con ventas no se borra;

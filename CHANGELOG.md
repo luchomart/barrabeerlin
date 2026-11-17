@@ -2,7 +2,7 @@
 
 Historial de cambios de Stock Barra.
 
-## Sin publicar (revision 2026-11-17)
+## v0.5.0 - 2026-11-17
 
 ### Changed (critica de diseño, 2026-11-17)
 - Pantalla de conteo:
