@@ -99,7 +99,7 @@ Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos.
   nombres repetidos (evita duplicados por altas simultaneas).
 - Probado en PGlite imitando roles y esquema: 16 casos OK (incluye el rollback).
 
-## Mover producto de categoria (v0.4.2, PENDIENTE de aplicar)
+## Mover producto de categoria (v0.4.2, aplicado 2026-11-17)
 
 `docs/sql/admin-v0.4.2.sql` agrega la RPC `admin_mover_producto(producto_id, categoria_id)`:
 
@@ -107,5 +107,5 @@ Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos.
 - Modifica solo `productos.categoria_id` y `productos.orden` de ese producto (queda al final de la
   categoria nueva). No toca inventario, snapshots ni ventas.
 - Sirve para darle categoria a los productos que hoy no tienen.
-- Sin esta RPC el boton "Mover" del panel Admin da error (el resto del panel sigue andando).
+- Aplicado por Luciano el 2026-11-17; la consulta de verificacion dio `sin_anon = true`.
 - Probado en PGlite imitando roles y esquema (con v0.4.0 y v0.4.1 cargados): 14 casos OK.

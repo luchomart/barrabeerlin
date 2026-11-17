@@ -41,6 +41,8 @@ Historial de cambios de Stock Barra.
   - siempre incluye los barriles, elijas el sector que elijas;
   - el supervisor manda el mismo mensaje.
 - El buscador ignora tildes y mayusculas ("levite" encuentra "Levité").
+- Al buscar, la lista sube hasta el primer resultado. En el celu, mientras se escribe (buscador o
+  cantidad), el pie fijo se oculta para que el teclado no tape los productos.
 - Conteo a prueba de cortes de internet: lo tipeado en cada sector se guarda en el celular y se
   recupera si se cierra o recarga la pagina. Si `Guardar` falla por falta de red, el conteo queda
   en una cola local y se envia solo al volver la conexion (aviso amarillo en pantalla). Un pendiente

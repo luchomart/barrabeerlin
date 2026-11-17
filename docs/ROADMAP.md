@@ -4,9 +4,10 @@ Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 
 ## Donde quedamos (2026-11-17)
 
-- PENDIENTE (Luciano): pegar `docs/sql/admin-v0.4.2.sql` en Supabase (RPC para mover un producto
-  de categoria; probado en PGlite 14/14). Sin eso, el boton "Mover" del admin da error.
-  Despues marcarlo como aplicado en `docs/DATABASE.md`.
+- `docs/sql/admin-v0.4.2.sql` (mover producto de categoria) aplicado en Supabase el 2026-11-17
+  (verificacion: `sin_anon = true`).
+- Buscador: al escribir, la lista sube hasta el primer resultado y en el celu el pie se oculta
+  mientras el teclado esta abierto.
 - Hechos en `dev`: buscador sin tildes, mensaje de WhatsApp renovado (totales, "Sin stock",
   barriles siempre, mismo mensaje desde el supervisor) y boton "Mover" en el admin.
 - Critica de diseño (`/impeccable critique`, 23/40) y arreglos aplicados en `dev`: progreso por

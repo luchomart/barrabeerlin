@@ -105,6 +105,40 @@ test("stock smoke: el buscador ignora tildes y mayusculas", async ({ page }) => 
   await expect(page.locator(".busqueda-vacia")).toHaveCount(0);
 });
 
+test("stock smoke: buscar lleva el resultado arriba y en el celu oculta el pie al escribir", async ({ browser }) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 500 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  const page = await context.newPage();
+  await mockAppServices(page);
+  await page.goto("/");
+
+  await page.selectOption("#select-empleado", { label: "Karen" });
+  await page.selectOption("#select-sector", { label: "Estantes Barra" });
+
+  await page.locator("#buscar-producto").focus();
+  await expect(page.locator("footer")).toBeHidden();
+
+  await page.locator("#buscar-producto").fill("coca");
+
+  // El resultado queda visible justo debajo del buscador fijo.
+  const fila = filaProducto(page, 201);
+  await expect(fila).toBeInViewport();
+  const buscador = await page.locator(".busqueda").boundingBox();
+  const bloque = await page.locator(".categoria-bloque", { has: fila }).boundingBox();
+  expect(buscador.y).toBeLessThan(5);
+  expect(bloque.y).toBeGreaterThanOrEqual(buscador.y + buscador.height - 1);
+  expect(bloque.y).toBeLessThan(buscador.y + buscador.height + 40);
+
+  // Al salir del campo vuelve el pie.
+  await page.locator("#buscar-producto").blur();
+  await expect(page.locator("footer")).toBeVisible();
+
+  await context.close();
+});
+
 test("stock smoke: guardar normaliza cantidades y resetea sector", async ({ page }) => {
   await mockAppServices(page);
   await page.goto("/");

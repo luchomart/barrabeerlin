@@ -823,6 +823,36 @@ export function initStockApp() {
       } else {
         sinResultados?.remove();
       }
+
+      // Lleva la lista hasta el primer resultado, justo debajo del buscador.
+      listaProductos.classList.toggle("buscando", Boolean(texto));
+
+      if (texto) {
+        const primero = Array.from(categorias).find(
+          (categoria) => categoria.style.display !== "none",
+        );
+
+        (primero || listaProductos).scrollIntoView({ block: "start" });
+      }
+    });
+  }
+
+  // Mientras se escribe (buscador o cantidad) el pie fijo se oculta en el celu para que
+  // el teclado no tape los productos. Vuelve al salir del campo.
+  function configurarModoEscritura() {
+    const esCampoDeTexto = (elemento) =>
+      elemento?.matches?.("#buscar-producto, #lista-productos input");
+
+    document.addEventListener("focusin", (event) => {
+      if (esCampoDeTexto(event.target)) {
+        document.body.classList.add("escribiendo");
+      }
+    });
+
+    document.addEventListener("focusout", (event) => {
+      if (esCampoDeTexto(event.target) && !esCampoDeTexto(event.relatedTarget)) {
+        document.body.classList.remove("escribiendo");
+      }
     });
   }
 
@@ -1028,6 +1058,7 @@ export function initStockApp() {
   selectSector.addEventListener("change", manejarCambioSector);
 
   configurarBuscador();
+  configurarModoEscritura();
   configurarAccesoSupervisor();
 
   init();

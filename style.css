@@ -399,6 +399,23 @@ header p {
   padding: var(--sp-4) var(--sp-4) var(--sp-6);
 }
 
+/* Al buscar, deja lugar para que el primer resultado suba hasta el buscador */
+#lista-productos.buscando {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+#lista-productos {
+  scroll-margin-top: 84px;
+}
+
+/* En el celu, con el teclado abierto el pie se oculta (vuelve al salir del campo) */
+@media (pointer: coarse) {
+  body.escribiendo footer {
+    display: none;
+  }
+}
+
 /* =====================================================
    CATEGORÍAS
 ===================================================== */
