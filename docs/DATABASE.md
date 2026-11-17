@@ -51,3 +51,19 @@ Aplicadas en Supabase:
 SQL aplicado:
 
 - `docs/sql/ventas-automaticas-v0.4.0.sql`
+
+## Estado real en Supabase (revisado 2026-11-16)
+
+Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos. Antes de esa fecha,
+"aplicado" en los docs no estaba verificado.
+
+- Aplicados: `supervisor-hardening-v0.3.2.sql`, `snapshot-rpc-v0.3.3.sql`, `ventas-automaticas-v0.4.0.sql`.
+- Sectores reales: `Camara` (5), `Deposito Superior` (1), `Estante Cocina` (2), `Estantes Barra` (3), `Exhibidoras` (4).
+- Un usuario de Auth con `app_metadata.role = "supervisor"`.
+- RLS activo en todas las tablas. Sin triggers en `public`.
+- `anon` puede ejecutar todas las RPCs (default de Supabase); las del supervisor devuelven vacio sin `is_supervisor()`.
+- `productos`, `categorias`, `sectores`: `anon` solo lectura.
+- `ventas*`: solo lectura para supervisor; escritura solo via `registrar_venta`.
+- `inventario` y `stock_snapshots` tenian politicas "permitir todo" creadas a mano (`inventario libre`, `allow all`).
+  Se cierran con `docs/sql/hardening-v0.3.4.sql` (pendiente de aplicar).
+- Hay politicas duplicadas de etapas anteriores (`app select …`, `public read …`, `lectura …`).

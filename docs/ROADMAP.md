@@ -2,6 +2,14 @@
 
 Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 
+## Donde quedamos (2026-11-16)
+
+- Se reviso el estado real de Supabase (ver `docs/DATABASE.md`): los SQL v0.3.2, v0.3.3 y v0.4.0 estan aplicados.
+- Pendiente de aplicar: `docs/sql/hardening-v0.3.4.sql` (cierra borrado libre de inventario y snapshots).
+- Bug menor: `ORDEN_CATEGORIAS_SECTOR` en `js/config.js` usa `deposito cocina`, pero el sector real es `Estante Cocina`.
+- Smoke tests fijados a `msedge`: no corren en Linux sin ajustar.
+- Proximo: funciones de admin (usuarios, productos, categorias), en definicion.
+
 Este documento es la guia de decision para futuras implementaciones. La regla general es simple: mejorar estabilidad, velocidad operativa y seguridad sin romper el flujo actual de uso real.
 
 ## Principios del producto
