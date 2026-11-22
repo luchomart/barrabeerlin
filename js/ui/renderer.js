@@ -35,20 +35,44 @@ function formatearDiferencia(valor) {
 }
 
 // Valor del input de cantidad: con decimales se muestra con coma ("1,5").
-function valorInputCantidad(input, cantidad) {
+export function valorInputCantidad(input, cantidad) {
   return input.dataset.decimales === "1"
     ? formatearCantidad(cantidad)
     : String(cantidad);
 }
 
-function leerInputCantidad(input) {
-  const valor = leerCantidad(input.value);
+// Cantidad segun el tipo de input (con decimales: hasta 2; el resto, entero).
+// NaN si el texto no se entiende ("2,,5", "abc").
+export function leerCantidadInput(input, texto = input.value) {
+  const valor = leerCantidad(texto);
 
-  if (!Number.isFinite(valor)) return 0;
+  if (!Number.isFinite(valor)) return NaN;
 
   return input.dataset.decimales === "1"
     ? redondearCantidad(valor)
     : Math.trunc(valor);
+}
+
+function leerInputCantidad(input) {
+  const valor = leerCantidadInput(input);
+
+  return Number.isFinite(valor) ? valor : 0;
+}
+
+// Marca en rojo un input con texto que no es un numero (vacio no cuenta: se restaura solo).
+// Devuelve true si el valor se entiende.
+export function validarInputCantidad(input) {
+  const invalido = input.value.trim() !== "" && Number.isNaN(leerCantidadInput(input));
+
+  input.classList.toggle("input-invalido", invalido);
+
+  if (invalido) {
+    input.setAttribute("aria-invalid", "true");
+  } else {
+    input.removeAttribute("aria-invalid");
+  }
+
+  return !invalido;
 }
 
 function crearFilaCambio(item) {
@@ -232,9 +256,13 @@ export function renderProductos(
             Math.min(CANTIDAD_MAXIMA, Math.max(0, actual + Number(boton.dataset.paso))),
           );
 
-          if (siguiente === actual) return;
+          // Compara con el texto: si habia algo ilegible ("2,,5"), − / + lo reemplazan.
+          const texto = valorInputCantidad(input, siguiente);
 
-          input.value = valorInputCantidad(input, siguiente);
+          if (texto === input.value) return;
+
+          input.value = texto;
+          validarInputCantidad(input);
           onInput(input);
         });
       });
@@ -248,6 +276,8 @@ export function renderProductos(
       });
 
       input.addEventListener("input", () => {
+        // Mientras tipea solo se saca el rojo; se vuelve a marcar al salir del campo.
+        if (input.classList.contains("input-invalido")) validarInputCantidad(input);
         onInput(input);
       });
 
@@ -260,6 +290,7 @@ export function renderProductos(
           );
 
           input.value = valorInputCantidad(input, valor);
+          validarInputCantidad(input);
           onInput(input);
           input.select();
         }
@@ -270,6 +301,7 @@ export function renderProductos(
           const valor = redondearCantidad(Math.max(0, leerInputCantidad(input) - 1));
 
           input.value = valorInputCantidad(input, valor);
+          validarInputCantidad(input);
           onInput(input);
           input.select();
         }
@@ -279,6 +311,8 @@ export function renderProductos(
         if (input.value === "") {
           input.value = valorAnterior;
         }
+
+        validarInputCantidad(input);
       });
 
       productosDiv.appendChild(fila);
@@ -303,6 +337,7 @@ export function actualizarInputsStock(data) {
 
     input.value = valorInputCantidad(input, redondearCantidad(mapa[productoId] ?? 0));
     input.classList.remove("input-modificado");
+    validarInputCantidad(input);
   });
 }
 

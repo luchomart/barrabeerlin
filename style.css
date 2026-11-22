@@ -647,6 +647,14 @@ header p {
   color: var(--green);
 }
 
+/* Texto que no es un numero ("2,,5"): no se deja guardar hasta corregirlo. */
+.producto-fila input.input-invalido,
+.producto-fila input.input-invalido:focus {
+  border-color: var(--red);
+  background: var(--red-bg);
+  color: var(--red);
+}
+
 /* =====================================================
    COMPROBANTE (después de guardar)
 ===================================================== */

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   actualizarInputsStock,
+  leerCantidadInput,
   marcarCategoriaRevisada,
   renderAvisoGuardar,
   renderComprobante,
@@ -18,6 +19,7 @@ import {
   renderSupervisorEstadoSectores,
   renderSupervisorLoader,
   renderSectores,
+  validarInputCantidad,
 } from "../../js/ui/renderer.js";
 
 describe("renderer", () => {
@@ -542,5 +544,61 @@ describe("renderer", () => {
 
     expect(lista.querySelector('[role="alert"]').textContent).toContain("No se pudo cargar la app");
     expect(lista.querySelector("#btn-reintentar-carga")).not.toBeNull();
+  });
+});
+
+describe("cantidades ilegibles", () => {
+  function crearInput({ decimales = false, valor = "" } = {}) {
+    const input = document.createElement("input");
+
+    if (decimales) input.dataset.decimales = "1";
+    input.value = valor;
+
+    return input;
+  }
+
+  it("leerCantidadInput devuelve NaN si no se entiende y respeta el tipo de input", () => {
+    expect(leerCantidadInput(crearInput({ decimales: true, valor: "2,5" }))).toBe(2.5);
+    expect(leerCantidadInput(crearInput({ valor: "2.5" }))).toBe(2);
+    expect(leerCantidadInput(crearInput({ decimales: true }), "2,,5")).toBeNaN();
+    expect(leerCantidadInput(crearInput({ decimales: true, valor: "1.000,5" }))).toBeNaN();
+  });
+
+  it("validarInputCantidad marca en rojo lo ilegible y lo desmarca al corregir", () => {
+    const input = crearInput({ decimales: true, valor: "2,,5" });
+
+    expect(validarInputCantidad(input)).toBe(false);
+    expect(input.classList.contains("input-invalido")).toBe(true);
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+
+    input.value = "2,5";
+    expect(validarInputCantidad(input)).toBe(true);
+    expect(input.classList.contains("input-invalido")).toBe(false);
+    expect(input.hasAttribute("aria-invalid")).toBe(false);
+
+    // Vacio no es error: al salir del campo vuelve el valor anterior.
+    input.value = "";
+    expect(validarInputCantidad(input)).toBe(true);
+  });
+
+  it("− reemplaza un texto ilegible en vez de quedar trabado", () => {
+    const lista = document.getElementById("lista-productos");
+
+    renderProductos(
+      lista,
+      [{ id: 1, nombre: "Destilados" }],
+      [{ id: 1, nombre: "Fernet", categoria_id: 1, permite_decimales: true }],
+      vi.fn(),
+    );
+
+    const fernet = lista.querySelector('input[data-id="1"]');
+
+    fernet.value = "2,,5";
+    fernet.dispatchEvent(new Event("blur"));
+    expect(fernet.classList.contains("input-invalido")).toBe(true);
+
+    fernet.closest(".producto-fila").querySelector('[data-paso="-1"]').click();
+    expect(fernet.value).toBe("0");
+    expect(fernet.classList.contains("input-invalido")).toBe(false);
   });
 });

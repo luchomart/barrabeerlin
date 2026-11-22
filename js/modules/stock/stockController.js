@@ -29,14 +29,12 @@ import {
   renderSectores,
   renderProductos,
   actualizarInputsStock,
+  leerCantidadInput,
   marcarCategoriaRevisada,
+  validarInputCantidad,
+  valorInputCantidad,
 } from "../../ui/renderer.js";
-import {
-  formatearCantidad,
-  leerCantidad,
-  normalizarTexto,
-  redondearCantidad,
-} from "../../utils/format.js";
+import { normalizarTexto } from "../../utils/format.js";
 import {
   buildCatalogoRenderizable,
   buildCatalogoStockTotal,
@@ -379,7 +377,11 @@ export function initStockApp() {
 
       if (valor === undefined || valor === "") return;
 
-      input.value = valor;
+      // Con el formato del input: si en el admin cambio "con decimales", "2,5" no queda vacio.
+      const cantidad = leerCantidadInput(input, valor);
+
+      input.value = Number.isNaN(cantidad) ? valor : valorInputCantidad(input, cantidad);
+      validarInputCantidad(input);
       input.classList.add("input-modificado");
       marcarCategoriaRevisada(input.closest(".categoria-bloque"));
       aplicados += 1;
@@ -441,9 +443,7 @@ export function initStockApp() {
 
   // Los productos con decimales (marcados en el admin) guardan hasta 2; el resto, enteros.
   function normalizarCantidad(input) {
-    const valor = leerCantidad(input.value);
-    const cantidad =
-      input.dataset.decimales === "1" ? redondearCantidad(valor) : Math.trunc(valor);
+    const cantidad = leerCantidadInput(input);
 
     if (!Number.isFinite(cantidad)) {
       return 0;
@@ -546,6 +546,26 @@ export function initStockApp() {
       return;
     }
 
+    // Un numero ilegible ("2,,5") no se guarda como 0: se marca y se lleva hasta el.
+    const invalido = [...inputs].filter((input) => !validarInputCantidad(input))[0];
+
+    if (invalido) {
+      const titulo = invalido.closest(".categoria-bloque")?.querySelector(".categoria-titulo");
+
+      if (titulo && !titulo.classList.contains("categoria-abierta")) titulo.click();
+
+      const nombre = invalido.closest(".producto-fila")?.querySelector(".producto-nombre")
+        ?.textContent.trim();
+
+      renderAvisoGuardar(avisoGuardar, {
+        tipo: "atencion",
+        texto: `No se entiende la cantidad de ${nombre || "un producto"} («${invalido.value}»). Corregila para guardar.`,
+      });
+      invalido.focus();
+      invalido.scrollIntoView({ block: "center" });
+      return;
+    }
+
     // Guardar manda todo el sector: si hay categorias sin abrir, se avisa antes.
     const sinRevisar = categoriasSinRevisar();
 
@@ -580,8 +600,7 @@ export function initStockApp() {
       inputs.forEach((input) => {
         const cantidad = normalizarCantidad(input);
 
-        input.value =
-          input.dataset.decimales === "1" ? formatearCantidad(cantidad) : cantidad;
+        input.value = valorInputCantidad(input, cantidad);
 
         registros.push({
           producto_id: input.dataset.id,

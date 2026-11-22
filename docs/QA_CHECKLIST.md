@@ -63,6 +63,8 @@ Usar esta lista corta antes de publicar cambios a produccion.
 8. En "Se cuentan con decimales" agregar un producto. En el conteo, su casilla abre el teclado
    con coma: cargar `2,5`, tocar + (queda `3,5`) y guardar. El mensaje de WhatsApp muestra `3,5`.
    Sacarlo de la lista (pide confirmacion) y verificar que vuelve a contarse en enteros.
+9. En un producto con decimales, tipear `2,,5`: la casilla queda en rojo y `Guardar` no deja guardar
+   hasta corregirla.
 
 ## Snapshots y cambios globales
 
