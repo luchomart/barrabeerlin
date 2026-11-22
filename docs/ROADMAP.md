@@ -2,7 +2,17 @@
 
 Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 
-## Donde quedamos (2026-11-17)
+## Donde quedamos (2026-11-22)
+
+- **v0.6.0 publicada en `main` (beerlin.online) el 2026-11-22: decimales.** el supervisor elige en el admin que productos se cuentan
+  con decimales (hasta 2, ej. 2,5). Tests: 103 unitarios + 27 smoke OK; SQL probado en PGlite (17 casos).
+  - `docs/sql/decimales-v0.6.0.sql` aplicado en Supabase el 2026-11-22 (verificacion OK).
+  - Falta: QA en el celu con el personal (checklist "Administracion", punto 8) y elegir en el admin
+    que productos se cuentan con decimales.
+  - Decision: los decimales son por producto (no globales) y los botones − / + suman de a 1.
+  - Pendiente para ventas: `registrar_venta` trata el stock como entero (0,5 cuenta como 1).
+
+### Antes (2026-11-17)
 
 - **v0.5.0 publicada en `main` (beerlin.online) el 2026-11-17.** Incluye:
   - la revision de v0.4.0 con el arreglo de seguridad XSS en el supervisor;
@@ -15,8 +25,8 @@ Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
   Ver CHANGELOG.
 - Supabase: aplicados `admin-v0.4.2.sql` (mover producto) y `admin-v0.4.3.sql` (no avisar en 0).
   La prueba de "Mover" se revirtio con `revertir-prueba-mover-2026-11-17.sql`.
-- PENDIENTE (Luciano): pegar `docs/sql/admin-v0.4.1.sql` en Supabase (no borrar productos con ventas,
-  altas sin duplicados). Probado en PGlite 16/16. Despues marcarlo como aplicado en `docs/DATABASE.md`.
+- `docs/sql/admin-v0.4.1.sql` (no borrar productos con ventas, altas sin duplicados) aplicado en
+  Supabase el 2026-11-17 (verificacion OK). No queda SQL pendiente.
 - Proximo paso: QA en el celu con la checklist (`docs/QA_CHECKLIST.md`, secciones "Stock" y
   "Sin internet"), con el personal: cambia el flujo que conocian (sin `alert` al guardar).
 - Pendientes chicos:
@@ -28,6 +38,13 @@ Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 - Decisiones 2026-11-17: barriles se cuentan solo en Camara; un producto con ventas no se borra;
   si falla la lista de empleados se usa la ultima guardada en el celu; un pendiente offline no pisa
   un conteo mas nuevo del mismo sector (se descarta y se avisa).
+- Decisiones 2026-11-17 (v0.5.0):
+  - `Guardar` sigue mandando todo el sector, pero avisa las categorias sin abrir;
+  - cambiar de sector no borra lo contado (queda como borrador);
+  - el emoji del mensaje sale del nombre de la categoria (📦 si no reconoce ninguno);
+  - "no avisar si esta en 0" es por producto, en un bloque propio del admin;
+  - WhatsApp se abre con `api.whatsapp.com/send` (`wa.me` rompe los emojis).
+- Opcional: volver a correr `/impeccable critique` para comparar con el 23/40 del 2026-11-17.
 - Riesgos abiertos: `anon` puede modificar `inventario`; la app no abre sin internet (solo aguanta
   cortes durante el conteo).
 

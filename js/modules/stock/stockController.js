@@ -31,7 +31,12 @@ import {
   actualizarInputsStock,
   marcarCategoriaRevisada,
 } from "../../ui/renderer.js";
-import { normalizarTexto } from "../../utils/format.js";
+import {
+  formatearCantidad,
+  leerCantidad,
+  normalizarTexto,
+  redondearCantidad,
+} from "../../utils/format.js";
 import {
   buildCatalogoRenderizable,
   buildCatalogoStockTotal,
@@ -434,10 +439,13 @@ export function initStockApp() {
     return true;
   }
 
-  function normalizarCantidad(valor) {
-    const cantidad = parseInt(valor, 10);
+  // Los productos con decimales (marcados en el admin) guardan hasta 2; el resto, enteros.
+  function normalizarCantidad(input) {
+    const valor = leerCantidad(input.value);
+    const cantidad =
+      input.dataset.decimales === "1" ? redondearCantidad(valor) : Math.trunc(valor);
 
-    if (Number.isNaN(cantidad)) {
+    if (!Number.isFinite(cantidad)) {
       return 0;
     }
 
@@ -570,9 +578,10 @@ export function initStockApp() {
     try {
 
       inputs.forEach((input) => {
-        const cantidad = normalizarCantidad(input.value);
+        const cantidad = normalizarCantidad(input);
 
-        input.value = cantidad;
+        input.value =
+          input.dataset.decimales === "1" ? formatearCantidad(cantidad) : cantidad;
 
         registros.push({
           producto_id: input.dataset.id,

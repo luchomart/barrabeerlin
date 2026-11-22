@@ -592,7 +592,7 @@ header p {
   color: var(--text-primary);
 }
 
-.producto-fila input[type="number"] {
+.producto-fila .cantidad-control input {
   width: 64px;
   height: 46px;
   padding: 0 var(--sp-1);
@@ -621,7 +621,12 @@ header p {
   margin: 0;
 }
 
-.producto-fila input[type="number"]:focus {
+/* Con decimales ("12,75") hace falta un poco mas de ancho. */
+.producto-fila .cantidad-control input[data-decimales] {
+  width: 76px;
+}
+
+.producto-fila .cantidad-control input:focus {
   border-color: var(--green);
   background: var(--bg-app);
   box-shadow: 0 0 0 3px var(--green-bg);
@@ -1627,9 +1632,13 @@ footer::before {
     padding: var(--sp-3) var(--sp-3) var(--sp-6);
   }
 
-  .producto-fila input[type="number"] {
+  .producto-fila .cantidad-control input {
     width: 56px;
     font-size: 1.1rem;
+  }
+
+  .producto-fila .cantidad-control input[data-decimales] {
+    width: 68px;
   }
 
   .acciones-supervisor {

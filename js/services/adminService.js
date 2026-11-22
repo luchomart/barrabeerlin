@@ -106,6 +106,14 @@ export async function cambiarAvisoSinStock(id, avisar) {
   });
 }
 
+// permitir = true: el producto se cuenta con hasta 2 decimales (ej. 2,5 botellas).
+export async function cambiarDecimales(id, permitir) {
+  return llamarRpc("admin_permitir_decimales", {
+    producto_id: exigirId(id, "producto"),
+    permitir: Boolean(permitir),
+  });
+}
+
 export async function eliminarProducto(id) {
   return llamarRpc("admin_eliminar_producto", {
     producto_id: exigirId(id, "producto"),

@@ -189,4 +189,30 @@ describe("adminController helpers", () => {
     expect(opciones).toEqual(["Coca Cola"]);
     expect(bloque.querySelector("optgroup").label).toBe("Gaseosas");
   });
+
+  it("lista los productos con decimales y no los ofrece de nuevo", () => {
+    document.body.innerHTML = '<div id="admin-contenido"></div>';
+    const container = document.getElementById("admin-contenido");
+
+    renderAdminPanel(container, {
+      ...DATOS,
+      productos: [
+        { id: 11, nombre: "Sprite", categoria_id: 2, orden: 11, permite_decimales: true },
+        { id: 10, nombre: "Coca Cola", categoria_id: 2, orden: 10 },
+      ],
+      stockPorProducto: { 11: { unidades: 2.5, sectores: 1 } },
+    });
+
+    const bloque = container.querySelector('[data-bloque="decimales"]');
+
+    expect(bloque.querySelector("h3").textContent).toContain("(1)");
+    expect(bloque.querySelector('[data-accion="quitar-decimales"]').dataset.nombre).toBe("Sprite");
+
+    const opciones = Array.from(bloque.querySelectorAll("option[value]:not([value=''])")).map(
+      (opcion) => opcion.textContent,
+    );
+    expect(opciones).toEqual(["Coca Cola"]);
+    // El stock del producto se muestra con coma.
+    expect(container.textContent).toContain("2,5 u.");
+  });
 });

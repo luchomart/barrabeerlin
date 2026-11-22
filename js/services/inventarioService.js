@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient.js";
+import { redondearCantidad } from "../utils/format.js";
 
 const db = supabase;
 
@@ -20,7 +21,8 @@ function normalizarCantidadSnapshot(valor) {
     return 0;
   }
 
-  return Math.trunc(cantidad);
+  // Hasta 2 decimales (productos con decimales); el resto sigue siendo entero.
+  return redondearCantidad(cantidad);
 }
 
 function normalizarRegistrosSnapshot(stockPorProducto = {}) {
@@ -62,9 +64,8 @@ function construirResumenSnapshot(rows = [], fecha = null) {
   return {
     fecha: fecha || null,
     totalProductos: normalizados.length,
-    totalUnidades: normalizados.reduce(
-      (acumulado, row) => acumulado + row.cantidad,
-      0,
+    totalUnidades: normalizarCantidadSnapshot(
+      normalizados.reduce((acumulado, row) => acumulado + row.cantidad, 0),
     ),
     fingerprint: construirFingerprintSnapshot(normalizados),
   };
@@ -494,7 +495,7 @@ export async function getDiferenciasStock() {
     .map((productoId) => {
       const cantidadActual = actual[productoId] || 0;
       const cantidadAnterior = anterior[productoId] || 0;
-      const diferencia = cantidadActual - cantidadAnterior;
+      const diferencia = redondearCantidad(cantidadActual - cantidadAnterior);
 
       return {
         producto_id: Number(productoId),

@@ -2,6 +2,15 @@
 
 Historial de cambios de Stock Barra.
 
+## v0.6.0 - 2026-11-22
+
+### Added
+- Productos que se cuentan con decimales (ej. 2,5 botellas abiertas), hasta 2. Se eligen en el admin,
+  bloque "Se cuentan con decimales". En el conteo su casilla abre el teclado con coma (acepta coma o
+  punto) y los botones − / + siguen sumando de a uno. El resto se sigue contando en enteros.
+- Mensaje de WhatsApp, cambios de stock y admin muestran los decimales con coma ("Gin: 2,5").
+- Requiere `docs/sql/decimales-v0.6.0.sql` en Supabase (aplicado el 2026-11-22).
+
 ## v0.5.0 - 2026-11-17
 
 ### Changed (critica de diseño, 2026-11-17)
