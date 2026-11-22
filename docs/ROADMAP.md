@@ -4,13 +4,18 @@ Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 
 ## Donde quedamos (2026-11-22)
 
-- **v0.6.0 publicada en `main` (beerlin.online) el 2026-11-22: decimales.** el supervisor elige en el admin que productos se cuentan
-  con decimales (hasta 2, ej. 2,5). Tests: 103 unitarios + 27 smoke OK; SQL probado en PGlite (17 casos).
-  - `docs/sql/decimales-v0.6.0.sql` aplicado en Supabase el 2026-11-22 (verificacion OK).
-  - Falta: QA en el celu con el personal (checklist "Administracion", punto 8) y elegir en el admin
-    que productos se cuentan con decimales.
-  - Decision: los decimales son por producto (no globales) y los botones − / + suman de a 1.
-  - Pendiente para ventas: `registrar_venta` trata el stock como entero (0,5 cuenta como 1).
+- **v0.6.0 publicada en `main` (beerlin.online) el 2026-11-22.** El supervisor elige en el admin
+  ("Se cuentan con decimales") que productos aceptan hasta 2 decimales (ej. 2,5). Tests: 103
+  unitarios + 27 smoke OK; SQL probado en PGlite (17 casos).
+- Supabase: `docs/sql/decimales-v0.6.0.sql` aplicado el 2026-11-22 (verificacion OK). No queda SQL pendiente.
+- **Proximo paso:** QA en el celu con el personal (`docs/QA_CHECKLIST.md`, "Administracion"
+  punto 8) y marcar en el admin los productos que se cuentan con decimales (hoy ninguno).
+- Decisiones 2026-11-22: decimales por producto (no globales); − / + suman de a 1; se muestran con
+  coma y se aceptan coma o punto; redondeo a 2 igual que Postgres (1,255 -> 1,26).
+- Pendientes (siguen de antes): empezar un conteo sin internet; borrar los 4 productos duplicados
+  sin categoria (ids 19, 32, 33, 34).
+- Despues: UI de ventas automaticas. Antes: decidir quien carga ventas (hoy `anon`) y adaptar
+  `registrar_venta` a decimales (hoy convierte el stock a entero: 0,5 cuenta como 1).
 
 ### Antes (2026-11-17)
 

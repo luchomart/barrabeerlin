@@ -30,3 +30,9 @@ El plan y "Dónde quedamos" están en `docs/ROADMAP.md`.
 - Ver la app en el celu: Luciano corre `python3 -m http.server 8080 --bind 0.0.0.0` (a Claude se lo
   bloquea el permiso) y abre `http://192.168.1.8:8080`. Usa Supabase real: no guardar conteos de prueba.
 - Catalogo real (solo lectura): `curl` a `<SUPABASE_URL>/rest/v1/productos?select=...` con la clave anon de `js/config.js`.
+- Ver el tipo de una columna sin service_role: filtrar con un valor invalido (`?cantidad=eq.1.5`);
+  el error dice el tipo. El endpoint OpenAPI esta bloqueado para anon.
+- PGlite: no trae `pgcrypto` (sacar `create extension`, `gen_random_uuid` ya existe) y hay que dar
+  `usage` en secuencias a anon/authenticated como hace Supabase.
+- Cantidades: usar `redondearCantidad`/`formatearCantidad` de `js/utils/format.js`, no `Math.round`.
+- Smoke en viewport de celu: el pie con Guardar se oculta con un input enfocado; hacer `blur()` antes de guardar.
