@@ -6,11 +6,14 @@ import {
 
 import { getSupervisorInventarioConSectores } from "../../services/inventarioService.js";
 
+import { formatearCantidad, redondearCantidad } from "../../utils/format.js";
+
 import {
   agregarCategoria,
   agregarEmpleado,
   agregarProducto,
   cambiarAvisoSinStock,
+  cambiarDecimales,
   eliminarCategoria,
   eliminarEmpleado,
   eliminarProducto,
@@ -38,7 +41,7 @@ export function construirStockPorProducto(inventario = []) {
       acumulado[id] = { unidades: 0, sectores: 0 };
     }
 
-    acumulado[id].unidades += cantidad;
+    acumulado[id].unidades = redondearCantidad(acumulado[id].unidades + cantidad);
     acumulado[id].sectores += 1;
 
     return acumulado;
@@ -52,7 +55,7 @@ export function textoConfirmacionProducto(nombre, stock) {
     lineas.push("No se pudo consultar su stock actual.");
   } else if (stock?.unidades) {
     lineas.push(
-      `Tiene ${stock.unidades} unidad(es) en ${stock.sectores} sector(es).`,
+      `Tiene ${formatearCantidad(stock.unidades)} unidad(es) en ${stock.sectores} sector(es).`,
     );
   } else {
     lineas.push("No tiene stock cargado.");
@@ -216,6 +219,24 @@ export function initAdminPanel({ section, contenido, button } = {}) {
       return;
     }
 
+    if (form.dataset.form === "decimales") {
+      const productoId = formData.get("producto_id");
+      const producto = (datos?.productos || []).find(
+        (item) => String(item.id) === String(productoId),
+      );
+
+      if (!productoId) {
+        renderAdminMensaje(contenido, { tipo: "error", texto: "Elegí un producto." });
+        return;
+      }
+
+      await ejecutar(
+        () => cambiarDecimales(productoId, true),
+        `"${producto?.nombre || "Producto"}" ahora se puede contar con decimales.`,
+      );
+      return;
+    }
+
     if (!nombre && form.dataset.form !== "mover") return;
 
     if (form.dataset.form === "empleado") {
@@ -275,6 +296,21 @@ export function initAdminPanel({ section, contenido, button } = {}) {
       await ejecutar(
         () => cambiarAvisoSinStock(id, true),
         `"${nombre}" vuelve a avisarse cuando está en 0.`,
+      );
+      return;
+    }
+
+    if (accion === "quitar-decimales") {
+      const confirmar = confirm(
+        `¿Contar "${nombre}" solo en enteros?\n\n` +
+          "Si hoy tiene stock con decimales, al guardar el próximo conteo se recorta (2,5 pasa a 2).",
+      );
+
+      if (!confirmar) return;
+
+      await ejecutar(
+        () => cambiarDecimales(id, false),
+        `"${nombre}" vuelve a contarse en enteros.`,
       );
       return;
     }

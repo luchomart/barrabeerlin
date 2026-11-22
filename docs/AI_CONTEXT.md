@@ -55,6 +55,8 @@ SQL versionado en `docs/sql/`:
 - `supervisor-hardening-v0.3.2.sql`: RPCs y políticas para el supervisor.
 - `snapshot-rpc-v0.3.3.sql`: identidad y guardado de snapshots.
 - `ventas-automaticas-v0.4.0.sql`: tablas y RPC de ventas.
+- `admin-v0.4.x.sql`: RPCs del panel Admin.
+- `decimales-v0.6.0.sql`: cantidades con hasta 2 decimales y `productos.permite_decimales` (ver `DATABASE.md`).
 
 `README.md`, `docs/SUPERVISOR_AUTH.md` y `docs/DATABASE.md` registran algunos SQL como aplicados. Sin embargo, el encabezado de `ventas-automaticas-v0.4.0.sql` todavía dice que se ejecute al llegar a la Parte 2. Esa diferencia no permite confirmar por sí sola qué está desplegado. Verifica el estado real en Supabase antes de volver a aplicar una migración.
 

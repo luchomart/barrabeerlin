@@ -60,6 +60,9 @@ Usar esta lista corta antes de publicar cambios a produccion.
 5. Agregar una categoria y un producto de prueba; verificar que el producto aparece al contar en un sector.
 6. Borrar el producto de prueba: la confirmacion muestra su stock. Luego borrar la categoria y el empleado de prueba.
 7. Cerrar sesion y confirmar que el panel y el boton `Admin` desaparecen.
+8. En "Se cuentan con decimales" agregar un producto. En el conteo, su casilla abre el teclado
+   con coma: cargar `2,5`, tocar + (queda `3,5`) y guardar. El mensaje de WhatsApp muestra `3,5`.
+   Sacarlo de la lista (pide confirmacion) y verificar que vuelve a contarse en enteros.
 
 ## Snapshots y cambios globales
 

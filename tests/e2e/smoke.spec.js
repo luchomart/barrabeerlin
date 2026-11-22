@@ -248,6 +248,60 @@ test("stock smoke: los botones − y + cambian la cantidad sin teclado", async (
   await expect(input).toHaveAttribute("aria-label", "Cantidad de IPA");
 });
 
+test("stock smoke: un producto con decimales acepta coma y se guarda con 2 decimales", async ({ browser }) => {
+  // Celu: el input con decimales tiene que abrir el teclado numerico con coma.
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  const page = await context.newPage();
+
+  await mockAppServices(page);
+  await page.addInitScript(() => {
+    globalThis.__mockCatalogo = {
+      productos: [
+        { id: 301, nombre: "Gin", categoria_id: 4, orden: 1, permite_decimales: true },
+        { id: 306, nombre: "Jameson", categoria_id: 4, orden: 2 },
+      ],
+      categorias: [{ id: 4, nombre: "Destilados, licores y aperitivos" }],
+      empleados: [{ id: 1, nombre: "Karen" }],
+    };
+    globalThis.__mockInventarioSector = {
+      2: [
+        { producto_id: 301, cantidad: 2.5 },
+        { producto_id: 306, cantidad: 1 },
+      ],
+    };
+  });
+  await page.goto("/");
+
+  await page.selectOption("#select-empleado", { label: "Karen" });
+  await page.selectOption("#select-sector", { label: "Estantes Barra" });
+  await page.locator(".categoria-titulo", { hasText: "Destilados" }).click();
+
+  const gin = page.locator('input[data-id="301"]');
+  const jameson = page.locator('input[data-id="306"]');
+
+  await expect(gin).toHaveValue("2,5");
+  await expect(gin).toHaveAttribute("inputmode", "decimal");
+  await expect(jameson).toHaveAttribute("inputmode", "numeric");
+
+  await filaProducto(page, 301).locator('[data-paso="1"]').click();
+  await expect(gin).toHaveValue("3,5");
+
+  await gin.fill("1,255");
+  await jameson.fill("4");
+  // Con el teclado abierto el pie se oculta: se cierra antes de guardar.
+  await jameson.blur();
+  await guardarConteo(page);
+  await expect(page.locator("#comprobante-conteo")).toContainText("guardado");
+
+  const guardado = await page.evaluate(() => globalThis.__mockUltimoGuardado);
+  const cantidad = (id) => guardado.find((item) => String(item.producto_id) === id).cantidad;
+
+  expect(cantidad("301")).toBe(1.26);
+  expect(cantidad("306")).toBe(4);
+
+  await context.close();
+});
+
 test("stock smoke: WhatsApp genera snapshot y abre URL mockeada", async ({ page }) => {
   await mockAppServices(page);
   await page.addInitScript(() => {
@@ -689,6 +743,23 @@ test("supervisor smoke: admin agrega y elimina empleados, categorias y productos
   await expect(mensaje).toHaveText('"Gin" vuelve a avisarse cuando está en 0.');
   await expect(bloqueSinAviso).toContainText("Todos los productos avisan.");
 
+  // Se cuentan con decimales
+  const bloqueDecimales = admin.locator('[data-bloque="decimales"]');
+  await expect(bloqueDecimales).toContainText("Todos los productos se cuentan en enteros.");
+  await bloqueDecimales.locator("select").selectOption({ label: "Gin" });
+  await bloqueDecimales.locator('button[type="submit"]').click();
+  await expect(mensaje).toHaveText('"Gin" ahora se puede contar con decimales.');
+  await expect(bloqueDecimales.locator(".admin-item")).toHaveCount(1);
+  let textoQuitar = "";
+  page.once("dialog", (dialog) => {
+    textoQuitar = dialog.message();
+    dialog.accept();
+  });
+  await bloqueDecimales.locator('[data-accion="quitar-decimales"]').click();
+  await expect(mensaje).toHaveText('"Gin" vuelve a contarse en enteros.');
+  expect(textoQuitar).toContain('¿Contar "Gin" solo en enteros?');
+  await expect(bloqueDecimales).toContainText("Todos los productos se cuentan en enteros.");
+
   const llamadas = await page.evaluate(() => globalThis.__mockAdminLlamadas.map((l) => l.nombre));
   expect(llamadas).toEqual([
     "agregarEmpleado",
@@ -700,6 +771,8 @@ test("supervisor smoke: admin agrega y elimina empleados, categorias y productos
     "moverProducto",
     "cambiarAvisoSinStock",
     "cambiarAvisoSinStock",
+    "cambiarDecimales",
+    "cambiarDecimales",
   ]);
 });
 

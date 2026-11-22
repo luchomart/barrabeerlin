@@ -188,6 +188,34 @@ describe("stockFormatter", () => {
     expect(sinSeccion).not.toContain("SIN STOCK");
   });
 
+  it("muestra decimales con coma y suma sin restos de coma flotante", () => {
+    const data = buildStockDataFromInventario(
+      [
+        { producto_id: 1, cantidad: 0.1 },
+        { producto_id: 1, cantidad: 0.2 },
+        { producto_id: 2, cantidad: 2 },
+      ],
+      [],
+      [{ id: 9, nombre: "Destilados" }],
+    );
+
+    expect(data.stockPorProducto[1]).toBe(0.3);
+
+    const texto = formatWhatsappText(data, [
+      { id: 1, nombre: "Fernet", categoria_id: 9 },
+      { id: 2, nombre: "Gin", categoria_id: 9 },
+    ]);
+
+    expect(texto).toContain("*DESTILADOS* · 2,3\nFernet: 0,3\nGin: 2");
+
+    const cambios = formatStockChanges(
+      [{ producto_id: 1, actual: 2, anterior: 2.5, diferencia: -0.5 }],
+      [{ id: 1, nombre: "Fernet" }],
+    );
+
+    expect(cambios).toContain("- Fernet: -0,5");
+  });
+
   it("arma el encabezado con fecha y hora en 24 h", () => {
     const texto = formatWhatsappText(
       { categoriasOrdenadas: [], stockPorProducto: {} },

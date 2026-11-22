@@ -1,3 +1,4 @@
+import { formatearCantidad } from "../utils/format.js";
 import { escapeHtml } from "./renderer.js";
 
 const SIN_CATEGORIA_ID = "sin-categoria";
@@ -158,7 +159,7 @@ function renderProductos(grupos = [], stockPorProducto = {}, abiertos = new Set(
       const items = grupo.productos
         .map((producto) => {
           const stock = stockPorProducto[String(producto.id)];
-          const meta = stock ? `${stock.unidades} u.` : "";
+          const meta = stock ? `${formatearCantidad(stock.unidades)} u.` : "";
 
           return `
             <li class="admin-item">
@@ -197,16 +198,16 @@ function renderProductos(grupos = [], stockPorProducto = {}, abiertos = new Set(
   `;
 }
 
-// Productos que no aparecen en "Sin stock" del mensaje cuando estan en 0.
-function renderSinAviso(grupos = []) {
+// Bloque con los productos marcados con una opcion (lista + selector para marcar otro).
+function renderBloqueMarcados(grupos, config) {
   const conCategoria = grupos.filter((grupo) => !grupo.sinCategoria);
-  const sinAviso = conCategoria.flatMap((grupo) =>
+  const marcados = conCategoria.flatMap((grupo) =>
     grupo.productos
-      .filter((producto) => producto.avisar_sin_stock === false)
+      .filter(config.estaMarcado)
       .map((producto) => ({ ...producto, categoria: grupo.nombre })),
   );
 
-  const items = sinAviso
+  const items = marcados
     .map(
       (producto) => `
         <li class="admin-item">
@@ -215,10 +216,10 @@ function renderSinAviso(grupos = []) {
           <button
             type="button"
             class="admin-borrar"
-            data-accion="volver-a-avisar"
+            data-accion="${config.accionQuitar}"
             data-id="${escapeHtml(producto.id)}"
             data-nombre="${escapeHtml(producto.nombre)}"
-            aria-label="Volver a avisar si ${escapeHtml(producto.nombre)} está en 0"
+            aria-label="${escapeHtml(config.etiquetaQuitar(producto.nombre))}"
           ><svg class="icono" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
         </li>
       `,
@@ -228,7 +229,7 @@ function renderSinAviso(grupos = []) {
   const opciones = conCategoria
     .map((grupo) => {
       const disponibles = grupo.productos.filter(
-        (producto) => producto.avisar_sin_stock !== false,
+        (producto) => !config.estaMarcado(producto),
       );
 
       if (!disponibles.length) return "";
@@ -243,12 +244,12 @@ function renderSinAviso(grupos = []) {
     .join("");
 
   return `
-    <div class="admin-bloque" data-bloque="sin-aviso">
-      <h3>No avisar si están en 0 <span class="admin-count">(${sinAviso.length})</span></h3>
-      <p class="admin-nota">No aparecen en «Sin stock» del mensaje de WhatsApp. Si tienen stock, se envían normal.</p>
-      <ul class="admin-lista">${items || '<li class="admin-vacio">Todos los productos avisan.</li>'}</ul>
-      <form class="admin-form" data-form="sin-aviso" autocomplete="off">
-        <select name="producto_id" aria-label="Producto que no avisa si está en 0" required>
+    <div class="admin-bloque" data-bloque="${config.bloque}">
+      <h3>${config.titulo} <span class="admin-count">(${marcados.length})</span></h3>
+      <p class="admin-nota">${config.nota}</p>
+      <ul class="admin-lista">${items || `<li class="admin-vacio">${config.vacio}</li>`}</ul>
+      <form class="admin-form" data-form="${config.bloque}" autocomplete="off">
+        <select name="producto_id" aria-label="${config.etiquetaSelect}" required>
           <option value="" selected disabled>Elegí un producto…</option>
           ${opciones}
         </select>
@@ -256,6 +257,34 @@ function renderSinAviso(grupos = []) {
       </form>
     </div>
   `;
+}
+
+// Productos que no aparecen en "Sin stock" del mensaje cuando estan en 0.
+function renderSinAviso(grupos = []) {
+  return renderBloqueMarcados(grupos, {
+    bloque: "sin-aviso",
+    titulo: "No avisar si están en 0",
+    nota: "No aparecen en «Sin stock» del mensaje de WhatsApp. Si tienen stock, se envían normal.",
+    vacio: "Todos los productos avisan.",
+    etiquetaSelect: "Producto que no avisa si está en 0",
+    accionQuitar: "volver-a-avisar",
+    etiquetaQuitar: (nombre) => `Volver a avisar si ${nombre} está en 0`,
+    estaMarcado: (producto) => producto.avisar_sin_stock === false,
+  });
+}
+
+// Productos que se cuentan con decimales (ej. 2,5 botellas abiertas).
+function renderDecimales(grupos = []) {
+  return renderBloqueMarcados(grupos, {
+    bloque: "decimales",
+    titulo: "Se cuentan con decimales",
+    nota: "En el conteo aceptan coma (ej. 2,5), hasta 2 decimales. El resto se cuenta en enteros.",
+    vacio: "Todos los productos se cuentan en enteros.",
+    etiquetaSelect: "Producto que se cuenta con decimales",
+    accionQuitar: "quitar-decimales",
+    etiquetaQuitar: (nombre) => `Contar ${nombre} solo en enteros`,
+    estaMarcado: (producto) => producto.permite_decimales === true,
+  });
 }
 
 export function renderAdminPanel(container, datos = {}) {
@@ -284,6 +313,7 @@ export function renderAdminPanel(container, datos = {}) {
       ${renderCategorias(grupos)}
       ${renderProductos(grupos, stockPorProducto, abiertos)}
       ${renderSinAviso(grupos)}
+      ${renderDecimales(grupos)}
     </div>
   `;
 

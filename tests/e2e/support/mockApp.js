@@ -371,6 +371,14 @@ function buildAdminServiceMock() {
       return { id: producto.id, nombre: producto.nombre, avisar_sin_stock: producto.avisar_sin_stock };
     }
 
+    export async function cambiarDecimales(id, permitir) {
+      registrar("cambiarDecimales", { id, permitir });
+      const producto = catalogo().productos.find((item) => String(item.id) === String(id));
+      if (!producto) throw new Error("El producto ya no existe.");
+      producto.permite_decimales = Boolean(permitir);
+      return { id: producto.id, nombre: producto.nombre, permite_decimales: producto.permite_decimales };
+    }
+
     export async function moverProducto(id, categoriaId) {
       registrar("moverProducto", { id, categoriaId });
       const producto = catalogo().productos.find((item) => String(item.id) === String(id));

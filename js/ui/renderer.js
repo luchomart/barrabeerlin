@@ -1,4 +1,9 @@
-import { normalizarTexto } from "../utils/format.js";
+import {
+  formatearCantidad,
+  leerCantidad,
+  normalizarTexto,
+  redondearCantidad,
+} from "../utils/format.js";
 
 const ICONOS = {
   cambioNeutral: "\u2696\uFE0F",
@@ -24,9 +29,26 @@ export function escapeHtml(texto) {
 }
 
 function formatearDiferencia(valor) {
-  const numero = Number(valor) || 0;
+  const numero = redondearCantidad(valor);
 
-  return `${numero > 0 ? "+" : ""}${numero}`;
+  return `${numero > 0 ? "+" : ""}${formatearCantidad(numero)}`;
+}
+
+// Valor del input de cantidad: con decimales se muestra con coma ("1,5").
+function valorInputCantidad(input, cantidad) {
+  return input.dataset.decimales === "1"
+    ? formatearCantidad(cantidad)
+    : String(cantidad);
+}
+
+function leerInputCantidad(input) {
+  const valor = leerCantidad(input.value);
+
+  if (!Number.isFinite(valor)) return 0;
+
+  return input.dataset.decimales === "1"
+    ? redondearCantidad(valor)
+    : Math.trunc(valor);
 }
 
 function crearFilaCambio(item) {
@@ -36,10 +58,10 @@ function crearFilaCambio(item) {
   let claseExtra = "supervisor-change-neutral";
 
   if (item.tipo === "entrada") {
-    texto = `${nombre}: +${escapeHtml(item.diferencia)}`;
+    texto = `${nombre}: +${escapeHtml(formatearCantidad(item.diferencia))}`;
     claseExtra = "supervisor-change-up";
   } else if (item.tipo === "salida") {
-    texto = `${nombre}: ${escapeHtml(item.diferencia)}`;
+    texto = `${nombre}: ${escapeHtml(formatearCantidad(item.diferencia))}`;
     claseExtra = "supervisor-change-down";
   }
 
@@ -185,11 +207,16 @@ export function renderProductos(
       fila.className = "producto-fila";
       // Sin mayusculas ni tildes: "levite" encuentra "Levité".
       fila.dataset.nombre = normalizarTexto(String(producto.nombre || ""));
+      // Los productos con decimales (admin) usan texto + teclado decimal: acepta "1,5" y "1.5".
+      const conDecimales = producto.permite_decimales === true;
+      const atributosInput = conDecimales
+        ? 'type="text" inputmode="decimal" data-decimales="1"'
+        : `type="number" inputmode="numeric" min="0" max="${CANTIDAD_MAXIMA}"`;
       fila.innerHTML = `
         <span class="producto-nombre">${nombre}</span>
         <span class="cantidad-control">
           <button type="button" class="btn-cantidad" data-paso="-1" aria-label="Restar uno a ${nombre}">${ICONO_MENOS}</button>
-          <input type="number" inputmode="numeric" min="0" max="${CANTIDAD_MAXIMA}" value="0"
+          <input ${atributosInput} value="0"
             data-id="${escapeHtml(producto.id)}" aria-label="Cantidad de ${nombre}">
           <button type="button" class="btn-cantidad" data-paso="1" aria-label="Sumar uno a ${nombre}">${ICONO_MAS}</button>
         </span>
@@ -200,15 +227,14 @@ export function renderProductos(
 
       fila.querySelectorAll(".btn-cantidad").forEach((boton) => {
         boton.addEventListener("click", () => {
-          const actual = parseInt(input.value || "0", 10) || 0;
-          const siguiente = Math.min(
-            CANTIDAD_MAXIMA,
-            Math.max(0, actual + Number(boton.dataset.paso)),
+          const actual = leerInputCantidad(input);
+          const siguiente = redondearCantidad(
+            Math.min(CANTIDAD_MAXIMA, Math.max(0, actual + Number(boton.dataset.paso))),
           );
 
           if (siguiente === actual) return;
 
-          input.value = siguiente;
+          input.value = valorInputCantidad(input, siguiente);
           onInput(input);
         });
       });
@@ -229,10 +255,11 @@ export function renderProductos(
         if (event.key === "+" || event.key === "=") {
           event.preventDefault();
 
-          let valor = parseInt(input.value || "0", 10);
-          valor += 1;
+          const valor = redondearCantidad(
+            Math.min(CANTIDAD_MAXIMA, leerInputCantidad(input) + 1),
+          );
 
-          input.value = valor;
+          input.value = valorInputCantidad(input, valor);
           onInput(input);
           input.select();
         }
@@ -240,13 +267,9 @@ export function renderProductos(
         if (event.key === "-") {
           event.preventDefault();
 
-          let valor = parseInt(input.value || "0", 10);
+          const valor = redondearCantidad(Math.max(0, leerInputCantidad(input) - 1));
 
-          if (valor > 0) {
-            valor -= 1;
-          }
-
-          input.value = valor;
+          input.value = valorInputCantidad(input, valor);
           onInput(input);
           input.select();
         }
@@ -278,7 +301,7 @@ export function actualizarInputsStock(data) {
   document.querySelectorAll("#lista-productos input").forEach((input) => {
     const productoId = input.dataset.id;
 
-    input.value = mapa[productoId] ?? 0;
+    input.value = valorInputCantidad(input, redondearCantidad(mapa[productoId] ?? 0));
     input.classList.remove("input-modificado");
   });
 }

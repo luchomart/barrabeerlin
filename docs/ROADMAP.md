@@ -2,7 +2,16 @@
 
 Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 
-## Donde quedamos (2026-11-17)
+## Donde quedamos (2026-11-22)
+
+- **Decimales (en `dev`, sin publicar):** el supervisor elige en el admin que productos se cuentan
+  con decimales (hasta 2, ej. 2,5). Tests: 103 unitarios + 27 smoke OK; SQL probado en PGlite (17 casos).
+  - Falta: Luciano pega `docs/sql/decimales-v0.6.0.sql` en el SQL Editor y pasa el resultado de la
+    verificacion; despues probar en el celu (checklist "Administracion", punto 8) y publicar en `main`.
+  - Decision: los decimales son por producto (no globales) y los botones − / + suman de a 1.
+  - Pendiente para ventas: `registrar_venta` trata el stock como entero (0,5 cuenta como 1).
+
+### Antes (2026-11-17)
 
 - **v0.5.0 publicada en `main` (beerlin.online) el 2026-11-17.** Incluye:
   - la revision de v0.4.0 con el arreglo de seguridad XSS en el supervisor;

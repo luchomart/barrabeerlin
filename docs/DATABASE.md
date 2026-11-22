@@ -127,3 +127,21 @@ Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos.
 - Aplicado por Luciano el 2026-11-17. Verificacion: `columna_ok = true`, `productos_sin_aviso = 0`,
   `rpc_sin_anon = true`.
 - Probado en PGlite imitando roles y esquema (con v0.4.0 y v0.4.1 cargados): 14 casos OK.
+
+## Cantidades con decimales (v0.6.0, pendiente de aplicar)
+
+`docs/sql/decimales-v0.6.0.sql` (todo en un `begin/commit`):
+
+- `inventario.cantidad` y `stock_snapshots.cantidad` pasan de `integer` (verificado 2026-11-22 con
+  un filtro de solo lectura) a `numeric(10,2)`. Los valores actuales no cambian.
+- Columna `productos.permite_decimales` (boolean, default false). Con false el producto se cuenta
+  en enteros como siempre.
+- RPC `admin_permitir_decimales(producto_id, permitir)`: `SECURITY DEFINER`, solo `authenticated`,
+  exige `is_supervisor()`. Solo cambia esa columna de ese producto.
+- `save_stock_snapshot` guarda con 2 decimales (antes redondeaba para abajo). Mismos permisos.
+- `get_supervisor_inventario_con_sectores` y `get_supervisor_diferencias_stock` devuelven `numeric`
+  (se borran y recrean) y quedan solo para `authenticated` (antes `anon` tambien, pero devolvian vacio).
+- No toca `registrar_venta`: con stock decimal convierte lo disponible a entero (0,5 cuenta como 1).
+  Revisarlo antes de hacer la UI de ventas.
+- La app anda antes y despues de aplicarlo: sin la columna nadie tiene decimales.
+- Probado en PGlite imitando roles y esquema: 17 casos OK (incluye permisos y el rollback).

@@ -1,6 +1,10 @@
 import { getInventarioTotal } from "../../services/inventarioService.js";
 
-import { normalizarTexto } from "../../utils/format.js";
+import {
+  formatearCantidad,
+  normalizarTexto,
+  redondearCantidad,
+} from "../../utils/format.js";
 
 // Orden de las categorias en los mensajes (por palabra, sin tildes). Las que no estan
 // en la lista van antes de los barriles, por nombre.
@@ -107,7 +111,7 @@ function construirStockPorProducto(inventario = []) {
       acumulado[productoId] = 0;
     }
 
-    acumulado[productoId] += cantidad;
+    acumulado[productoId] = redondearCantidad(acumulado[productoId] + cantidad);
 
     return acumulado;
   }, {});
@@ -144,9 +148,9 @@ function resolverTipoCambio(diferencia, tipo) {
 
 function enriquecerCambioStock(item, nombresPorProducto) {
   const productoId = Number(item?.producto_id);
-  const actual = Number(item?.actual) || 0;
-  const anterior = Number(item?.anterior) || 0;
-  const diferencia = Number(item?.diferencia) || 0;
+  const actual = redondearCantidad(item?.actual);
+  const anterior = redondearCantidad(item?.anterior);
+  const diferencia = redondearCantidad(item?.diferencia);
   const tipo = resolverTipoCambio(diferencia, item?.tipo);
 
   return {
@@ -234,13 +238,11 @@ export function buildStockChangesReport(
     hayCambios: entradas.length > 0 || salidas.length > 0,
     snapshotActualFecha: primerItem.snapshot_actual_fecha || null,
     snapshotAnteriorFecha: primerItem.snapshot_anterior_fecha || null,
-    totalEntradas: entradas.reduce(
-      (acumulado, item) => acumulado + item.diferencia,
-      0,
+    totalEntradas: redondearCantidad(
+      entradas.reduce((acumulado, item) => acumulado + item.diferencia, 0),
     ),
-    totalSalidas: salidas.reduce(
-      (acumulado, item) => acumulado + item.diferencia,
-      0,
+    totalSalidas: redondearCantidad(
+      salidas.reduce((acumulado, item) => acumulado + item.diferencia, 0),
     ),
     entradas: entradas.slice(0, limit),
     salidas: salidas.slice(0, limit),
@@ -288,8 +290,8 @@ export function formatWhatsappText(data, productos = [], fecha = new Date()) {
       const cantidad = Number(stockPorProducto[producto.id]) || 0;
 
       if (cantidad > 0) {
-        lineas.push(`${producto.nombre}: ${cantidad}`);
-        total += cantidad;
+        lineas.push(`${producto.nombre}: ${formatearCantidad(cantidad)}`);
+        total = redondearCantidad(total + cantidad);
       } else if (producto.avisar_sin_stock !== false) {
         // Los marcados en el admin como "no avisar si estan en 0" no se listan.
         sinStock.push(producto.nombre);
@@ -300,7 +302,7 @@ export function formatWhatsappText(data, productos = [], fecha = new Date()) {
       const emoji = obtenerEmojiCategoria(categoria.nombre);
       const titulo = String(categoria.nombre || "").toUpperCase();
 
-      bloques.push(`${emoji} *${titulo}* · ${total}\n${lineas.join("\n")}`);
+      bloques.push(`${emoji} *${titulo}* · ${formatearCantidad(total)}\n${lineas.join("\n")}`);
     }
   });
 
@@ -329,7 +331,7 @@ export function formatPlainText(data, productos) {
       const cantidad = Number(stockPorProducto[producto.id]) || 0;
 
       if (cantidad > 0) {
-        bloque += `${producto.nombre}: ${cantidad}\n`;
+        bloque += `${producto.nombre}: ${formatearCantidad(cantidad)}\n`;
       }
     });
 
@@ -356,7 +358,7 @@ export function formatStockChanges(diferencias, productos) {
 
   if (reporte.salidas.length) {
     const lineas = reporte.salidas.map(
-      (item) => `- ${item.nombre}: ${item.diferencia}`,
+      (item) => `- ${item.nombre}: ${formatearCantidad(item.diferencia)}`,
     );
 
     bloques.push(`\u2B07\uFE0F SALIDAS:\n${lineas.join("\n")}`);
@@ -364,7 +366,7 @@ export function formatStockChanges(diferencias, productos) {
 
   if (reporte.entradas.length) {
     const lineas = reporte.entradas.map(
-      (item) => `- ${item.nombre}: +${item.diferencia}`,
+      (item) => `- ${item.nombre}: +${formatearCantidad(item.diferencia)}`,
     );
 
     bloques.push(`\u2B06\uFE0F ENTRADAS:\n${lineas.join("\n")}`);

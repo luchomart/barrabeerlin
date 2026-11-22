@@ -97,6 +97,48 @@ describe("renderer", () => {
     expect(onInput).toHaveBeenCalledTimes(2);
   });
 
+  it("los productos con decimales aceptan coma y suman de a uno", () => {
+    const onInput = vi.fn();
+    const lista = document.getElementById("lista-productos");
+
+    renderProductos(
+      lista,
+      [{ id: 1, nombre: "Destilados" }],
+      [
+        { id: 1, nombre: "Fernet", categoria_id: 1, permite_decimales: true },
+        { id: 2, nombre: "Gin", categoria_id: 1 },
+      ],
+      onInput,
+    );
+
+    const fernet = lista.querySelector('input[data-id="1"]');
+    const gin = lista.querySelector('input[data-id="2"]');
+
+    expect(fernet.type).toBe("text");
+    expect(fernet.inputMode).toBe("decimal");
+    expect(fernet.dataset.decimales).toBe("1");
+    expect(gin.type).toBe("number");
+    expect(gin.dataset.decimales).toBeUndefined();
+
+    fernet.value = "1,5";
+    fernet.closest(".producto-fila").querySelector('[data-paso="1"]').click();
+    expect(fernet.value).toBe("2,5");
+
+    fernet.dispatchEvent(new KeyboardEvent("keydown", { key: "-", bubbles: true }));
+    expect(fernet.value).toBe("1,5");
+
+    fernet.value = "0.5";
+    fernet.closest(".producto-fila").querySelector('[data-paso="-1"]').click();
+    expect(fernet.value).toBe("0");
+
+    actualizarInputsStock([
+      { producto_id: 1, cantidad: 2.25 },
+      { producto_id: 2, cantidad: 4 },
+    ]);
+    expect(fernet.value).toBe("2,25");
+    expect(gin.value).toBe("4");
+  });
+
   it("renderiza options de sectores con placeholder inicial", () => {
     const select = document.createElement("select");
 
