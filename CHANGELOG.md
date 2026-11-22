@@ -2,7 +2,7 @@
 
 Historial de cambios de Stock Barra.
 
-## Sin publicar (en `dev`)
+## v0.6.0 - 2026-11-22
 
 ### Added
 - Productos que se cuentan con decimales (ej. 2,5 botellas abiertas), hasta 2. Se eligen en el admin,
