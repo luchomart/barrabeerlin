@@ -128,7 +128,7 @@ Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos.
   `rpc_sin_anon = true`.
 - Probado en PGlite imitando roles y esquema (con v0.4.0 y v0.4.1 cargados): 14 casos OK.
 
-## Cantidades con decimales (v0.6.0, pendiente de aplicar)
+## Cantidades con decimales (v0.6.0, aplicado 2026-11-22)
 
 `docs/sql/decimales-v0.6.0.sql` (todo en un `begin/commit`):
 
@@ -145,3 +145,5 @@ Revisado con una consulta de solo lectura a `pg_proc`, `pg_policies` y permisos.
   Revisarlo antes de hacer la UI de ventas.
 - La app anda antes y despues de aplicarlo: sin la columna nadie tiene decimales.
 - Probado en PGlite imitando roles y esquema: 17 casos OK (incluye permisos y el rollback).
+- Aplicado por Luciano el 2026-11-22. Verificacion: `inventario_numeric`, `snapshots_numeric`,
+  `columna_ok`, `rpcs_sin_anon` y `snapshot_sigue_para_anon` en true; `productos_con_decimales = 0`.
