@@ -2,7 +2,28 @@
 
 Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 
-## Donde quedamos (2026-11-23)
+## Donde quedamos (2026-11-24)
+
+- **v0.7.0 publicada en `main` (beerlin.online) el 2026-11-24.** Trae "¿Hay en stock?" (boton al
+  lado del buscador del conteo: busca en todos los sectores y dice si hay, cuanto y donde, con la
+  hora de cada conteo) y los 3 arreglos de decimales de la revision del 2026-11-22.
+  Tests: 117 unitarios + 31 smoke OK. Sin SQL nuevo; Supabase sin pendientes.
+- Decisiones 2026-11-23: va en la pantalla de conteo (no en el supervisor); buscador propio en un
+  panel, sin tocar el del conteo; solo "Hay / No hay" (sin "queda poco" por ahora); trae el stock
+  cada vez que se abre. El dato es el del ultimo conteo (las ventas no descuentan solas).
+- **Proximo paso:** QA en el celu con el personal (`docs/QA_CHECKLIST.md`, "Stock" punto 11 y
+  "Administracion" puntos 8 y 9), y explicarles que el panel muestra el ultimo conteo.
+- Despues: punto 2 de la revision de decimales: al quitarle los decimales a un producto, su stock
+  se recorta (2,5 -> 2) en el proximo guardado del sector sin que nadie lo vea. Recomendada:
+  recortar de una en la RPC `admin_permitir_decimales` cuando `permitir = false` (SQL nuevo).
+  Junto con eso: el `confirm` de "quitar-decimales" (adminController.js ~305), la nota del rollback
+  de decimales-v0.6.0.sql (dice 2,5 -> 3) y "Revisaste las 1 categorias" (stockController.js) -> singular.
+- Pendientes (siguen de antes): empezar un conteo sin internet; borrar los 4 productos duplicados
+  sin categoria (ids 19, 32, 33, 34); marcar en el admin los productos con decimales (hoy ninguno).
+- Despues: UI de ventas automaticas (antes: decidir quien carga ventas, hoy `anon`, y adaptar
+  `registrar_venta` a decimales).
+
+### Antes (2026-11-23)
 
 - **v0.7.0: "¿Hay en stock?"** en la pantalla de conteo: un boton al lado del buscador abre un panel
   que busca en todos los sectores y dice si hay, cuanto y donde (con la hora del conteo). Sale junto

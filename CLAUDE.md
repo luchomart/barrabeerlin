@@ -38,3 +38,5 @@ El plan y "Dónde quedamos" están en `docs/ROADMAP.md`.
 - Smoke en viewport de celu: el pie con Guardar se oculta con un input enfocado; hacer `blur()` antes de guardar.
 - Recorrido visual sin Supabase real: script en el scratchpad que importa `chromium` de
   `node_modules/@playwright/test/index.mjs` y `mockAppServices` de `tests/e2e/support/mockApp.js` (headless: false).
+- Smoke: en un `input type=search` con texto, el primer Escape lo borra y recién el segundo cierra un `<dialog>`.
+- Verificar un deploy: `gh run list --branch main --limit 1` y `curl -s https://beerlin.online/js/config.js | head -1` (muestra `APP_VERSION`).
