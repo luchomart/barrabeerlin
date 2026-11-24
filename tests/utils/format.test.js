@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatearCantidad,
+  formatearFechaConteo,
   leerCantidad,
   normalizarTexto,
   redondearCantidad,
@@ -42,5 +43,20 @@ describe("cantidades con decimales", () => {
     expect(formatearCantidad(2.5)).toBe("2,5");
     expect(formatearCantidad("3.00")).toBe("3");
     expect(formatearCantidad(-0.25)).toBe("-0,25");
+  });
+});
+
+describe("formatearFechaConteo", () => {
+  const ahora = new Date(2026, 10, 23, 22, 0);
+
+  it("dice hoy, ayer o la fecha corta", () => {
+    expect(formatearFechaConteo(new Date(2026, 10, 23, 21, 40), ahora)).toBe("hoy 21:40");
+    expect(formatearFechaConteo(new Date(2026, 10, 22, 9, 5), ahora)).toBe("ayer 09:05");
+    expect(formatearFechaConteo(new Date(2026, 10, 18, 21, 40), ahora)).toBe("18/11 21:40");
+  });
+
+  it("devuelve vacio si no hay fecha valida", () => {
+    expect(formatearFechaConteo(null, ahora)).toBe("");
+    expect(formatearFechaConteo("cualquier cosa", ahora)).toBe("");
   });
 });

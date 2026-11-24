@@ -317,6 +317,17 @@ export async function getInventarioTotal() {
   return data;
 }
 
+// Para "¿Hay en stock?": cantidad por producto y sector, con la hora del conteo.
+export async function getInventarioDetalle() {
+  const { data, error } = await db
+    .from("inventario")
+    .select("producto_id, sector_id, cantidad, ultima_actualizacion");
+
+  if (error) throw error;
+
+  return data;
+}
+
 export async function getConteosDesde(fechaIso) {
   const { data, error } = await db
     .from("inventario")

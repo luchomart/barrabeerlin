@@ -24,6 +24,10 @@ Usar esta lista corta antes de publicar cambios a produccion.
 8. Probar `Copiar` (el boton cambia a "Copiado") y `WhatsApp`.
 9. Elegir primero el sector y despues el empleado: tienen que aparecer los productos.
 10. Indicador del header: "En linea"; con modo avion "Sin conexion"; con pendientes "N sin enviar".
+11. `¿Hay en stock?` (sin elegir empleado ni sector): buscar una bebida que haya en dos sectores ->
+    "Hay N" con el detalle por sector y hora; una en 0 -> "No hay". Si antes se escribio algo en el
+    buscador, el panel arranca con ese texto. `Cerrar` o tocar afuera lo cierran. Con modo avion:
+    "No se pudo consultar el stock" y `Reintentar`.
 
 ## Sin internet (en el celular)
 

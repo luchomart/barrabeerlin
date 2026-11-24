@@ -2,7 +2,18 @@
 
 Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 
-## Donde quedamos (2026-11-22)
+## Donde quedamos (2026-11-23)
+
+- **v0.7.0: "¿Hay en stock?"** en la pantalla de conteo: un boton al lado del buscador abre un panel
+  que busca en todos los sectores y dice si hay, cuanto y donde (con la hora del conteo). Sale junto
+  con los 3 arreglos de decimales de abajo. Tests: 117 unitarios + 31 smoke OK. Sin SQL nuevo.
+- Decisiones 2026-11-23: va en la pantalla de conteo (no en el supervisor); buscador propio en un
+  panel, sin tocar el del conteo; solo "Hay / No hay" (sin aviso de "queda poco" por ahora); trae el
+  stock cada vez que se abre.
+- **Proximo paso:** QA en el celu (`docs/QA_CHECKLIST.md`, "Stock" punto 11) y el punto 2 de la
+  revision de decimales (abajo), que sigue pendiente.
+
+### Antes (2026-11-22)
 
 - **v0.6.0 publicada en `main` (beerlin.online) el 2026-11-22.** Despues se reviso con `/revisar decimales`
   y en `dev` (sin publicar) quedaron 3 arreglos: una cantidad ilegible ("2,,5") ya no se guarda como 0

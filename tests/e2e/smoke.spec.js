@@ -871,3 +871,58 @@ test("supervisor smoke: sin sesion no se ve el boton de admin y al cerrar sesion
   await expect(page.locator("#btn-admin")).toBeHidden();
   await expect(page.locator("#seccion-admin")).toBeHidden();
 });
+
+test("stock smoke: ¿Hay en stock? busca en todos los sectores", async ({ page }) => {
+  await mockAppServices(page);
+  await page.goto("/");
+
+  // No hace falta elegir empleado ni sector.
+  await page.click("#btn-consulta-stock");
+  const dialogo = page.locator("#dialogo-consulta");
+  await expect(dialogo).toBeVisible();
+  await expect(page.locator("#buscar-consulta")).toBeFocused();
+
+  await page.fill("#buscar-consulta", "coca");
+  const coca = dialogo.locator(".consulta-item", { hasText: "Coca Cola" });
+  await expect(coca.locator(".consulta-estado")).toHaveText("Hay 14");
+  await expect(coca).toContainText("Estantes Barra: 8");
+  await expect(coca).toContainText("Camara: 6");
+
+  await page.fill("#buscar-consulta", "stout");
+  await expect(dialogo.locator(".consulta-item .consulta-estado")).toHaveText("No hay");
+
+  await page.fill("#buscar-consulta", "fernet");
+  await expect(dialogo).toContainText('No hay ningún producto con "fernet"');
+
+  await page.click("#btn-cerrar-consulta");
+  await expect(dialogo).toBeHidden();
+});
+
+test("stock smoke: ¿Hay en stock? arranca con lo buscado y avisa sin internet", async ({ page }) => {
+  await mockAppServices(page);
+  await page.goto("/");
+
+  await page.selectOption("#select-empleado", { label: "Karen" });
+  await page.selectOption("#select-sector", { label: "Camara" });
+  await page.fill("#buscar-producto", "red ipa");
+  await page.click("#btn-consulta-stock");
+
+  await expect(page.locator("#buscar-consulta")).toHaveValue("red ipa");
+  await expect(page.locator("#dialogo-consulta .consulta-estado")).toHaveText("Hay 2");
+  // En un campo de busqueda el primer Escape borra el texto y el segundo cierra.
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#dialogo-consulta")).toBeHidden();
+
+  await page.evaluate(() => {
+    globalThis.__mockSinRed = true;
+  });
+  await page.click("#btn-consulta-stock");
+  await expect(page.locator("#dialogo-consulta")).toContainText("No se pudo consultar el stock");
+
+  await page.evaluate(() => {
+    globalThis.__mockSinRed = false;
+  });
+  await page.click('[data-accion="reintentar-consulta"]');
+  await expect(page.locator("#dialogo-consulta .consulta-estado")).toHaveText("Hay 2");
+});

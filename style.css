@@ -339,10 +339,150 @@ header p {
   background: var(--bg-surface);
   padding: var(--sp-3) var(--sp-6);
   border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
 }
 
 .buscador-wrapper {
   position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-consulta {
+  flex-shrink: 0;
+  min-height: 46px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-base);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    background var(--ease-fast),
+    border-color var(--ease-fast),
+    color var(--ease-fast);
+}
+
+/* =====================================================
+   ¿HAY EN STOCK? (panel con buscador en todos los sectores)
+===================================================== */
+
+.consulta {
+  width: min(100% - 16px, 560px);
+  max-width: none;
+  max-height: calc(100dvh - 16px);
+  margin: 8px auto auto;
+  padding: var(--sp-4);
+  border: 1px solid var(--border-base);
+  border-radius: var(--r-lg);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.consulta[open] {
+  display: flex;
+}
+
+.consulta::backdrop {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.consulta-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.consulta-cabecera h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.consulta-nota {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.consulta-resultados {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.consulta-vacia {
+  padding: var(--sp-4) var(--sp-2);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.consulta-lista,
+.consulta-sectores {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.consulta-item {
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.consulta-item:last-child {
+  border-bottom: none;
+}
+
+.consulta-item-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.consulta-nombre {
+  font-weight: 600;
+}
+
+.consulta-estado {
+  flex-shrink: 0;
+  padding: 2px var(--sp-3);
+  border-radius: var(--r-pill);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.consulta-hay {
+  color: var(--green);
+  background: var(--green-bg);
+  border: 1px solid var(--green-border);
+}
+
+.consulta-no-hay {
+  color: var(--red);
+  background: var(--red-bg);
+  border: 1px solid var(--red-border);
+}
+
+.consulta-sectores {
+  margin-top: var(--sp-1);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.consulta-sectores b {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.consulta-fecha {
+  color: var(--text-muted);
 }
 
 .buscador-icon {
@@ -356,7 +496,8 @@ header p {
   pointer-events: none;
 }
 
-#buscar-producto {
+#buscar-producto,
+#buscar-consulta {
   width: 100%;
   min-height: 46px;
   padding: 0 14px 0 40px;
@@ -372,12 +513,14 @@ header p {
     box-shadow var(--ease-fast);
 }
 
-#buscar-producto::placeholder {
+#buscar-producto::placeholder,
+#buscar-consulta::placeholder {
   color: var(--text-muted);
   opacity: 1;
 }
 
-#buscar-producto:focus {
+#buscar-producto:focus,
+#buscar-consulta:focus {
   border-color: var(--green);
   box-shadow: 0 0 0 3px var(--green-bg);
   background: var(--bg-overlay);
@@ -1951,6 +2094,7 @@ footer::before {
     background: var(--green-dim);
   }
 
+  .btn-consulta:hover,
   .acciones-stock button:hover {
     background: var(--bg-overlay);
     border-color: var(--border-strong);

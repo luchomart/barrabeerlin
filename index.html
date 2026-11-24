@@ -59,12 +59,37 @@
           <input
             type="search"
             id="buscar-producto"
-            placeholder="Buscar producto"
+            placeholder="Buscar"
             aria-label="Buscar producto"
             autocomplete="off"
           />
         </div>
+        <button id="btn-consulta-stock" type="button" class="btn-consulta" aria-haspopup="dialog">
+          ¿Hay en stock?
+        </button>
       </section>
+
+      <dialog id="dialogo-consulta" class="consulta" aria-labelledby="consulta-titulo">
+        <div class="consulta-cabecera">
+          <h2 id="consulta-titulo">¿Hay en stock?</h2>
+          <button id="btn-cerrar-consulta" type="button" class="btn-texto">Cerrar</button>
+        </div>
+        <div class="buscador-wrapper">
+          <svg class="buscador-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+            <circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6" />
+            <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+          </svg>
+          <input
+            type="search"
+            id="buscar-consulta"
+            placeholder="Buscar en todos los sectores"
+            aria-label="Buscar en todos los sectores"
+            autocomplete="off"
+          />
+        </div>
+        <p class="consulta-nota">Según el último conteo de cada sector.</p>
+        <div id="resultados-consulta" class="consulta-resultados"></div>
+      </dialog>
 
       <section
         id="comprobante-conteo"

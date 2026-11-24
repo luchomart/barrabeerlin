@@ -236,6 +236,18 @@ function buildInventarioServiceMock(options = {}) {
       return inventarioTotal;
     }
 
+    export async function getInventarioDetalle() {
+      fallarSiSinRed();
+
+      return Object.entries(inventarioPorSector).flatMap(([sectorId, filas]) =>
+        filas.map((fila) => ({
+          ...fila,
+          sector_id: sectorId,
+          ultima_actualizacion: new Date().toISOString(),
+        })),
+      );
+    }
+
     export async function saveStockSnapshot(stockData) {
       if (${JSON.stringify(failSnapshot)}) {
         throw new Error("mock saveStockSnapshot error");

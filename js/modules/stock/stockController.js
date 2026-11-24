@@ -15,6 +15,7 @@ import {
 } from "../../services/catalogoService.js";
 
 import {
+  getInventarioDetalle,
   getInventarioSector,
   guardarInventario,
   saveStockSnapshot,
@@ -24,6 +25,7 @@ import {
   renderAvisoGuardar,
   renderAvisoStock,
   renderComprobante,
+  renderConsultaStock,
   renderErrorCarga,
   renderEstadoConexion,
   renderSectores,
@@ -54,6 +56,7 @@ import {
 } from "./stockBorrador.js";
 
 import { buildStockData, formatWhatsappText } from "./stockFormatter.js";
+import { buildConsultaStock, buscarEnConsulta } from "./stockConsulta.js";
 
 const BARRILES = PRODUCTOS_BARRILES_CAMARA.map((nombre) =>
   normalizarTexto(nombre),
@@ -865,6 +868,77 @@ export function initStockApp() {
     });
   }
 
+  // "¿Hay en stock?": busca en todos los sectores. Trae el stock cada vez que se abre,
+  // asi muestra los ultimos conteos guardados (tambien los de otros celulares).
+  function configurarConsultaStock() {
+    const dialogo = document.getElementById("dialogo-consulta");
+    const btnAbrir = document.getElementById("btn-consulta-stock");
+    const btnCerrar = document.getElementById("btn-cerrar-consulta");
+    const input = document.getElementById("buscar-consulta");
+    const resultados = document.getElementById("resultados-consulta");
+
+    if (!dialogo || !btnAbrir) return;
+
+    let items = null;
+    let pedido = 0;
+
+    function mostrar() {
+      if (!items) return;
+
+      renderConsultaStock(resultados, {
+        estado: "resultados",
+        texto: input.value,
+        ...buscarEnConsulta(items, input.value),
+      });
+    }
+
+    async function cargar() {
+      const estePedido = ++pedido;
+
+      items = null;
+      renderConsultaStock(resultados, { estado: "cargando" });
+
+      try {
+        const inventario = await getInventarioDetalle();
+
+        if (estePedido !== pedido) return;
+
+        items = buildConsultaStock({
+          productos: buildCatalogoStockTotal(appState.categorias, appState.productos).productos,
+          sectores: appState.sectores,
+          inventario,
+        });
+        mostrar();
+      } catch (error) {
+        if (estePedido !== pedido) return;
+
+        console.error(error);
+        renderConsultaStock(resultados, { estado: "error" });
+      }
+    }
+
+    btnAbrir.addEventListener("click", () => {
+      // Si ya se estaba buscando algo en el conteo, arranca con ese texto.
+      input.value = buscador.value.trim();
+      dialogo.showModal();
+      input.focus();
+      cargar();
+    });
+
+    btnCerrar.addEventListener("click", () => dialogo.close());
+
+    // Tocar afuera del panel lo cierra.
+    dialogo.addEventListener("click", (event) => {
+      if (event.target === dialogo) dialogo.close();
+    });
+
+    resultados.addEventListener("click", (event) => {
+      if (event.target.closest('[data-accion="reintentar-consulta"]')) cargar();
+    });
+
+    input.addEventListener("input", mostrar);
+  }
+
   // Mientras se escribe (buscador o cantidad) el pie fijo se oculta en el celu para que
   // el teclado no tape los productos. Vuelve al salir del campo.
   function configurarModoEscritura() {
@@ -1086,6 +1160,7 @@ export function initStockApp() {
   selectSector.addEventListener("change", manejarCambioSector);
 
   configurarBuscador();
+  configurarConsultaStock();
   configurarModoEscritura();
   configurarAccesoSupervisor();
 

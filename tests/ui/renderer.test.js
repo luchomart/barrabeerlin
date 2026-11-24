@@ -8,6 +8,7 @@ import {
   marcarCategoriaRevisada,
   renderAvisoGuardar,
   renderComprobante,
+  renderConsultaStock,
   renderErrorCarga,
   renderEstadoConexion,
   renderAppVersionBadge,
@@ -600,5 +601,44 @@ describe("cantidades ilegibles", () => {
     fernet.closest(".producto-fila").querySelector('[data-paso="-1"]').click();
     expect(fernet.value).toBe("0");
     expect(fernet.classList.contains("input-invalido")).toBe(false);
+  });
+  it("renderConsultaStock muestra hay / no hay, sectores y escapa nombres", () => {
+    const el = document.createElement("div");
+    const ahora = new Date(2026, 10, 23, 22, 0);
+
+    renderConsultaStock(el, { estado: "resultados", texto: "" });
+    expect(el.textContent).toContain("Escribí el nombre");
+
+    renderConsultaStock(el, {
+      estado: "resultados",
+      texto: "ipa",
+      ahora,
+      cantidad: 3,
+      resultados: [
+        {
+          nombre: "<img src=x>IPA",
+          total: 2.5,
+          sectores: [{ sector: "Camara", cantidad: 2.5, fecha: new Date(2026, 10, 23, 21, 40) }],
+          ultimoConteo: new Date(2026, 10, 23, 21, 40),
+        },
+        { nombre: "Red Ipa", total: 0, sectores: [], ultimoConteo: new Date(2026, 10, 22, 20, 0) },
+      ],
+    });
+
+    const items = el.querySelectorAll(".consulta-item");
+    expect(items).toHaveLength(2);
+    expect(el.querySelector("img")).toBeNull();
+    expect(items[0].textContent).toContain("Hay 2,5");
+    expect(items[0].textContent).toContain("Camara: 2,5 · hoy 21:40");
+    expect(items[1].textContent).toContain("No hay");
+    expect(items[1].textContent).toContain("Último conteo: ayer 20:00");
+    expect(el.textContent).toContain("Y 1 más");
+
+    renderConsultaStock(el, { estado: "resultados", texto: "<b>x</b>", resultados: [] });
+    expect(el.textContent).toContain('No hay ningún producto con "<b>x</b>"');
+    expect(el.querySelector("b")).toBeNull();
+
+    renderConsultaStock(el, { estado: "error" });
+    expect(el.querySelector('[data-accion="reintentar-consulta"]')).not.toBeNull();
   });
 });

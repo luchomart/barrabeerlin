@@ -1,5 +1,6 @@
 import {
   formatearCantidad,
+  formatearFechaConteo,
   leerCantidad,
   normalizarTexto,
   redondearCantidad,
@@ -425,6 +426,82 @@ export function renderComprobante(elemento, datos = null) {
       <button type="button" data-accion="whatsapp">Enviar stock por WhatsApp</button>
       <span class="comprobante-siguiente">Para seguir, elegí otro sector.</span>
     </div>
+  `;
+}
+
+// Panel "¿Hay en stock?". estado: "inicio" | "cargando" | "error" | "resultados".
+export function renderConsultaStock(
+  elemento,
+  { estado = "inicio", texto = "", resultados = [], cantidad = 0, ahora = new Date() } = {},
+) {
+  if (!elemento) return;
+
+  if (estado === "cargando") {
+    elemento.innerHTML = '<div class="loader">Cargando stock…</div>';
+    return;
+  }
+
+  if (estado === "error") {
+    elemento.innerHTML = `
+      <div class="error-carga">
+        <span>No se pudo consultar el stock. Revisá la conexión.</span>
+        <button type="button" data-accion="reintentar-consulta" class="btn-texto">Reintentar</button>
+      </div>
+    `;
+    return;
+  }
+
+  const buscado = String(texto).trim();
+
+  if (!buscado) {
+    elemento.innerHTML =
+      '<p class="consulta-vacia">Escribí el nombre de una bebida para ver si hay y en qué sector.</p>';
+    return;
+  }
+
+  if (!resultados.length) {
+    elemento.innerHTML = `<p class="consulta-vacia">No hay ningún producto con "${escapeHtml(buscado)}".</p>`;
+    return;
+  }
+
+  const items = resultados
+    .map((item) => {
+      const hay = item.total > 0;
+      const detalle = hay
+        ? item.sectores
+            .map((s) => {
+              const fecha = formatearFechaConteo(s.fecha, ahora);
+
+              return `<li>${escapeHtml(s.sector)}: <b>${escapeHtml(formatearCantidad(s.cantidad))}</b>${
+                fecha ? ` <span class="consulta-fecha">· ${escapeHtml(fecha)}</span>` : ""
+              }</li>`;
+            })
+            .join("")
+        : `<li class="consulta-fecha">${
+            item.ultimoConteo
+              ? `Último conteo: ${escapeHtml(formatearFechaConteo(item.ultimoConteo, ahora))}`
+              : "Todavía no se contó"
+          }</li>`;
+
+      return `
+        <li class="consulta-item">
+          <div class="consulta-item-cabecera">
+            <span class="consulta-nombre">${escapeHtml(item.nombre)}</span>
+            <span class="consulta-estado consulta-${hay ? "hay" : "no-hay"}">${
+              hay ? `Hay ${escapeHtml(formatearCantidad(item.total))}` : "No hay"
+            }</span>
+          </div>
+          <ul class="consulta-sectores">${detalle}</ul>
+        </li>
+      `;
+    })
+    .join("");
+
+  const resto = cantidad - resultados.length;
+
+  elemento.innerHTML = `
+    <ul class="consulta-lista">${items}</ul>
+    ${resto > 0 ? `<p class="consulta-vacia">Y ${resto} más: escribí más letras para achicar la búsqueda.</p>` : ""}
   `;
 }
 
