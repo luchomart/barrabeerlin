@@ -2,6 +2,21 @@
 
 Historial de cambios de Stock Barra.
 
+## v0.7.0 - 2026-11-23
+
+### Added
+- Conteo: boton "¿Hay en stock?" al lado del buscador. Abre un panel que busca un producto en todos
+  los sectores (sin elegir empleado ni sector) y dice "Hay N" o "No hay", cuanto hay en cada sector y
+  la hora de cada conteo. Es el dato del ultimo conteo: las ventas todavia no descuentan solas.
+  Ignora tildes y mayusculas, y acepta palabras en cualquier orden ("ipa red").
+- No requiere SQL nuevo (lee `inventario` igual que "Copiar stock total").
+
+### Fixed
+- Conteo: una cantidad que no se entiende en un producto con decimales ("2,,5") ya no se guarda como 0.
+  Queda en rojo y `Guardar` avisa, abre la categoria y lleva hasta ella.
+- El borrador de un producto que paso de decimales a enteros vuelve redondeado ("2,5" -> 2), no vacio.
+- Los botones − / + reemplazan un texto ilegible en vez de no hacer nada.
+
 ## v0.6.0 - 2026-11-22
 
 ### Added

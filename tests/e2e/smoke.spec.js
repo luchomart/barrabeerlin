@@ -302,6 +302,85 @@ test("stock smoke: un producto con decimales acepta coma y se guarda con 2 decim
   await context.close();
 });
 
+test("stock smoke: una cantidad ilegible no se guarda como 0", async ({ page }) => {
+  await mockAppServices(page);
+  await page.addInitScript(() => {
+    globalThis.__mockCatalogo = {
+      productos: [
+        { id: 301, nombre: "Gin", categoria_id: 4, orden: 1, permite_decimales: true },
+        { id: 306, nombre: "Jameson", categoria_id: 4, orden: 2 },
+      ],
+      categorias: [{ id: 4, nombre: "Destilados, licores y aperitivos" }],
+      empleados: [{ id: 1, nombre: "Karen" }],
+    };
+    globalThis.__mockInventarioSector = { 2: [{ producto_id: 301, cantidad: 2.5 }] };
+  });
+  await page.goto("/");
+
+  await page.selectOption("#select-empleado", { label: "Karen" });
+  await page.selectOption("#select-sector", { label: "Estantes Barra" });
+  await page.locator(".categoria-titulo", { hasText: "Destilados" }).click();
+
+  const gin = page.locator('input[data-id="301"]');
+
+  await gin.fill("2,,5");
+  await gin.blur();
+  await expect(gin).toHaveClass(/input-invalido/);
+
+  // Aunque se cierre la categoria, Guardar la vuelve a abrir y avisa.
+  await page.locator(".categoria-titulo", { hasText: "Destilados" }).click();
+  await page.click("#btn-guardar");
+  await expect(page.locator("#aviso-guardar")).toContainText("No se entiende la cantidad de Gin");
+  await expect(gin).toBeVisible();
+  await expect(gin).toBeFocused();
+  expect(await page.evaluate(() => globalThis.__mockUltimoGuardado)).toBeUndefined();
+
+  await gin.fill("2,5");
+  await expect(gin).not.toHaveClass(/input-invalido/);
+  await gin.blur();
+  await guardarConteo(page);
+  await expect(page.locator("#comprobante-conteo")).toContainText("guardado");
+
+  const guardado = await page.evaluate(() => globalThis.__mockUltimoGuardado);
+
+  expect(guardado.find((item) => String(item.producto_id) === "301").cantidad).toBe(2.5);
+});
+
+test("stock smoke: el borrador se adapta si el producto cambio de decimales a enteros", async ({ page }) => {
+  await mockAppServices(page);
+  await page.addInitScript(() => {
+    globalThis.__mockCatalogo = {
+      productos: [{ id: 306, nombre: "Jameson", categoria_id: 4, orden: 1 }],
+      categorias: [{ id: 4, nombre: "Destilados, licores y aperitivos" }],
+      empleados: [{ id: 1, nombre: "Karen" }],
+    };
+    // Borrador de cuando Jameson se contaba con decimales.
+    if (!sessionStorage.getItem("borrador-sembrado")) {
+      sessionStorage.setItem("borrador-sembrado", "1");
+      localStorage.setItem("empleado", "Karen");
+      localStorage.setItem(
+        "stock-borradores",
+        JSON.stringify({
+          2: {
+            sector_id: "2",
+            sector_nombre: "Estantes Barra",
+            empleado: "Karen",
+            cantidades: { 306: "2,5" },
+            actualizado: new Date().toISOString(),
+          },
+        }),
+      );
+    }
+  });
+  await page.goto("/");
+
+  const jameson = page.locator('input[data-id="306"]');
+
+  await expect(page.locator("#select-sector")).toHaveValue("2");
+  await expect(jameson).toHaveValue("2");
+  await expect(jameson).toHaveClass(/input-modificado/);
+});
+
 test("stock smoke: WhatsApp genera snapshot y abre URL mockeada", async ({ page }) => {
   await mockAppServices(page);
   await page.addInitScript(() => {
@@ -791,4 +870,59 @@ test("supervisor smoke: sin sesion no se ve el boton de admin y al cerrar sesion
   await page.click("#btn-cerrar-sesion-supervisor");
   await expect(page.locator("#btn-admin")).toBeHidden();
   await expect(page.locator("#seccion-admin")).toBeHidden();
+});
+
+test("stock smoke: ¿Hay en stock? busca en todos los sectores", async ({ page }) => {
+  await mockAppServices(page);
+  await page.goto("/");
+
+  // No hace falta elegir empleado ni sector.
+  await page.click("#btn-consulta-stock");
+  const dialogo = page.locator("#dialogo-consulta");
+  await expect(dialogo).toBeVisible();
+  await expect(page.locator("#buscar-consulta")).toBeFocused();
+
+  await page.fill("#buscar-consulta", "coca");
+  const coca = dialogo.locator(".consulta-item", { hasText: "Coca Cola" });
+  await expect(coca.locator(".consulta-estado")).toHaveText("Hay 14");
+  await expect(coca).toContainText("Estantes Barra: 8");
+  await expect(coca).toContainText("Camara: 6");
+
+  await page.fill("#buscar-consulta", "stout");
+  await expect(dialogo.locator(".consulta-item .consulta-estado")).toHaveText("No hay");
+
+  await page.fill("#buscar-consulta", "fernet");
+  await expect(dialogo).toContainText('No hay ningún producto con "fernet"');
+
+  await page.click("#btn-cerrar-consulta");
+  await expect(dialogo).toBeHidden();
+});
+
+test("stock smoke: ¿Hay en stock? arranca con lo buscado y avisa sin internet", async ({ page }) => {
+  await mockAppServices(page);
+  await page.goto("/");
+
+  await page.selectOption("#select-empleado", { label: "Karen" });
+  await page.selectOption("#select-sector", { label: "Camara" });
+  await page.fill("#buscar-producto", "red ipa");
+  await page.click("#btn-consulta-stock");
+
+  await expect(page.locator("#buscar-consulta")).toHaveValue("red ipa");
+  await expect(page.locator("#dialogo-consulta .consulta-estado")).toHaveText("Hay 2");
+  // En un campo de busqueda el primer Escape borra el texto y el segundo cierra.
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#dialogo-consulta")).toBeHidden();
+
+  await page.evaluate(() => {
+    globalThis.__mockSinRed = true;
+  });
+  await page.click("#btn-consulta-stock");
+  await expect(page.locator("#dialogo-consulta")).toContainText("No se pudo consultar el stock");
+
+  await page.evaluate(() => {
+    globalThis.__mockSinRed = false;
+  });
+  await page.click('[data-accion="reintentar-consulta"]');
+  await expect(page.locator("#dialogo-consulta .consulta-estado")).toHaveText("Hay 2");
 });

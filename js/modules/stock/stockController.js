@@ -15,6 +15,7 @@ import {
 } from "../../services/catalogoService.js";
 
 import {
+  getInventarioDetalle,
   getInventarioSector,
   guardarInventario,
   saveStockSnapshot,
@@ -24,19 +25,18 @@ import {
   renderAvisoGuardar,
   renderAvisoStock,
   renderComprobante,
+  renderConsultaStock,
   renderErrorCarga,
   renderEstadoConexion,
   renderSectores,
   renderProductos,
   actualizarInputsStock,
+  leerCantidadInput,
   marcarCategoriaRevisada,
+  validarInputCantidad,
+  valorInputCantidad,
 } from "../../ui/renderer.js";
-import {
-  formatearCantidad,
-  leerCantidad,
-  normalizarTexto,
-  redondearCantidad,
-} from "../../utils/format.js";
+import { normalizarTexto } from "../../utils/format.js";
 import {
   buildCatalogoRenderizable,
   buildCatalogoStockTotal,
@@ -56,6 +56,7 @@ import {
 } from "./stockBorrador.js";
 
 import { buildStockData, formatWhatsappText } from "./stockFormatter.js";
+import { buildConsultaStock, buscarEnConsulta } from "./stockConsulta.js";
 
 const BARRILES = PRODUCTOS_BARRILES_CAMARA.map((nombre) =>
   normalizarTexto(nombre),
@@ -379,7 +380,11 @@ export function initStockApp() {
 
       if (valor === undefined || valor === "") return;
 
-      input.value = valor;
+      // Con el formato del input: si en el admin cambio "con decimales", "2,5" no queda vacio.
+      const cantidad = leerCantidadInput(input, valor);
+
+      input.value = Number.isNaN(cantidad) ? valor : valorInputCantidad(input, cantidad);
+      validarInputCantidad(input);
       input.classList.add("input-modificado");
       marcarCategoriaRevisada(input.closest(".categoria-bloque"));
       aplicados += 1;
@@ -441,9 +446,7 @@ export function initStockApp() {
 
   // Los productos con decimales (marcados en el admin) guardan hasta 2; el resto, enteros.
   function normalizarCantidad(input) {
-    const valor = leerCantidad(input.value);
-    const cantidad =
-      input.dataset.decimales === "1" ? redondearCantidad(valor) : Math.trunc(valor);
+    const cantidad = leerCantidadInput(input);
 
     if (!Number.isFinite(cantidad)) {
       return 0;
@@ -546,6 +549,26 @@ export function initStockApp() {
       return;
     }
 
+    // Un numero ilegible ("2,,5") no se guarda como 0: se marca y se lleva hasta el.
+    const invalido = [...inputs].filter((input) => !validarInputCantidad(input))[0];
+
+    if (invalido) {
+      const titulo = invalido.closest(".categoria-bloque")?.querySelector(".categoria-titulo");
+
+      if (titulo && !titulo.classList.contains("categoria-abierta")) titulo.click();
+
+      const nombre = invalido.closest(".producto-fila")?.querySelector(".producto-nombre")
+        ?.textContent.trim();
+
+      renderAvisoGuardar(avisoGuardar, {
+        tipo: "atencion",
+        texto: `No se entiende la cantidad de ${nombre || "un producto"} («${invalido.value}»). Corregila para guardar.`,
+      });
+      invalido.focus();
+      invalido.scrollIntoView({ block: "center" });
+      return;
+    }
+
     // Guardar manda todo el sector: si hay categorias sin abrir, se avisa antes.
     const sinRevisar = categoriasSinRevisar();
 
@@ -580,8 +603,7 @@ export function initStockApp() {
       inputs.forEach((input) => {
         const cantidad = normalizarCantidad(input);
 
-        input.value =
-          input.dataset.decimales === "1" ? formatearCantidad(cantidad) : cantidad;
+        input.value = valorInputCantidad(input, cantidad);
 
         registros.push({
           producto_id: input.dataset.id,
@@ -846,6 +868,77 @@ export function initStockApp() {
     });
   }
 
+  // "¿Hay en stock?": busca en todos los sectores. Trae el stock cada vez que se abre,
+  // asi muestra los ultimos conteos guardados (tambien los de otros celulares).
+  function configurarConsultaStock() {
+    const dialogo = document.getElementById("dialogo-consulta");
+    const btnAbrir = document.getElementById("btn-consulta-stock");
+    const btnCerrar = document.getElementById("btn-cerrar-consulta");
+    const input = document.getElementById("buscar-consulta");
+    const resultados = document.getElementById("resultados-consulta");
+
+    if (!dialogo || !btnAbrir) return;
+
+    let items = null;
+    let pedido = 0;
+
+    function mostrar() {
+      if (!items) return;
+
+      renderConsultaStock(resultados, {
+        estado: "resultados",
+        texto: input.value,
+        ...buscarEnConsulta(items, input.value),
+      });
+    }
+
+    async function cargar() {
+      const estePedido = ++pedido;
+
+      items = null;
+      renderConsultaStock(resultados, { estado: "cargando" });
+
+      try {
+        const inventario = await getInventarioDetalle();
+
+        if (estePedido !== pedido) return;
+
+        items = buildConsultaStock({
+          productos: buildCatalogoStockTotal(appState.categorias, appState.productos).productos,
+          sectores: appState.sectores,
+          inventario,
+        });
+        mostrar();
+      } catch (error) {
+        if (estePedido !== pedido) return;
+
+        console.error(error);
+        renderConsultaStock(resultados, { estado: "error" });
+      }
+    }
+
+    btnAbrir.addEventListener("click", () => {
+      // Si ya se estaba buscando algo en el conteo, arranca con ese texto.
+      input.value = buscador.value.trim();
+      dialogo.showModal();
+      input.focus();
+      cargar();
+    });
+
+    btnCerrar.addEventListener("click", () => dialogo.close());
+
+    // Tocar afuera del panel lo cierra.
+    dialogo.addEventListener("click", (event) => {
+      if (event.target === dialogo) dialogo.close();
+    });
+
+    resultados.addEventListener("click", (event) => {
+      if (event.target.closest('[data-accion="reintentar-consulta"]')) cargar();
+    });
+
+    input.addEventListener("input", mostrar);
+  }
+
   // Mientras se escribe (buscador o cantidad) el pie fijo se oculta en el celu para que
   // el teclado no tape los productos. Vuelve al salir del campo.
   function configurarModoEscritura() {
@@ -1067,6 +1160,7 @@ export function initStockApp() {
   selectSector.addEventListener("change", manejarCambioSector);
 
   configurarBuscador();
+  configurarConsultaStock();
   configurarModoEscritura();
   configurarAccesoSupervisor();
 

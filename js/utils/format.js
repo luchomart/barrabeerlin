@@ -30,3 +30,26 @@ export function leerCantidad(valor) {
 export function formatearCantidad(valor) {
   return String(redondearCantidad(valor)).replace(".", ",");
 }
+
+// "hoy 21:40", "ayer 21:40" o "18/11 21:40".
+export function formatearFechaConteo(fecha, ahora = new Date()) {
+  const valida = fecha ? new Date(fecha) : null;
+
+  if (!valida || Number.isNaN(valida.getTime())) return "";
+
+  const hora = valida.toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const dia = new Date(valida.getFullYear(), valida.getMonth(), valida.getDate());
+  const hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+  const diasAtras = Math.round((hoy - dia) / 86400000);
+
+  if (diasAtras === 0) return `hoy ${hora}`;
+  if (diasAtras === 1) return `ayer ${hora}`;
+
+  const fechaCorta = valida.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
+
+  return `${fechaCorta} ${hora}`;
+}

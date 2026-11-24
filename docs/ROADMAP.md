@@ -2,15 +2,55 @@
 
 Roadmap actualizado segun el estado real del proyecto al 2026-09-18.
 
-## Donde quedamos (2026-11-22)
+## Donde quedamos (2026-11-23)
 
-- **v0.6.0 publicada en `main` (beerlin.online) el 2026-11-22: decimales.** el supervisor elige en el admin que productos se cuentan
-  con decimales (hasta 2, ej. 2,5). Tests: 103 unitarios + 27 smoke OK; SQL probado en PGlite (17 casos).
-  - `docs/sql/decimales-v0.6.0.sql` aplicado en Supabase el 2026-11-22 (verificacion OK).
-  - Falta: QA en el celu con el personal (checklist "Administracion", punto 8) y elegir en el admin
-    que productos se cuentan con decimales.
-  - Decision: los decimales son por producto (no globales) y los botones − / + suman de a 1.
-  - Pendiente para ventas: `registrar_venta` trata el stock como entero (0,5 cuenta como 1).
+- **v0.7.0: "¿Hay en stock?"** en la pantalla de conteo: un boton al lado del buscador abre un panel
+  que busca en todos los sectores y dice si hay, cuanto y donde (con la hora del conteo). Sale junto
+  con los 3 arreglos de decimales de abajo. Tests: 117 unitarios + 31 smoke OK. Sin SQL nuevo.
+- Decisiones 2026-11-23: va en la pantalla de conteo (no en el supervisor); buscador propio en un
+  panel, sin tocar el del conteo; solo "Hay / No hay" (sin aviso de "queda poco" por ahora); trae el
+  stock cada vez que se abre.
+- **Proximo paso:** QA en el celu (`docs/QA_CHECKLIST.md`, "Stock" punto 11) y el punto 2 de la
+  revision de decimales (abajo), que sigue pendiente.
+
+### Antes (2026-11-22)
+
+- **v0.6.0 publicada en `main` (beerlin.online) el 2026-11-22.** Despues se reviso con `/revisar decimales`
+  y en `dev` (sin publicar) quedaron 3 arreglos: una cantidad ilegible ("2,,5") ya no se guarda como 0
+  (queda en rojo y `Guardar` avisa y lleva hasta ella); el borrador se adapta si el producto cambio de
+  decimales a enteros; − / + reemplazan un texto ilegible. Tests: 106 unitarios + 29 smoke OK.
+- Supabase: no queda SQL pendiente.
+- **Proximo paso:** decidir el punto 2 de la revision: al quitarle los decimales a un producto, su
+  stock con decimales se recorta (2,5 -> 2) en el proximo guardado del sector, aunque no se abra la
+  categoria, y nadie lo ve. Opciones: dejar el input decimal mientras el valor guardado tenga
+  decimales, o recortar todo de una en la RPC `admin_permitir_decimales` cuando `permitir = false`
+  (recomendada; SQL nuevo). Junto con eso, corregir el `confirm` de "quitar-decimales"
+  (adminController.js ~305) y la nota del rollback de decimales-v0.6.0.sql (dice 2,5 -> 3).
+- Detalle chico: "Revisaste las 1 categorias" (stockController.js:166) -> singular.
+- Despues: publicar v0.6.1 con esto, QA en el celu (`docs/QA_CHECKLIST.md`, "Administracion" puntos 8
+  y 9) y marcar en el admin los productos con decimales (hoy ninguno).
+- Decisiones 2026-11-22: una cantidad ilegible bloquea el guardado (no vuelve sola al valor anterior,
+  para no guardar sin aviso una cantidad vieja).
+- Pendientes (siguen de antes): empezar un conteo sin internet; borrar los 4 productos duplicados
+  sin categoria (ids 19, 32, 33, 34).
+- Despues: UI de ventas automaticas. Antes: decidir quien carga ventas (hoy `anon`) y adaptar
+  `registrar_venta` a decimales (ventas-automaticas-v0.4.0.sql:210 hace `::integer`: con 2,5 descuenta 3;
+  con 0,4 no descuenta y lo marca faltante).
+
+### Antes (2026-11-22, release v0.6.0)
+
+- **v0.6.0 publicada en `main` (beerlin.online) el 2026-11-22.** El supervisor elige en el admin
+  ("Se cuentan con decimales") que productos aceptan hasta 2 decimales (ej. 2,5). Tests: 103
+  unitarios + 27 smoke OK; SQL probado en PGlite (17 casos).
+- Supabase: `docs/sql/decimales-v0.6.0.sql` aplicado el 2026-11-22 (verificacion OK). No queda SQL pendiente.
+- **Proximo paso:** QA en el celu con el personal (`docs/QA_CHECKLIST.md`, "Administracion"
+  punto 8) y marcar en el admin los productos que se cuentan con decimales (hoy ninguno).
+- Decisiones 2026-11-22: decimales por producto (no globales); − / + suman de a 1; se muestran con
+  coma y se aceptan coma o punto; redondeo a 2 igual que Postgres (1,255 -> 1,26).
+- Pendientes (siguen de antes): empezar un conteo sin internet; borrar los 4 productos duplicados
+  sin categoria (ids 19, 32, 33, 34).
+- Despues: UI de ventas automaticas. Antes: decidir quien carga ventas (hoy `anon`) y adaptar
+  `registrar_venta` a decimales (hoy convierte el stock a entero: 0,5 cuenta como 1).
 
 ### Antes (2026-11-17)
 
